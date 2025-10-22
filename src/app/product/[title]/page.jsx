@@ -105,13 +105,12 @@ export default function ProductPage({ params }) {
     }
     if (quantity > product.stock) return;
     try {
-      await axiosInstance.post("/cart/update", {
+      await axiosInstance.post("/cart/add", {
         product_id: product.id,
-        delta: quantity,
+        quantity: quantity,
         size: selectedSize,
         color: selectColor,
       });
-      // success feedback and reset inputs
       setShowSuccess(true);
       setMsg("");
       setSelectedSize("");
@@ -131,8 +130,9 @@ export default function ProductPage({ params }) {
         cartBadge.classList.add("cart-badge-pulse");
         setTimeout(() => cartBadge.classList.remove("cart-badge-pulse"), 800);
       }
-    } catch {
-      window.location.href = "/login";
+    } catch(err) {
+      console.log(err);
+      // window.location.href = "/login";
     }
   }
 

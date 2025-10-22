@@ -45,6 +45,23 @@ function Navbar({ cartCount, isLogged, pathname }) {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("md"));
   const [animate, setAnimate] = useState(false);
 
+  const [logout,setlogout]=useState(false);
+
+  async function Logout()
+  {
+try
+{
+  const res=await axiosInstance.post("/logout");
+  setlogout(true);
+}
+catch(err)
+{
+  console.log(err);
+}
+    
+  }
+
+
   useEffect(() => {
     if (!isLogged) setAnimate(true);
   }, [isLogged]);
@@ -68,18 +85,22 @@ function Navbar({ cartCount, isLogged, pathname }) {
             Shop
           </MuiLink>
         </ListItem>
-        {/* <ListItem>
-          <MuiLink href="" underline="none" sx={{ color: muiTheme.palette.primary.main, fontWeight: 600 }}>
-            Contact with us
-          </MuiLink>
-        </ListItem> */}
+      
+      
 
         {isLogged && (
+          <>
           <ListItem>
             <MuiLink href="/orderComplet" underline="none" sx={{ color: pathname === "/orderComplet" ? muiTheme.palette.secondary.main : muiTheme.palette.primary.main, fontWeight: 600 }}>
               My Orders
             </MuiLink>
           </ListItem>
+          <ListItem>    
+            <MuiLink onClick={()=>{Logout;window.location.href = "/"}} underline="none" sx={{ color: pathname === "/logout" ? muiTheme.palette.secondary.main : muiTheme.palette.primary.main, fontWeight: 600 }}>
+              Logout
+            </MuiLink>
+          </ListItem>
+        </>
         )}
 
         {!isLogged && (
@@ -136,10 +157,31 @@ function Navbar({ cartCount, isLogged, pathname }) {
               {/* <MuiLink href="" underline="none" sx={{ color: "#fff" }}>Contact with us</MuiLink> */}
 
               {isLogged && (
+                <>
                 <MuiLink href="/orderComplet" underline="none" sx={{ color: pathname === "/orderComplet" ? muiTheme.palette.secondary.main : "#fff", display: "flex", alignItems: "center", gap: 0.5 }}>
                   <ShoppingBag sx={{ fontSize: 18 }} />
                   My Orders
                 </MuiLink>
+                    <Fade in={animate} timeout={700}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  
+                    <Slide direction="up" in={animate} timeout={900}>
+                      <Button onClick={()=>{Logout;window.location.href = "/"}} variant="contained" sx={{
+                        backgroundColor:'white',
+                        color: "#000",
+                        borderRadius: "20px",
+                        px: 2.5,
+                        "&:hover": { backgroundColor: "#a97b30" }
+                      }}>
+                        LogOut
+                      </Button>
+                    </Slide>
+                  </Box>
+                </Fade>
+
+
+                </>
+                
               )}
 
               {!isLogged && (
