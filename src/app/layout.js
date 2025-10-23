@@ -169,7 +169,7 @@ catch(err)
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   
                     <Slide direction="up" in={animate} timeout={900}>
-                      <Button onClick={()=>{Logout;window.location.href = "/"}} variant="contained" sx={{
+                      <Button onClick={()=>{Logout();window.location.href = "/"}} variant="contained" sx={{
                         backgroundColor:'white',
                         color: "#000",
                         borderRadius: "20px",
