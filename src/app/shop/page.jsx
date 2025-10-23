@@ -319,37 +319,36 @@ export default function AllProducts() {
                     <Paper elevation={1} sx={{ p: { xs: 1.5, md: 2 }, height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
                       {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
                       <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
-                        <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
-                          <Box
-                            sx={{
-                              height: { xs: 160, md: 200 },
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 1,
-                              overflowX: "auto", // لو أكتر من صورة تقدر تعمل scroll يمين/شمال
-                              mb: 1,
-                            }}
-                          >
-                            {product.image_url
-                              .split(",") // قسم النص حسب الفاصلة
-                              .map((img, index) => (
-                                <Box
-                                  key={index}
-                                  component="img"
-                                  src={img.trim()} // شيل أي مسافات
-                                  alt={`${product.title} image ${index + 1}`}
-                                  sx={{
-                                    maxHeight: "100%",
-                                    width: "auto",
-                                    objectFit: "contain",
-                                    borderRadius: 2,
-                                    flexShrink: 0, // يخلي الصور متساوية ومش تضغط بعض
-                                  }}
-                                />
-                              ))}
-                          </Box>
-                        </Box>
+                    <Box
+  sx={{
+    height: { xs: 160, md: 200 },
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    overflowX: "auto",   // لو أكثر من صورة تقدر تعمل scroll
+    mb: 1,
+  }}
+>
+  {product.image_url
+    .split(",")               // يقسم النص حسب الفاصلة
+    .map((img, index) => (
+      <Box
+        key={index}
+        component="img"
+        src={img.trim()}       // يشيل أي مسافات زيادة
+        alt={`${product.title} image ${index + 1}`}
+        sx={{
+          maxHeight: "100%",
+          width: "auto",
+          objectFit: "contain",
+          borderRadius: 2,
+          flexShrink: 0,       // يمنع الصور من الانضغاط
+        }}
+      />
+    ))}
+</Box>
+
  
 
 
