@@ -294,7 +294,7 @@ function ProductImage({ image_url, title, size = 64 }) {
               {cartItems.map(({ cart_item_id, title, color, size, final_price, quantity, image }) => (
                 <Paper key={`m-${cart_item_id}`} variant="outlined" sx={{ p: 2 }}>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    <Box component="img" src={image} alt={title} sx={{ width: 60, height: 60, objectFit: "cover", borderRadius: 1 }} />
+                     <ProductImage image_url={image} title={title} size={64} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography 
                         fontWeight={700} 
