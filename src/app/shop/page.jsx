@@ -65,6 +65,47 @@ export default function AllProducts() {
     }
   }
 
+function ProductImage({ image_url, title }) {
+  const images = image_url.split(",").map((img) => img.trim());
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // لو فيه صورة واحدة بس ما يعملش تبديل
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000); // ← التبديل كل 3 ثواني (غيرها لو عايز)
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  return (
+    <Box
+      sx={{
+        height: { xs: 160, md: 200 },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mb: 1,
+        position: "relative",
+      }}
+    >
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={`${title} image`}
+        sx={{
+          maxHeight: "100%",
+          width: "auto",
+          objectFit: "contain",
+          borderRadius: 2,
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
+    </Box>
+  );
+}
+
   async function fetchFiltered() {
     try {
       setLoading(true);
@@ -319,35 +360,8 @@ export default function AllProducts() {
                     <Paper elevation={1} sx={{ p: { xs: 1.5, md: 2 }, height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
                       {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
                       <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
-                    <Box
-  sx={{
-    height: { xs: 160, md: 200 },
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 1,
-    overflowX: "auto",   // لو أكثر من صورة تقدر تعمل scroll
-    mb: 1,
-  }}
->
-  {product.image_url
-    .split(",")               // يقسم النص حسب الفاصلة
-    .map((img, index) => (
-      <Box
-        key={index}
-        component="img"
-        src={img.trim()}       // يشيل أي مسافات زيادة
-        alt={`${product.title} image ${index + 1}`}
-        sx={{
-          maxHeight: "100%",
-          width: "auto",
-          objectFit: "contain",
-          borderRadius: 2,
-          flexShrink: 0,       // يمنع الصور من الانضغاط
-        }}
-      />
-    ))}
-</Box>
+           <ProductImage image_url={product.image_url} title={product.title} />
+
 
  
 
