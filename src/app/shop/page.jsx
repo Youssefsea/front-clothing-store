@@ -360,17 +360,48 @@ function ProductImage({ image_url, title }) {
                 const discountedPrice = product.discount > 0 ? (Number(product.price) * (100 - Number(product.discount))) / 100 : null;
                 return (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                    <Paper elevation={1} sx={{ p: { xs: 1.5, md: 2 }, height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
-                      {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
-                      <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
-                        <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
-                          
-                          
-                         <ProductImage image_url={product.image_url} title={product.title} />
+                   <Paper
+  elevation={1}
+  sx={{
+    p: { xs: 1.5, md: 2 },
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    position: "relative",
+  }}
+>
+  {product.discount > 0 && (
+    <Chip
+      label={`${product.discount}% off`}
+      color="secondary"
+      size="small"
+      sx={{
+        position: "absolute",
+        top: 12,
+        left: 12,
+        zIndex: 2, // تأكد إن الشارة فوق الصورة
+      }}
+    />
+  )}
+  <Box
+    component={Link}
+    href={`/product/${encodeURIComponent(product.title)}`}
+    sx={{ textDecoration: "none", color: "inherit" }}
+  >
+    <Box
+      sx={{
+        height: { xs: 160, md: 200 },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mb: 1,
+        position: "relative", // ضروري عشان zIndex يشتغل
+        zIndex: 1, // الصورة تحت الشارة
+      }}
+    >
+      <ProductImage image_url={product.image_url} title={product.title} />
+    </Box>
 
-                        </Box>
-
-               
       
  
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
