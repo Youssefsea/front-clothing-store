@@ -366,9 +366,9 @@ function ProductImage({ image_url, title }) {
                         <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
                           
                           
-                          {/* <Box component="img" src={product.image_url[0]} alt={product.title} sx={{ maxHeight: "100%", width: "auto", objectFit: "contain" }} />
-                        </Box> */}
-<ProductImage image_url={product.image_url} title={product.title} />
+                         <ProductImage image_url={product.image_url} title={product.title} />
+
+                        </Box>
 
                
       
@@ -384,7 +384,6 @@ function ProductImage({ image_url, title }) {
                       </Box>
                       <Box sx={{ mt: "auto", display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" } }}>
                         {product.stock > 0 ? <Button href={`/product/${encodeURIComponent(product.title)}`} variant="contained" startIcon={<ShoppingCartOutlined />} size="small" sx={{ borderRadius: 2, textTransform: "none", width: { xs: "30px", sm: "auto" } }}></Button> : <Typography color="error" fontWeight={700} sx={{ fontSize: { xs: 11, md: 13 }, textAlign: "center", width: { xs: "100%", sm: "auto" } }}>Out of Stock</Typography>}
-                      </Box>
                       </Box>
                     </Paper>
                   </Grid>
