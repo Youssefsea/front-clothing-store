@@ -103,6 +103,65 @@ const handleClearCart = async () => {
   }
 };
 
+function ProductImage({ image_url, title, size = 64 }) {
+  const images = image_url ? image_url.split(",").map((img) => img.trim()) : [];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // لو صورة واحدة فقط ما يعملش تبديل
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000); // ← التبديل كل 3 ثواني
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  if (images.length === 0) {
+    return (
+      <Box
+        sx={{
+          width: size,
+          height: size,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f5f5f5",
+          borderRadius: 1,
+        }}
+      >
+        <Typography fontSize={12} color="#777">
+          لا توجد صورة
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: 1,
+      }}
+    >
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={`${title} image`}
+        sx={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
+    </Box>
+  );
+}
+
 
   const itemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const subTotal = cartItems.reduce(
@@ -182,17 +241,7 @@ const handleClearCart = async () => {
                               <Close />
                             )}
                           </IconButton>
-                          <Box
-                            component="img"
-                            src={image}
-                            alt={title}
-                            sx={{
-                              width: 64,
-                              height: 64,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                            }}
-                          />
+                         <ProductImage image_url={image} title={title} size={64} />
                           <Box>
                             <Typography fontWeight={600}>{title}</Typography>
                             <Typography fontSize={12} color="#666">
