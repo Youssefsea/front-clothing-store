@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 import "./globals.css";
 import {
   CssBaseline,
