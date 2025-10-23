@@ -320,23 +320,38 @@ export default function AllProducts() {
                       {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
                       <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
                         <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
-                      
-                      <Box
-  sx={{
-    height: { xs: 160, md: 200 },
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    mb: 1,
-  }}
->
-  <Box
-    component="img"
-    src={product.image_url.split(",")[0].trim()}
-    alt={product.title}
-    sx={{ maxHeight: "100%", width: "auto", objectFit: "contain" }}
-  />
-</Box>
+                          <Box
+                            sx={{
+                              height: { xs: 160, md: 200 },
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 1,
+                              overflowX: "auto", // لو أكتر من صورة تقدر تعمل scroll يمين/شمال
+                              mb: 1,
+                            }}
+                          >
+                            {product.image_url
+                              .split(",") // قسم النص حسب الفاصلة
+                              .map((img, index) => (
+                                <Box
+                                  key={index}
+                                  component="img"
+                                  src={img.trim()} // شيل أي مسافات
+                                  alt={`${product.title} image ${index + 1}`}
+                                  sx={{
+                                    maxHeight: "100%",
+                                    width: "auto",
+                                    objectFit: "contain",
+                                    borderRadius: 2,
+                                    flexShrink: 0, // يخلي الصور متساوية ومش تضغط بعض
+                                  }}
+                                />
+                              ))}
+                          </Box>
+                        </Box>
+ 
+
 
 
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
