@@ -81,7 +81,16 @@ function ProductImage({ image_url, title }) {
   }, [images.length]);
 
   return (
- 
+    <Box
+      sx={{
+        height: { xs: 160, md: 200 },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mb: 1,
+        position: "relative",
+      }}
+    >
       <Box
         component="img"
         src={images[currentIndex]}
@@ -90,11 +99,10 @@ function ProductImage({ image_url, title }) {
           maxHeight: "100%",
           width: "auto",
           objectFit: "contain",
-          borderRadius: 2,
           transition: "opacity 0.5s ease-in-out",
         }}
       />
-   
+    </Box>
   );
 }
 
@@ -356,9 +364,15 @@ function ProductImage({ image_url, title }) {
                       {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
                       <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
                         <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
-                          <ProductImage image_url={product.image_url} title={product.title} />
+                          
+                          
+                          {/* <Box component="img" src={product.image_url[0]} alt={product.title} sx={{ maxHeight: "100%", width: "auto", objectFit: "contain" }} />
+                        </Box> */}
+<ProductImage image_url={product.image_url} title={product.title} />
 
-                        
+               
+      
+ 
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: { xs: "0.7rem", md: "0.75rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.description?.slice(0, 60)}</Typography>
                         {discountedPrice ? (
@@ -371,7 +385,7 @@ function ProductImage({ image_url, title }) {
                       <Box sx={{ mt: "auto", display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" } }}>
                         {product.stock > 0 ? <Button href={`/product/${encodeURIComponent(product.title)}`} variant="contained" startIcon={<ShoppingCartOutlined />} size="small" sx={{ borderRadius: 2, textTransform: "none", width: { xs: "30px", sm: "auto" } }}></Button> : <Typography color="error" fontWeight={700} sx={{ fontSize: { xs: 11, md: 13 }, textAlign: "center", width: { xs: "100%", sm: "auto" } }}>Out of Stock</Typography>}
                       </Box>
-                    </Box>
+                      </Box>
                     </Paper>
                   </Grid>
                 );
