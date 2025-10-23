@@ -14,13 +14,11 @@ axiosInstance.interceptors.response.use(
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      // إذا كان المستخدم في صفحة الإدارة وفشل التحقق من الصلاحيات
       if (pathname === "/admin") {
         window.location.href = "/unauthorized";
         return Promise.reject(error);
       }
       
-      // للصفحات الأخرى المحمية
       if (
         pathname !== "/" &&
         pathname !== "/login" &&

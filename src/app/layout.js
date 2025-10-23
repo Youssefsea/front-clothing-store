@@ -53,7 +53,8 @@ function Navbar({ cartCount, isLogged, pathname }) {
   {
 try
 {
-  const res=await axiosInstance.post("/logout");
+ await axiosInstance.post("/logout", {}, { withCredentials: true });
+
   setlogout(true);
 }
 catch(err)
