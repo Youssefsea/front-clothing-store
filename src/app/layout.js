@@ -99,7 +99,9 @@ catch(err)
             </MuiLink>
           </ListItem>
           <ListItem>    
-            <MuiLink onClick={()=>{Logout();window.location.href = "/"}} underline="none" sx={{ color: pathname === "/logout" ? muiTheme.palette.secondary.main : muiTheme.palette.primary.main, fontWeight: 600 }}>
+            <MuiLink onClick={()=>{Logout();window.location.href = "/"
+
+            }} underline="none" sx={{fontWeight: 600 }}>
               Logout
             </MuiLink>
           </ListItem>
