@@ -360,8 +360,20 @@ function ProductImage({ image_url, title }) {
                     <Paper elevation={1} sx={{ p: { xs: 1.5, md: 2 }, height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
                       {product.discount > 0 && <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12 }} />}
                       <Box component={Link} href={`/product/${encodeURIComponent(product.title)}`} sx={{ textDecoration: "none", color: "inherit" }}>
-           <ProductImage image_url={product.image_url} title={product.title} />
+                    <Box
+  sx={{
+    height: { xs: 160, md: 200 },
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    overflowX: "auto",   // لو أكثر من صورة تقدر تعمل scroll
+    mb: 1,
+  }}
+>
+<ProductImage image_url={product.image_url} title={product.title} />
 
+</Box>
 
  
 
