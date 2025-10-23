@@ -31,7 +31,7 @@ const SignInPage = () => {
     try {
       const res = await axiosInstance.post("/login", form);
       console.log("Login done:", res.data);
-      // window.location.href = "/";
+      window.location.href = "/";
     } catch (err) {
       const msg =
         err.response?.data?.error ||
