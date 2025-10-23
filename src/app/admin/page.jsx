@@ -222,6 +222,66 @@ function AdminPage() {
     }
   }
 
+
+  function ProductImage({ image_url, title, size = 60 }) {
+  const images = image_url ? image_url.split(",").map((img) => img.trim()) : [];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // لو صورة واحدة فقط، ما يعملش تبديل
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000); // ← التبديل كل 3 ثواني
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  if (images.length === 0) {
+    return (
+      <Box
+        sx={{
+          width: size,
+          height: size,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "6px",
+        }}
+      >
+        <Typography fontSize={10} color="#777">
+          لا توجد صورة
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "6px",
+      }}
+    >
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={title}
+        sx={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
+    </Box>
+  );
+}
+
   // PRODUCTS HANDLERS
   const openAddProduct = () => {
     setEditingProduct(null);
@@ -488,19 +548,16 @@ function AdminPage() {
         filteredProducts.map((p, idx) => {
           const imgs = p.image_url ? p.image_url.split(",") : [];
           // اختيار عشوائي بين الصورة 0 أو 1
-          const randomIndex = Math.floor(Math.random() * Math.min(imgs.length, 2));
-          const currentImg = imgs[randomIndex] || imgs[0];
+          // const randomIndex = Math.floor(Math.random() * Math.min(imgs.length, 2));
+          // const currentImg = imgs[randomIndex] || imgs[0];
 
           return (
             <TableRow key={p.id}>
               <TableCell>{idx + 1}</TableCell>
               <TableCell>
                 {imgs.length > 0 ? (
-                  <img
-                    src={currentImg}
-                    alt={p.title}
-                    style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6 }}
-                  />
+                <ProductImage image_url={p.image_url} title={p.title} size={60} />
+
                 ) : (
                   <Box sx={{ width: 60, height: 60, bgcolor: "#eee", borderRadius: 1 }} />
                 )}
