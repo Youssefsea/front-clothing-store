@@ -65,6 +65,42 @@ export default function AllProducts() {
     }
   }
 
+
+function ProductImage({ image_url, title }) {
+  const images = image_url.split(",").map((img) => img.trim());
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // لو فيه صورة واحدة بس ما يعملش تبديل
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000); // ← التبديل كل 3 ثواني (غيرها لو عايز)
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  return (
+ 
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={`${title} image`}
+        sx={{
+          maxHeight: "100%",
+          width: "auto",
+          objectFit: "contain",
+          borderRadius: 2,
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
+   
+  );
+}
+
+
+
+
   async function fetchFiltered() {
     try {
       setLoading(true);
@@ -322,8 +358,9 @@ export default function AllProducts() {
                         <Box sx={{ height: { xs: 160, md: 200 }, display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
                           
                           
-                          <Box component="img" src={product.image_url[0]} alt={product.title} sx={{ maxHeight: "100%", width: "auto", objectFit: "contain" }} />
-                        </Box>
+                          {/* <Box component="img" src={product.image_url[0]} alt={product.title} sx={{ maxHeight: "100%", width: "auto", objectFit: "contain" }} />
+                        </Box> */}
+<ProductImage image_url={product.image_url} title={product.title} />
 
                         
                         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
