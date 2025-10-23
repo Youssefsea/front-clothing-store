@@ -98,6 +98,64 @@ export default function ProductPage({ params }) {
     setQuantity(newQuantity);
   };
 
+
+function ProductImage({ image_url, title }) {
+  const images = image_url ? image_url.split(",").map((img) => img.trim()) : [];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // لو فيه صورة واحدة بس، ما يعملش تبديل
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 3000); // ← التبديل كل 3 ثواني
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  if (images.length === 0) {
+    return (
+      <Box
+        sx={{
+          height: { xs: 160, md: 200 },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          mb: 1,
+          backgroundColor: "#f5f5f5",
+        }}
+      >
+        <span>لا توجد صورة</span>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        height: { xs: 160, md: 200 },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mb: 1,
+        position: "relative",
+      }}
+    >
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={`${title} image`}
+        sx={{
+          maxHeight: "100%",
+          width: "auto",
+          objectFit: "contain",
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
+    </Box>
+  );
+}
+
   async function addToCart() {
     if (!selectedSize || !selectColor) {
       setMsg("Please select size and color");
@@ -155,13 +213,10 @@ export default function ProductPage({ params }) {
       <div className="pd-wrapper container">
         {/* Left: Gallery */}
         <div className="pd-gallery">
-          <div className="pd-main-image">
-            <img
-              ref={imgRef}
-              src={product.image_url}
-              alt={product.title}
-            />
-          </div>
+         <div className="pd-main-image">
+  <ProductImage image_url={product.image_url} title={product.title} />
+</div>
+
         </div>
 
         {/* Right: Info */}
