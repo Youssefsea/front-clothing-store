@@ -253,6 +253,8 @@ function Footer() {
   return (
     <Box sx={{ backgroundColor: theme.palette.primary.main, color: "white", mt: 8, py: 4, textAlign: "center" }}>
       <Typography variant="body2">© 2025 Clothing Website Design. All Rights Reserved.</Typography>
+      <Typography variant="body2">Youssef.Y.S</Typography>
+
     </Box>
   );
 }
