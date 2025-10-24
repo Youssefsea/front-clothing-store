@@ -736,14 +736,14 @@ export default function HomePage() {
                       />
                     )}
                     
-                    <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
+                    {/* <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
                       <IconButton size="small" sx={{ color: "#3a2c1a" }}>
                         <FavoriteBorder />
                       </IconButton>
                       <IconButton size="small" sx={{ color: "#3a2c1a" }}>
                         <ShoppingCartOutlined />
                       </IconButton>
-                    </Stack>
+                    </Stack> */}
                     
                     <Box
                       component={Link}
