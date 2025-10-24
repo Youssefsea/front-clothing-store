@@ -111,6 +111,7 @@ export default function HomePage() {
           marginLeft: "-50vw",
           marginRight: "-50vw",
           marginTop: "-40px",
+          paddingTop: "40px",
         }}
       >
         {heroImages.map((src, idx) => (
