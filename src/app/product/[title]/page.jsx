@@ -195,7 +195,7 @@ function ProductImage({ image_url, title }) {
   }
 
   return (
-    <Box>
+    <Box style ={{ paddingBottom: 40, paddingTop: 20,paddingLeft:20, paddingRight:20}}>
       {/* Page title + breadcrumbs */}
       <div className="container pd-breadcrumbs">
         <div className="pd-page-title">Product Details</div>
