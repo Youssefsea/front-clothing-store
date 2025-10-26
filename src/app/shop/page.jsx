@@ -66,7 +66,6 @@ export default function AllProducts() {
   }
 
 
-
 function ProductImage({ image_url, title }) {
   const images = image_url.split(",").map((img) => img.trim());
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -82,37 +81,32 @@ function ProductImage({ image_url, title }) {
   return (
     <Box
       sx={{
-        position: "relative",
+        height: 220, // ← ارتفاع ثابت يمنع تمدد الكارت
         width: "100%",
-        height: { xs: 220, md: 260 }, // ارتفاع ثابت
-        overflow: "hidden",
-        borderRadius: 2,
-        backgroundColor: "#f8f8f8", // لون خلفية ثابت (عشان شكل الصورة)
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "#fafafa", // لو الصورة فيها شفافية
       }}
     >
-   <Box
-  component="img"
-  src={images[currentIndex]}
-  alt={title}
-  sx={{
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: "auto",
-    height: "auto",
-    maxWidth: "90%",    // الصورة ما تكبرش أكتر من 90% من الكارت
-    maxHeight: "90%",   // نفس الكلام للارتفاع
-    objectFit: "contain",
-    transition: "opacity 0.6s ease-in-out",
-  }}
-/>
+      <Box
+        component="img"
+        src={images[currentIndex]}
+        alt={title}
+        sx={{
+          maxWidth: "100%",
+          maxHeight: "100%",
+          objectFit: "contain",
+          transition: "opacity 0.6s ease-in-out",
+          borderRadius: 1,
+        }}
+      />
     </Box>
   );
 }
+
 
 
 
