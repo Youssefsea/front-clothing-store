@@ -93,21 +93,23 @@ function ProductImage({ image_url, title }) {
         justifyContent: "center",
       }}
     >
-      <Box
-        component="img"
-        src={images[currentIndex]}
-        alt={title}
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "100%",
-          height: "100%",
-          objectFit: "contain", // تحافظ على النسب
-          transition: "opacity 0.6s ease-in-out",
-        }}
-      />
+   <Box
+  component="img"
+  src={images[currentIndex]}
+  alt={title}
+  sx={{
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "auto",
+    height: "auto",
+    maxWidth: "90%",    // الصورة ما تكبرش أكتر من 90% من الكارت
+    maxHeight: "90%",   // نفس الكلام للارتفاع
+    objectFit: "contain",
+    transition: "opacity 0.6s ease-in-out",
+  }}
+/>
     </Box>
   );
 }
