@@ -81,18 +81,19 @@ function ProductImage({ image_url, title }) {
   }, [images.length]);
 
   return (
-    <Box
+<Box
   sx={{
-    height: { xs: 200, md: 240 }, // خليه ثابت عشان الارتفاع ما يتغيرش
+    height: { xs: 200, md: 240 },
     width: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    mb: 1,
+    mb: { xs: 2, md: 2.5 }, // ← زيادة المسافة بعد الصورة
     position: "relative",
-    overflow: "hidden", // مهم جدًا
+    overflow: "hidden",
   }}
-    >
+>
+
       <Box
         component="img"
         src={images[currentIndex]}
@@ -353,7 +354,12 @@ function ProductImage({ image_url, title }) {
 
         {loading ? (
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
-            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}><Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} /><Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} /><Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} /><Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
+            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
+            sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
+              <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
+              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
+              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
+            <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
           </Box>
         ) : (
           <>
@@ -406,7 +412,7 @@ function ProductImage({ image_url, title }) {
 
 
 
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginTop: 1 }}>{product.title}</Typography>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: { xs: "0.7rem", md: "0.75rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.description?.slice(0, 60)}</Typography>
                         {discountedPrice ? (
                           <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
