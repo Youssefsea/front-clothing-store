@@ -329,7 +329,7 @@ function ProductImage({ image_url, title }) {
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: "center", sm: "left" } }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, filtered.length)} of {filtered.length} results
             </Typography>
-            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 } }}>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 },margin:"10 auto" }}>
               <InputLabel>Sort</InputLabel>
               <Select label="Sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <MenuItem value="default">Default Sorting</MenuItem>
