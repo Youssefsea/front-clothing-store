@@ -87,6 +87,10 @@ export default function CheckoutPage() {
 
     try {
       setSubmitting(true);
+
+
+
+  
       const formData = new FormData();
       formData.append("payment_method", payment.method);
       formData.append("address", address);
@@ -101,7 +105,7 @@ export default function CheckoutPage() {
 window.location.href = "/orderComplet";
     } catch (e) {
       setError(
-        e?.response?.data?.message || "حدث خطأ أثناء تأكيد الدفع، حاول مرة أخرى"
+        e?.response?.data?.details || "حدث خطأ أثناء تأكيد الدفع، حاول مرة أخرى"
       );
     } finally {
       setSubmitting(false);
