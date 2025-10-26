@@ -102,6 +102,7 @@ function ProductImage({ image_url, title }) {
     width: "100%",
     objectFit: "contain", // الصورة جوه الإطار بدون ما تطلع بره
     transition: "opacity 0.5s ease-in-out",
+    margin:"5px",
   }}
       />
     </Box>
