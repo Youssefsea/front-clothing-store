@@ -376,14 +376,14 @@
 
     return (
       <Grid
-        item
-        xs={6}   // موبايل: اتنين في الصف
-        sm={4}   // تابلت: 3 في الصف
-        md={3}   // لابتوب: 4 في الصف
-        key={product.id}
-        sx={{
-          display: "flex",
-          justifyContent: "center",
+    item
+      xs={6}
+      sm={4}
+      md={3}
+      key={product.id}
+      sx={{
+        display: "flex",
+        justifyContent: "center",
         }}
       >
         <Paper
