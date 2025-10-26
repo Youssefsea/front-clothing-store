@@ -82,25 +82,27 @@ function ProductImage({ image_url, title }) {
 
   return (
     <Box
-      sx={{
-        height: { xs: 160, md: 200 },
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        mb: 1,
-        position: "relative",
-      }}
+  sx={{
+    height: { xs: 200, md: 240 }, // خليه ثابت عشان الارتفاع ما يتغيرش
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    mb: 1,
+    position: "relative",
+    overflow: "hidden", // مهم جدًا
+  }}
     >
       <Box
         component="img"
         src={images[currentIndex]}
         alt={`${title} image`}
-        sx={{
-          maxHeight: "100%",
-          width: "auto",
-          objectFit: "contain",
-          transition: "opacity 0.5s ease-in-out",
-        }}
+     sx={{
+    height: "100%",
+    width: "100%",
+    objectFit: "contain", // الصورة جوه الإطار بدون ما تطلع بره
+    transition: "opacity 0.5s ease-in-out",
+  }}
       />
     </Box>
   );
