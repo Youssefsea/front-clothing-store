@@ -375,17 +375,35 @@ function ProductImage({ image_url, title }) {
               {visibleProducts.map((product) => {
                 const discountedPrice = product.discount > 0 ? (Number(product.price) * (100 - Number(product.discount))) / 100 : null;
                 return (
-               <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+
+                <Grid
+        item
+        xs={12} 
+        sm={6}
+        md={4}   
+        lg={3}         
+         key={product.id}
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
   <Paper
-    elevation={2}
-    sx={{
-      p: { xs: 1.5, md: 2 },
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      position: "relative",
-      borderRadius: 3,
-    }}
+ elevation={2}
+          sx={{
+            width: "100%",
+            maxWidth: 320,
+            p: { xs: 1.5, md: 2 },
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+            borderRadius: 3,
+            transition: "transform 0.2s ease",
+            "&:hover": {
+              transform: "translateY(-4px)",
+            },
+          }}
   >
     {product.discount > 0 && (
       <Chip

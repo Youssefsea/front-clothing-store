@@ -49,6 +49,7 @@ function Navbar({ cartCount, isLogged, pathname }) {
 
   const [logout,setlogout]=useState(false);
 
+
   async function Logout()
   {
 try
