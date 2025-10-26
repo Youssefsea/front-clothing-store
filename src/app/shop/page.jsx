@@ -102,7 +102,6 @@ function ProductImage({ image_url, title }) {
     width: "100%",
     objectFit: "contain", // الصورة جوه الإطار بدون ما تطلع بره
     transition: "opacity 0.5s ease-in-out",
-    margin:"5px",
   }}
       />
     </Box>
@@ -405,9 +404,9 @@ function ProductImage({ image_url, title }) {
       <ProductImage image_url={product.image_url} title={product.title} />
     </Box>
 
-      
- 
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
+
+
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginTop: 1 }}>{product.title}</Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: { xs: "0.7rem", md: "0.75rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.description?.slice(0, 60)}</Typography>
                         {discountedPrice ? (
                           <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
