@@ -78,7 +78,7 @@ export default function CheckoutPage() {
     setSuccess("");
 
     if (!payment.method) return setError("اختر طريقة الدفع");
-    if (!billing.address || billing.address.trim().length < 3)
+    if (!billing.address || billing.address.trim().length < 10)
       return setError("ادخل العنوان كاملًا");
     if (cartItems.length === 0) return setError("السلة فارغة");
     if (!paymentScreenshot) return setError("ارفع صورة إثبات الدفع");
