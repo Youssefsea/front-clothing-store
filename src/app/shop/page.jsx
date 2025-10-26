@@ -66,44 +66,52 @@ export default function AllProducts() {
   }
 
 
+
 function ProductImage({ image_url, title }) {
   const images = image_url.split(",").map((img) => img.trim());
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [fade, setFade] = useState(true);
 
   useEffect(() => {
-    if (images.length <= 1) return; // لو فيه صورة واحدة بس ما يعملش تبديل
+    if (images.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, 3000); // ← التبديل كل 3 ثواني (غيرها لو عايز)
+      setFade(false); // أولًا نخفي الصورة الحالية
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setFade(true); // ثم نظهر الصورة الجديدة
+      }, 300); // نفس مدة الـtransition
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [images.length]);
 
   return (
-<Box
-  sx={{
-    height: { xs: 200, md: 240 },
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    mb: { xs: 2, md: 2.5 }, // ← زيادة المسافة بعد الصورة
-    position: "relative",
-    overflow: "hidden",
-  }}
->
-
+    <Box
+      sx={{
+        height: { xs: 200, md: 240 },
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mb: { xs: 2, md: 2.5 },
+        mt: { xs: 1, md: 1.5 },
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: 2,
+      }}
+    >
       <Box
         component="img"
         src={images[currentIndex]}
         alt={`${title} image`}
-     sx={{
-    height: "100%",
-    width: "100%",
-    objectFit: "contain", // الصورة جوه الإطار بدون ما تطلع بره
-    transition: "opacity 0.5s ease-in-out",
-  }}
+        sx={{
+          height: "100%",
+          width: "100%",
+          objectFit: "contain",
+          transition: "opacity 0.4s ease-in-out",
+          opacity: fade ? 1 : 0,
+        }}
       />
     </Box>
   );
@@ -367,65 +375,149 @@ function ProductImage({ image_url, title }) {
               {visibleProducts.map((product) => {
                 const discountedPrice = product.discount > 0 ? (Number(product.price) * (100 - Number(product.discount))) / 100 : null;
                 return (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                   <Paper
-  elevation={1}
-  sx={{
-    p: { xs: 1.5, md: 2 },
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    position: "relative",
-  }}
->
-  {product.discount > 0 && (
-    <Chip
-      label={`${product.discount}% off`}
-      color="secondary"
-      size="small"
-      sx={{
-        position: "absolute",
-        top: 12,
-        left: 12,
-        zIndex: 2, // تأكد إن الشارة فوق الصورة
-      }}
-    />
-  )}
-  <Box
-    component={Link}
-    href={`/product/${encodeURIComponent(product.title)}`}
-    sx={{ textDecoration: "none", color: "inherit" }}
+               <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+  <Paper
+    elevation={2}
+    sx={{
+      p: { xs: 1.5, md: 2 },
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      borderRadius: 3,
+    }}
   >
+    {product.discount > 0 && (
+      <Chip
+        label={`${product.discount}% off`}
+        color="secondary"
+        size="small"
+        sx={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          zIndex: 2,
+        }}
+      />
+    )}
+
+    {/* صورة المنتج */}
     <Box
-      sx={{
-        height: { xs: 160, md: 200 },
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        mb: 1,
-        position: "relative", // ضروري عشان zIndex يشتغل
-        zIndex: 1, // الصورة تحت الشارة
-      }}
+      component={Link}
+      href={`/product/${encodeURIComponent(product.title)}`}
+      sx={{ textDecoration: "none", color: "inherit" }}
     >
       <ProductImage image_url={product.image_url} title={product.title} />
+
+      <Typography
+        variant="subtitle1"
+        fontWeight={600}
+        sx={{
+          mb: 0.75,
+          fontSize: { xs: "0.9rem", md: "1rem" },
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+        }}
+      >
+        {product.title}
+      </Typography>
+
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          display: "block",
+          mb: 1.5,
+          fontSize: { xs: "0.7rem", md: "0.75rem" },
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+        }}
+      >
+        {product.description?.slice(0, 60)}
+      </Typography>
+
+      {product.discount > 0 ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              textDecoration: "line-through",
+              fontSize: { xs: "0.7rem", md: "0.8rem" },
+            }}
+          >
+            ${product.price}
+          </Typography>
+          <Typography
+            variant="h6"
+            color="secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+          >
+            ${((product.price * (100 - product.discount)) / 100).toFixed(2)}
+          </Typography>
+        </Box>
+      ) : (
+        <Typography
+          variant="h6"
+          color="secondary"
+          fontWeight={700}
+          sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+        >
+          ${product.price}
+        </Typography>
+      )}
     </Box>
 
+    {/* زرار أو Out of Stock */}
+    <Box
+      sx={{
+        mt: "auto",
+        pt: { xs: 1.5, md: 2 },
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexDirection: { xs: "column", sm: "row" },
+        gap: 1,
+      }}
+    >
+      {product.stock > 0 ? (
+        <Button
+          href={`/product/${encodeURIComponent(product.title)}`}
+          variant="contained"
+          startIcon={<ShoppingCartOutlined />}
+          size="small"
+          sx={{
+            borderRadius: 2,
+            textTransform: "none",
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          Add to Cart
+        </Button>
+      ) : (
+        <Typography
+          color="error"
+          fontWeight={700}
+          sx={{
+            fontSize: { xs: 11, md: 13 },
+            textAlign: "center",
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          Out of Stock
+        </Typography>
+      )}
+    </Box>
+  </Paper>
+</Grid>
 
-
-                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5, fontSize: { xs: "0.9rem", md: "1rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.title}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: { xs: "0.7rem", md: "0.75rem" }, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{product.description?.slice(0, 60)}</Typography>
-                        {discountedPrice ? (
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through", fontSize: { xs: "0.7rem", md: "0.75rem" } }}>${product.price}</Typography>
-                            <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>${discountedPrice.toFixed(2)}</Typography>
-                          </Box>
-                        ) : <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>${product.price}</Typography>}
-                      </Box>
-                      <Box sx={{ mt: "auto", display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" } }}>
-                        {product.stock > 0 ? <Button href={`/product/${encodeURIComponent(product.title)}`} variant="contained" startIcon={<ShoppingCartOutlined />} size="small" sx={{ borderRadius: 2, textTransform: "none", width: { xs: "30px", sm: "auto" } }}></Button> : <Typography color="error" fontWeight={700} sx={{ fontSize: { xs: 11, md: 13 }, textAlign: "center", width: { xs: "100%", sm: "auto" } }}>Out of Stock</Typography>}
-                      </Box>
-                    </Paper>
-                  </Grid>
                 );
               })}
             </Grid>
