@@ -70,52 +70,48 @@ export default function AllProducts() {
 function ProductImage({ image_url, title }) {
   const images = image_url.split(",").map((img) => img.trim());
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [fade, setFade] = useState(true);
 
   useEffect(() => {
     if (images.length <= 1) return;
-
     const interval = setInterval(() => {
-      setFade(false); // أولًا نخفي الصورة الحالية
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
-        setFade(true); // ثم نظهر الصورة الجديدة
-      }, 300); // نفس مدة الـtransition
+      setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 3000);
-
     return () => clearInterval(interval);
   }, [images.length]);
 
   return (
     <Box
       sx={{
-        height: { xs: 200, md: 240 },
+        position: "relative",
         width: "100%",
+        height: { xs: 220, md: 260 }, // ارتفاع ثابت
+        overflow: "hidden",
+        borderRadius: 2,
+        backgroundColor: "#f8f8f8", // لون خلفية ثابت (عشان شكل الصورة)
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        mb: { xs: 2, md: 2.5 },
-        mt: { xs: 1, md: 1.5 },
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 2,
       }}
     >
       <Box
         component="img"
         src={images[currentIndex]}
-        alt={`${title} image`}
+        alt={title}
         sx={{
-          height: "100%",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
           width: "100%",
-          objectFit: "contain",
-          transition: "opacity 0.4s ease-in-out",
-          opacity: fade ? 1 : 0,
+          height: "100%",
+          objectFit: "contain", // تحافظ على النسب
+          transition: "opacity 0.6s ease-in-out",
         }}
       />
     </Box>
   );
 }
+
 
 
 
@@ -421,27 +417,36 @@ function ProductImage({ image_url, title }) {
 
     {/* صورة المنتج */}
     <Box
-      component={Link}
-      href={`/product/${encodeURIComponent(product.title)}`}
-      sx={{ textDecoration: "none", color: "inherit" }}
-    >
-      <ProductImage image_url={product.image_url} title={product.title} />
+  component={Link}
+  href={`/product/${encodeURIComponent(product.title)}`}
+  sx={{
+    textDecoration: "none",
+    color: "inherit",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  }}
+>
+  <ProductImage image_url={product.image_url} title={product.title} />
 
-      <Typography
-        variant="subtitle1"
-        fontWeight={600}
-        sx={{
-          mb: 0.75,
-          fontSize: { xs: "0.9rem", md: "1rem" },
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-        }}
-      >
-        {product.title}
-      </Typography>
+  <Typography
+    variant="subtitle1"
+    fontWeight={600}
+    sx={{
+      mt: 1.5, // مسافة كويسة تحت الصورة
+      mb: 0.5,
+      fontSize: { xs: "0.9rem", md: "1rem" },
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      textAlign: "center",
+    }}
+  >
+    {product.title}
+  </Typography>
+
 
       <Typography
         variant="caption"
