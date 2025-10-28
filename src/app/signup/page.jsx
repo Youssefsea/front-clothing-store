@@ -144,9 +144,21 @@ setLoading(false);
   </Button>
 )}
 
-          <Button variant="contained" fullWidth sx={{ bgcolor: theme.palette.warning.dark, "&:hover": { bgcolor: theme.palette.warning.main }, mb: 2, py: 1.5, fontWeight: "bold" }} onClick={Signup} disabled={loading}>
-            {loading ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : "Sign Up"}
-          </Button>
+       <Button
+  variant="contained"
+  fullWidth
+  sx={{
+    bgcolor: theme.palette.warning.dark,
+    "&:hover": { bgcolor: theme.palette.warning.main },
+    mb: 2,
+    py: 1.5,
+    fontWeight: "bold",
+  }}
+  onClick={Signup}
+  disabled={loading || !OTPG || !form.otp}
+>
+  {loading ? <CircularProgress size={24} /> : "Sign Up"}
+</Button>
 
           <Fade in={showMsg} timeout={600}>
             <Typography color={msg.includes("failed") ? "error" : "success.main"} mb={2} textAlign="center">{msg}</Typography>
