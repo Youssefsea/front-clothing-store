@@ -32,10 +32,10 @@ export default function SignUp() {
   const [showMsg, setShowMsg] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // const handleClickShowPassword = () => setShowPassword((show) => !show);
-  // const handleChange = (e) =>
-  //    setForm(
-  //     { ...form, [e.target.name]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleChange = (e) =>
+     setForm(
+      { ...form, [e.target.name]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   const Signup = async () => {
     setLoading(true);
