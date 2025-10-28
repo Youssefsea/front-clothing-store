@@ -98,6 +98,57 @@ export default function HomePage() {
     setMobileOpen(!mobileOpen);
   };
 
+  function ProductImage({ image_url, title }) {
+    const images = image_url.split(",").map((img) => img.trim());
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [fade, setFade] = useState(true);
+  
+    useEffect(() => {
+      if (images.length <= 1) return;
+  
+      const interval = setInterval(() => {
+        setFade(false); // أولًا نخفي الصورة الحالية
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % images.length);
+          setFade(true); // ثم نظهر الصورة الجديدة
+        }, 300); // نفس مدة الـtransition
+      }, 3000);
+  
+      return () => clearInterval(interval);
+    }, [images.length]);
+  
+    return (
+      <Box
+        sx={{
+          height: { xs: 200, md: 240 },
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          mb: { xs: 2, md: 2.5 },
+          mt: { xs: 1, md: 1.5 },
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: 2,
+        }}
+      >
+        <Box
+          component="img"
+          src={images[currentIndex]}
+          alt={`${title} image`}
+          sx={{
+          height: "100%",
+          width: "100%",
+          objectFit: "contain",
+          transition: "opacity 0.4s ease-in-out, transform 0.3s ease",
+          opacity: fade ? 1 : 0,
+          "&:hover": { transform: "scale(1.05)" },
+          }}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Box
@@ -763,18 +814,8 @@ export default function HomePage() {
                           borderRadius: 2,
                         }}
                       >
-                        <Box
-                          component="img"
-                          src={product.image_url}
-                          alt={product.title}
-                          sx={{
-                            maxHeight: "100%",
-                            width: "auto",
-                            objectFit: "contain",
-                            transition: "transform 0.3s ease",
-                            "&:hover": { transform: "scale(1.05)" },
-                          }}
-                        />
+                   <ProductImage image_url={product.image_url} title={product.title} />
+
                       </Box>
                       
                       <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
