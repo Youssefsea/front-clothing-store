@@ -26,27 +26,53 @@ export default function SignUp() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", agree: false });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", otp: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
   const [showMsg, setShowMsg] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [OTPG,setOTPG]=useState(false);
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleChange = (e) =>
      setForm(
       { ...form, [e.target.name]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
+const confirmOTP=async()=>
+  {
+    try
+    {
+setLoading(true);
+setMsg("");
+setShowMsg(false);
+await axiosInstance.post("/send-otp",{
+email:form.email,
+phone:form.phone,
+});
+setOTPG(true);
+setMsg("OTP sent successfully!");
+setShowMsg(true);
+setLoading(false);
+    }catch(err)
+    {
+      console.log(err);
+      setMsg("Failed to send OTP. Please try again.");
+      setShowMsg(true);
+    }
+  }
+
+
   const Signup = async () => {
     setLoading(true);
     setMsg("");
     setShowMsg(false);
     try {
-      await axiosInstance.post("signup", {
+      await axiosInstance.post("/signup", {
         name: form.name,
         email: form.email,
         password: form.password,
         phone: form.phone,
+        otp: form.otp,
       });
       setMsg("Account created successfully!");
       setShowMsg(true);
@@ -85,13 +111,38 @@ export default function SignUp() {
           <TextField fullWidth label="Email *" placeholder="Enter Email Address" size="small" required type="email" sx={{ mb: 2 }} name="email" value={form.email} onChange={handleChange} />
           <TextField fullWidth label="Password *" placeholder="Enter Password" size="small" required type={showPassword ? "text" : "password"} sx={{ mb: 2 }} name="password" value={form.password} onChange={handleChange} InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={handleClickShowPassword} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
           <TextField fullWidth label="Phone Number *" placeholder="Enter Phone Number" size="small" required type="tel" sx={{ mb: 2 }} name="phone" value={form.phone} onChange={handleChange} />
+{OTPG && (
+  <TextField
+    fullWidth
+    label="Enter OTP *"
+    placeholder="Enter the code sent to your email"
+    size="small"
+    required
+    sx={{ mb: 2 }}
+    name="otp"
+    value={form.otp}
+    onChange={handleChange}
+  />
+)}
 
-          {/* <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-            <input type="checkbox" id="agree" name="agree" checked={form.agree} onChange={handleChange} />
-            <label htmlFor="agree" style={{ fontSize: 13 }}>
-              Agree with <Link href="#" underline="hover">Terms & Condition</Link> and <Link href="#" underline="hover">Privacy Policy</Link>
-            </label>
-          </Box> */}
+     {!OTPG && (
+  <Button
+    variant="outlined"
+    fullWidth
+    sx={{
+      mb: 2,
+      py: 1.5,
+      fontWeight: "bold",
+      borderColor: theme.palette.warning.dark,
+      color: theme.palette.warning.dark,
+      "&:hover": { borderColor: theme.palette.warning.main },
+    }}
+    onClick={confirmOTP}
+    disabled={loading || !form.email || !form.phone}
+  >
+    {loading ? <CircularProgress size={24} /> : "Send OTP"}
+  </Button>
+)}
 
           <Button variant="contained" fullWidth sx={{ bgcolor: theme.palette.warning.dark, "&:hover": { bgcolor: theme.palette.warning.main }, mb: 2, py: 1.5, fontWeight: "bold" }} onClick={Signup} disabled={loading}>
             {loading ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : "Sign Up"}
