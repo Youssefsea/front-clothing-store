@@ -196,7 +196,6 @@ function ProductImage({ image_url, title }) {
 
   return (
     <Box style ={{ paddingBottom: 40, paddingTop: 20,paddingLeft:20, paddingRight:20}}>
-      {/* Page title + breadcrumbs */}
       <div className="container pd-breadcrumbs">
         <div className="pd-page-title">Product Details</div>
         <div className="pd-breadcrumbs-trail">
@@ -209,9 +208,7 @@ function ProductImage({ image_url, title }) {
           <span className="current">Product Details</span>
         </div>
       </div>
-      {/* Product header section styled like the provided design */}
       <div className="pd-wrapper container">
-        {/* Left: Gallery */}
         <div className="pd-gallery">
          <div className="pd-main-image">
   <ProductImage image_url={product.image_url} title={product.title} />
@@ -219,7 +216,6 @@ function ProductImage({ image_url, title }) {
 
         </div>
 
-        {/* Right: Info */}
         <div className="pd-info">
           <h1 className="pd-title">{product.title}</h1>
 
@@ -324,7 +320,6 @@ function ProductImage({ image_url, title }) {
         </div>
       )}
 
-      {/* Description area only (from backend) */}
       <div className="container pd-tabs">
         <div className="pd-tab-list">
           <button className="pd-tab-btn active">Description</button>
