@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://sxc38y-3001.csb.app",
+  baseURL: "http://localhost:3000",
   withCredentials: true,
 });
 
