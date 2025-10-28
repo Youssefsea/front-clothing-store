@@ -60,7 +60,7 @@ async function Logout() {
 
     setlogout(true);
 
-    window.location.href = "/login";
+    window.location.href = "/";
 
   } catch (err) {
     console.error("Logout failed:", err);
