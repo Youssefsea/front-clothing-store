@@ -88,14 +88,11 @@ export default function CheckoutPage() {
     try {
       setSubmitting(true);
 
-
-
-  
       const formData = new FormData();
       formData.append("payment_method", payment.method);
       formData.append("address", address);
       formData.append("payment_screenshot", paymentScreenshot);
-
+      
       const res = await axiosInstance.post("/orders/confirm", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });

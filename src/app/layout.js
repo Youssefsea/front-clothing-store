@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next"
-
+import Image from "next/image";
 import "./globals.css";
 import {
   CssBaseline,
@@ -50,20 +50,22 @@ function Navbar({ cartCount, isLogged, pathname }) {
   const [logout,setlogout]=useState(false);
 
 
-  async function Logout()
-  {
-try
-{
- await axiosInstance.post("/logout", {}, { withCredentials: true });
 
-  setlogout(true);
-}
-catch(err)
-{
-  console.log(err);
-}
-    
+async function Logout() {
+  try {
+    await axiosInstance.post("/logout", {}, { withCredentials: true });
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    setlogout(true);
+
+    window.location.href = "/login";
+
+  } catch (err) {
+    console.error("Logout failed:", err);
   }
+}
 
 
   useEffect(() => {
@@ -100,9 +102,7 @@ catch(err)
             </MuiLink>
           </ListItem>
           <ListItem>    
-            <MuiLink onClick={()=>{Logout();window.location.href = "/"
-
-            }} underline="none" sx={{fontWeight: 600 }}>
+            <MuiLink onClick={Logout} underline="none" sx={{fontWeight: 600 }}>
               Logout
             </MuiLink>
           </ListItem>
@@ -172,7 +172,7 @@ catch(err)
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   
                     <Slide direction="up" in={animate} timeout={900}>
-                      <Button onClick={()=>{Logout();window.location.href = "/"}} variant="contained" sx={{
+                      <Button onClick={Logout} variant="contained" sx={{
                         backgroundColor:'white',
                         color: "#000",
                         borderRadius: "20px",
@@ -225,11 +225,14 @@ catch(err)
             <MuiLink href="/cart" underline="none">
               <IconButton color="inherit">
                 <Badge badgeContent={isLogged ? cartCount : 0} color="secondary">
-                  <img
-                    src="https://cdn0.iconfinder.com/data/icons/mobile-basic-vol-1/32/Tote_Bag-128.png"
-                    alt="Cart"
-                    style={{ width: 32, height: 32 }}
-                  />
+             <Image
+  src="https://cdn0.iconfinder.com/data/icons/mobile-basic-vol-1/32/Tote_Bag-128.png"
+  alt="Cart"
+  width={32}
+  height={32}
+  priority ={true}
+  style={{ objectFit: "contain" }}
+/>
                 </Badge>
               </IconButton>
             </MuiLink>
