@@ -32,8 +32,10 @@ export default function SignUp() {
   const [showMsg, setShowMsg] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  // const handleClickShowPassword = () => setShowPassword((show) => !show);
+  // const handleChange = (e) =>
+  //    setForm(
+  //     { ...form, [e.target.name]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   const Signup = async () => {
     setLoading(true);
@@ -84,12 +86,12 @@ export default function SignUp() {
           <TextField fullWidth label="Password *" placeholder="Enter Password" size="small" required type={showPassword ? "text" : "password"} sx={{ mb: 2 }} name="password" value={form.password} onChange={handleChange} InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={handleClickShowPassword} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
           <TextField fullWidth label="Phone Number *" placeholder="Enter Phone Number" size="small" required type="tel" sx={{ mb: 2 }} name="phone" value={form.phone} onChange={handleChange} />
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+          {/* <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
             <input type="checkbox" id="agree" name="agree" checked={form.agree} onChange={handleChange} />
             <label htmlFor="agree" style={{ fontSize: 13 }}>
               Agree with <Link href="#" underline="hover">Terms & Condition</Link> and <Link href="#" underline="hover">Privacy Policy</Link>
             </label>
-          </Box>
+          </Box> */}
 
           <Button variant="contained" fullWidth sx={{ bgcolor: theme.palette.warning.dark, "&:hover": { bgcolor: theme.palette.warning.main }, mb: 2, py: 1.5, fontWeight: "bold" }} onClick={Signup} disabled={loading}>
             {loading ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : "Sign Up"}
