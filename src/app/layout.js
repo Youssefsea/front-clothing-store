@@ -230,7 +230,7 @@ async function Logout() {
   alt="Cart"
   width={32}
   height={32}
-  priority ={true}
+  priority 
   style={{ objectFit: "contain" }}
 />
                 </Badge>
