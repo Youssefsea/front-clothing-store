@@ -309,7 +309,8 @@ function ProductImage({ image_url, title }) {
                 href={`/product/${encodeURIComponent(item.title)}`}
                 className="pd-related-card"
               >
-                <img src={item.image_url} alt={item.title} />
+                <ProductImage image_url={item.image_url} title={item.title} />
+
                 <div className="info">
                   <div className="title" title={item.title}>{item.title}</div>
                   <div className="price">${item.price}</div>
