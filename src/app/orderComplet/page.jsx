@@ -84,16 +84,11 @@ export default function OrderCompletedPage() {
       return (
         <Box
           sx={{
-            height: { xs: 200, md: 240 },
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            mb: { xs: 2, md: 2.5 },
-            mt: { xs: 1, md: 1.5 },
-            position: "relative",
-            overflow: "hidden",
-            borderRadius: 2,
+            width: 60,
+            height: 60,
+            objectFit: "cover",
+            borderRadius: 1,
+            border: "1px solid #eee",
           }}
         >
           <Box
@@ -206,8 +201,18 @@ export default function OrderCompletedPage() {
                 {order.items?.map((item, itemIndex) => (
                   <Box key={itemIndex} sx={{ mb: 2 }}>
                     <Stack direction="row" spacing={2} alignItems="center">
-                      <ProductImage image_url={item.image_url} title={item.title} />
-
+                      <Box
+                        component="img"
+                        src={item.image_url}
+                        alt={item.title}
+                        sx={{
+                          width: 60,
+                          height: 60,
+                          objectFit: "cover",
+                          borderRadius: 1,
+                          border: "1px solid #eee",
+                        }}
+                      />
                       <Box flex={1}>
                         <Typography fontWeight={600} mb={0.5}>
                           {item.title}
