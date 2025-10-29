@@ -201,18 +201,8 @@ export default function OrderCompletedPage() {
                 {order.items?.map((item, itemIndex) => (
                   <Box key={itemIndex} sx={{ mb: 2 }}>
                     <Stack direction="row" spacing={2} alignItems="center">
-                      <Box
-                        component="img"
-                        src={item.image_url}
-                        alt={item.title}
-                        sx={{
-                          width: 60,
-                          height: 60,
-                          objectFit: "cover",
-                          borderRadius: 1,
-                          border: "1px solid #eee",
-                        }}
-                      />
+                      <ProductImage image_url={item.image_url} title={item.title} />
+
                       <Box flex={1}>
                         <Typography fontWeight={600} mb={0.5}>
                           {item.title}
