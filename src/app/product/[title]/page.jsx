@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect, useState, useRef } from "react";
 import axiosInstance from "../../axios";
 import {
@@ -18,25 +17,35 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import Link from "next/link";
 
-export default function ProductPage({ params }: { params: { title: string } }) {
-  // Next.js passes params directly; decode title:
-  const productTitle = decodeURIComponent(params.title || "");
+/**
+ * ProductPage.jsx
+ * - Lightbox modal with thumbnails, autoplay, magnifier, keyboard navigation
+ * - Mobile swipe/drag gestures implemented for the lightbox (touch + basic drag UI)
+ * - Exports a single React component (JSX) for Next.js pages
+ */
 
-  const [product, setProduct] = useState<any | null>(null);
+export default function ProductPage({ params }) {
+  const productTitle = decodeURIComponent((params && params.title) || "");
+
+  const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [related, setRelated] = useState<any[]>([]);
+  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectColor, setSelectColor] = useState("");
   const [msg, setMsg] = useState("");
-  const imgRef = useRef<HTMLDivElement | null>(null);
 
-  // Lightbox / Gallery states
+  // Lightbox & gallery states
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [lbAutoplay, setLbAutoplay] = useState(true);
-  const [lbHover, setLbHover] = useState(false); // pause autoplay when hovering
-  const [zoom, setZoom] = useState({ x: 50, y: 50, visible: false }); // for magnifier inside lightbox
+  const [lbHover, setLbHover] = useState(false);
+  const [zoom, setZoom] = useState({ x: 50, y: 50, visible: false });
+
+  // Touch / drag states for mobile swipe
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  const [translateX, setTranslateX] = useState(0);
+  const draggingRef = useRef(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -50,7 +59,7 @@ export default function ProductPage({ params }: { params: { title: string } }) {
             category_name: p.category_name,
           });
           const relatedFiltered = (relatedRes.data.products || [])
-            .filter((r: any) => r.id !== p.id)
+            .filter((r) => r.id !== p.id)
             .slice(0, 4);
           setRelated(relatedFiltered);
         }
@@ -80,10 +89,10 @@ export default function ProductPage({ params }: { params: { title: string } }) {
   const discountedPrice = product.discount
     ? (product.price * (100 - product.discount)) / 100
     : null;
-  const availableSizes = product.sizes ? product.sizes.split(",").map((s: string) => s.trim()) : [];
-  const availableColors = product.colors ? product.colors.split(",").map((c: string) => c.trim()) : [];
+  const availableSizes = product.sizes ? product.sizes.split(",").map((s) => s.trim()) : [];
+  const availableColors = product.colors ? product.colors.split(",").map((c) => c.trim()) : [];
 
-  const handleQuantityChange = (newQuantity: number) => {
+  const handleQuantityChange = (newQuantity) => {
     if (newQuantity < 1) {
       setQuantity(1);
       return;
@@ -109,16 +118,13 @@ export default function ProductPage({ params }: { params: { title: string } }) {
         size: selectedSize,
         color: selectColor,
       });
-      // success UI
       setMsg("");
       setSelectedSize("");
       setSelectColor("");
       setQuantity(1);
-      // temporary success banner
       setTimeout(() => setMsg("Product added to cart successfully!"), 50);
       setTimeout(() => setMsg(""), 2000);
 
-      // update navbar cart and animate badge
       window.dispatchEvent(new Event("cartUpdated"));
       const cartIcon = document.querySelector(".cart-icon");
       if (cartIcon) {
@@ -136,24 +142,13 @@ export default function ProductPage({ params }: { params: { title: string } }) {
     }
   }
 
-  // Helper to get images array
-  const images: string[] = (product.image_url || "")
+  const images = (product.image_url || "")
     .split(",")
-    .map((i: string) => i.trim())
+    .map((i) => i.trim())
     .filter(Boolean);
 
-  //
-  // ProductImage component: small card/main image, clickable to open lightbox.
-  //
-  function ProductImage({
-    image_url,
-    title,
-    onOpen,
-  }: {
-    image_url?: string;
-    title?: string;
-    onOpen?: (index: number) => void;
-  }) {
+  // Small product image component (clickable to open lightbox)
+  function ProductImage({ image_url, title, onOpen }) {
     const imgs = (image_url || "").split(",").map((s) => s.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -169,7 +164,6 @@ export default function ProductPage({ params }: { params: { title: string } }) {
 
     return (
       <Box
-        ref={imgRef}
         onClick={() => onOpen && onOpen(currentIndex)}
         sx={{
           height: { xs: 220, md: 360 },
@@ -200,27 +194,16 @@ export default function ProductPage({ params }: { params: { title: string } }) {
     );
   }
 
-  //
-  // Lightbox - modal with large image, arrows, thumbnails, autoplay while open,
-  // magnifier (simple background zoom) when hovering inside modal image area.
-  //
-  function Lightbox({
-    open,
-    onClose,
-    startIndex = 0,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    startIndex?: number;
-  }) {
+  // Lightbox with thumbnails, autoplay, magnifier and mobile swipe
+  function Lightbox({ open, onClose, startIndex = 0 }) {
     const [index, setIndex] = useState(startIndex);
-    const autoplayRef = useRef<number | null>(null);
+    const autoplayRef = useRef(null);
 
     useEffect(() => {
       setIndex(startIndex);
+      setTranslateX(0);
     }, [startIndex, open]);
 
-    // autoplay: cycle when open, unless paused by hover or disabled
     useEffect(() => {
       if (!open) return;
       if (!lbAutoplay) return;
@@ -240,7 +223,7 @@ export default function ProductPage({ params }: { params: { title: string } }) {
     }, [open, lbAutoplay, lbHover]);
 
     useEffect(() => {
-      function onKey(e: KeyboardEvent) {
+      function onKey(e) {
         if (!open) return;
         if (e.key === "Escape") onClose();
         if (e.key === "ArrowRight") setIndex((i) => (i + 1) % images.length);
@@ -250,18 +233,109 @@ export default function ProductPage({ params }: { params: { title: string } }) {
       return () => window.removeEventListener("keydown", onKey);
     }, [open, onClose]);
 
-    const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
-    const goNext = () => setIndex((i) => (i + 1) % images.length);
+    const goPrev = () => {
+      setIndex((i) => (i - 1 + images.length) % images.length);
+    };
+    const goNext = () => {
+      setIndex((i) => (i + 1) % images.length);
+    };
 
-    // Magnifier: compute background position based on mouse
-    const onMouseMove = (e: React.MouseEvent) => {
-      const el = e.currentTarget as HTMLDivElement;
+    // Touch / swipe handlers for mobile
+    const onTouchStart = (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+      draggingRef.current = true;
+      setTranslateX(0);
+      // pause autoplay while touching
+      setLbAutoplay(false);
+    };
+
+    const onTouchMove = (e) => {
+      if (!draggingRef.current) return;
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartRef.current.x;
+      const dy = t.clientY - touchStartRef.current.y;
+
+      // if vertical movement is greater, don't treat as horizontal swipe (let page scroll)
+      if (Math.abs(dy) > Math.abs(dx)) {
+        // allow scroll
+        return;
+      }
+
+      // prevent page scroll on horizontal dragging
+      e.preventDefault();
+      setTranslateX(dx);
+    };
+
+    const onTouchEnd = (e) => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      const endTime = Date.now();
+      const { x: startX } = touchStartRef.current;
+      const touch = (e.changedTouches && e.changedTouches[0]) || {};
+      const dx = (touch.clientX || 0) - startX;
+      const dt = endTime - touchStartRef.current.time;
+      const velocity = dx / Math.max(dt, 1); // px per ms
+
+      const threshold = 60; // px needed to trigger swipe
+      const velocityThreshold = 0.3; // quick flick
+
+      if (dx <= -threshold || velocity < -velocityThreshold) {
+        // swipe left => next
+        setTranslateX(-200); // animate off-screen
+        setTimeout(() => {
+          setTranslateX(0);
+          goNext();
+        }, 180);
+      } else if (dx >= threshold || velocity > velocityThreshold) {
+        // swipe right => prev
+        setTranslateX(200);
+        setTimeout(() => {
+          setTranslateX(0);
+          goPrev();
+        }, 180);
+      } else {
+        // not enough: snap back
+        setTranslateX(0);
+      }
+
+      // resume autoplay after short delay
+      setTimeout(() => setLbAutoplay(true), 600);
+    };
+
+    // mouse drag support (desktop)
+    const mouseDrag = useRef({ active: false, startX: 0 });
+    const onMouseDown = (e) => {
+      mouseDrag.current = { active: true, startX: e.clientX };
+      setLbAutoplay(false);
+    };
+    const onMouseMove = (e) => {
+      if (!mouseDrag.current.active) return;
+      const dx = e.clientX - mouseDrag.current.startX;
+      setTranslateX(dx);
+    };
+    const onMouseUp = (e) => {
+      if (!mouseDrag.current.active) return;
+      mouseDrag.current.active = false;
+      const dx = e.clientX - mouseDrag.current.startX;
+      const threshold = 80;
+      if (dx <= -threshold) goNext();
+      else if (dx >= threshold) goPrev();
+      setTranslateX(0);
+      setTimeout(() => setLbAutoplay(true), 600);
+    };
+
+    // Magnifier: compute background position when hovering
+    const onMouseMoveMagnifier = (e) => {
+      const el = e.currentTarget;
       const rect = el.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
       setZoom({ x, y, visible: true });
     };
-    const onMouseLeave = () => setZoom({ ...zoom, visible: false });
+    const onMouseLeaveMagnifier = () => setZoom({ ...zoom, visible: false });
 
     return (
       <Modal
@@ -295,8 +369,9 @@ export default function ProductPage({ params }: { params: { title: string } }) {
               boxShadow: 24,
               position: "relative",
             }}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
           >
-            {/* Close */}
             <IconButton
               onClick={onClose}
               aria-label="close"
@@ -305,9 +380,11 @@ export default function ProductPage({ params }: { params: { title: string } }) {
               <CloseIcon />
             </IconButton>
 
-            {/* Left arrow */}
             <IconButton
-              onClick={goPrev}
+              onClick={() => {
+                setLbAutoplay(false);
+                goPrev();
+              }}
               sx={{
                 position: "absolute",
                 left: -10,
@@ -322,9 +399,11 @@ export default function ProductPage({ params }: { params: { title: string } }) {
               <ArrowBackIosNewIcon />
             </IconButton>
 
-            {/* Right arrow */}
             <IconButton
-              onClick={goNext}
+              onClick={() => {
+                setLbAutoplay(false);
+                goNext();
+              }}
               sx={{
                 position: "absolute",
                 right: -10,
@@ -339,7 +418,6 @@ export default function ProductPage({ params }: { params: { title: string } }) {
               <ArrowForwardIosIcon />
             </IconButton>
 
-            {/* Main image area */}
             <Box
               sx={{
                 display: "flex",
@@ -350,8 +428,14 @@ export default function ProductPage({ params }: { params: { title: string } }) {
             >
               <Box sx={{ flex: 1, display: "flex", justifyContent: "center", position: "relative" }}>
                 <Box
-                  onMouseMove={onMouseMove}
-                  onMouseLeave={onMouseLeave}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  onMouseDown={onMouseDown}
+                  onMouseLeave={() => {
+                    mouseDrag.current.active = false;
+                    setTranslateX(0);
+                  }}
                   sx={{
                     width: "100%",
                     maxHeight: { xs: 360, md: 600 },
@@ -362,35 +446,40 @@ export default function ProductPage({ params }: { params: { title: string } }) {
                     borderRadius: 1,
                     bgcolor: "#fafafa",
                     position: "relative",
+                    touchAction: "pan-y", // allow vertical scroll but help horizontal capture
+                    userSelect: "none",
                   }}
                 >
-                  {/* The visible image */}
                   <Box
                     component="img"
                     src={images[index]}
                     alt={`Zoom ${index}`}
+                    onMouseMove={onMouseMoveMagnifier}
+                    onMouseLeave={onMouseLeaveMagnifier}
                     sx={{
                       maxWidth: "100%",
                       maxHeight: { xs: 320, md: 560 },
                       objectFit: "contain",
-                      transition: "opacity 0.3s ease, transform 0.3s ease",
+                      transition: "transform 0.25s ease, opacity 0.25s ease",
                       cursor: "zoom-out",
+                      transform: `translateX(${translateX}px)`,
                     }}
                     onClick={() => {
-                      // clicking image while modal open toggles autoplay/pause for UX
+                      // toggle autoplay on click
                       setLbAutoplay((s) => !s);
                     }}
+                    draggable={false}
                   />
 
-                  {/* Magnifier box */}
+                  {/* Magnifier (desktop) */}
                   {zoom.visible && (
                     <Box
                       sx={{
                         position: "absolute",
                         right: 12,
                         top: 12,
-                        width: { xs: 120, md: 220 },
-                        height: { xs: 120, md: 220 },
+                        width: { xs: 0, md: 220 },
+                        height: { xs: 0, md: 220 },
                         borderRadius: 1,
                         border: "2px solid rgba(0,0,0,0.08)",
                         overflow: "hidden",
@@ -399,14 +488,13 @@ export default function ProductPage({ params }: { params: { title: string } }) {
                         backgroundRepeat: "no-repeat",
                         backgroundSize: "200% auto",
                         backgroundPosition: `${zoom.x}% ${zoom.y}%`,
-                        display: { xs: "none", md: "block" }, // hide magnifier on small screens
+                        display: { xs: "none", md: "block" },
                       }}
                     />
                   )}
                 </Box>
               </Box>
 
-              {/* Right column: thumbnails & controls */}
               <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -436,8 +524,7 @@ export default function ProductPage({ params }: { params: { title: string } }) {
                         "& img": { width: "100%", height: "100%", objectFit: "cover" },
                       }}
                     >
-                      {/* thumbnail */}
-                      <Box component="img" src={img} alt={`thumb-${i}`} />
+                      <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
                     </Box>
                   ))}
                 </Box>
@@ -651,7 +738,6 @@ export default function ProductPage({ params }: { params: { title: string } }) {
         </div>
       </div>
 
-      {/* Lightbox modal */}
       <Lightbox
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
