@@ -87,32 +87,33 @@ function ProductImage({ image_url, title }) {
   }, [images.length]);
 
   return (
-    <Box
-      sx={{
-        height: { xs: 200, md: 240 },
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        mb: { xs: 2, md: 2.5 },
-        mt: { xs: 1, md: 1.5 },
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 2,
-      }}
-    >
-      <Box
-        component="img"
-        src={images[currentIndex]}
-        alt={`${title} image`}
-        sx={{
-          height: "100%",
-          width: "100%",
-          objectFit: "contain",
-          transition: "opacity 0.4s ease-in-out",
-          opacity: fade ? 1 : 0,
-        }}
-      />
+<Box
+  sx={{
+    position: "relative",
+    height: { xs: 200, md: 240 },
+    overflow: "hidden",
+    borderRadius: 2,
+    "& img": {
+      transition: "transform 0.4s ease",
+    },
+    "&:hover img": {
+      transform: "scale(1.05)",
+    },
+  }}
+>
+     <Box
+  component="img"
+  src={images[currentIndex]}
+  alt={`${title} image`}
+  sx={{
+    height: "100%",
+    width: "100%",
+    objectFit: "cover", // أو "contain" لو تحب تبين الصورة كاملة
+    transition: "opacity 0.4s ease-in-out",
+    opacity: fade ? 1 : 0,
+    backgroundColor: "#f7f7f7", // لو الصورة بطيئة التحميل
+  }}
+/>
     </Box>
   );
 }
@@ -371,163 +372,183 @@ function ProductImage({ image_url, title }) {
           </Box>
         ) : (
           <>
-<Grid
-  container
-  spacing={{ xs: 2, md: 3 }}
-  sx={{
-    alignItems: "stretch", // كل الكروت بنفس الارتفاع
-  }}
->
-  {visibleProducts.map((product) => {
-    const discountedPrice =
-      product.discount > 0
-        ? (Number(product.price) * (100 - Number(product.discount))) / 100
-        : null;
-
-    return (
-      <Grid
-        item
-        xs={6} // موبايل = 2 في الصف
-        sm={4} // تابلت = 3 في الصف
-        md={3} // ديسكتوب = 4 في الصف
-        key={product.id}
+  <Grid
+        container
+        spacing={{ xs: 2, md: 3 }}
         sx={{
-          display: "flex",
+          alignItems: "stretch", // الكروت كلها بنفس الارتفاع
         }}
       >
-        <Paper
-          elevation={2}
-          sx={{
-            p: { xs: 1.5, md: 2 },
-            borderRadius: 3,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            width: "100%",
-            height: "100%", // عشان الكروت تتساوى
-          }}
-        >
-          {product.discount > 0 && (
-            <Chip
-              label={`${product.discount}% off`}
-              color="secondary"
-              size="small"
-              sx={{
-                position: "absolute",
-                top: 12,
-                left: 12,
-                zIndex: 2,
-              }}
-            />
-          )}
+        {visibleProducts.map((product) => {
+          const discountedPrice =
+            product.discount > 0
+              ? (Number(product.price) * (100 - Number(product.discount))) / 100
+              : null;
 
-          {/* صورة المنتج */}
-          <Box
-            component={Link}
-            href={`/product/${encodeURIComponent(product.title)}`}
-            sx={{ textDecoration: "none", color: "inherit" }}
-          >
-            <ProductImage image_url={product.image_url} title={product.title} />
-
-            <Typography
-              variant="subtitle1"
-              fontWeight={600}
-              sx={{
-                mb: 0.5,
-                fontSize: { xs: "0.9rem", md: "1rem" },
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                minHeight: 48, // يثبت ارتفاع العنوان
-              }}
+          return (
+            <Grid
+              item
+              xs={6} // موبايل = 2 في الصف
+              sm={4} // تابلت = 3 في الصف
+              md={3} // ديسكتوب = 4 في الصف
+              key={product.id}
+              sx={{ display: "flex" }}
             >
-              {product.title}
-            </Typography>
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                display: "block",
-                mb: 1,
-                fontSize: { xs: "0.7rem", md: "0.75rem" },
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                minHeight: 32, // يثبت ارتفاع الوصف
-              }}
-            >
-              {product.description?.slice(0, 60)}
-            </Typography>
-
-            {product.discount > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textDecoration: "line-through" }}
-                >
-                  ${product.price}
-                </Typography>
-                <Typography
-                  variant="h6"
-                  color="secondary"
-                  fontWeight={700}
-                  sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
-                >
-                  ${discountedPrice.toFixed(2)}
-                </Typography>
-              </Box>
-            ) : (
-              <Typography
-                variant="h6"
-                color="secondary"
-                fontWeight={700}
-                sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
-              >
-                ${product.price}
-              </Typography>
-            )}
-          </Box>
-
-          {/* زرار أو Out of Stock */}
-          <Box
-            sx={{
-              mt: "auto",
-              pt: { xs: 1, md: 2 },
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
-            {product.stock > 0 ? (
-              <Button
-                href={`/product/${encodeURIComponent(product.title)}`}
-                variant="contained"
-                startIcon={<ShoppingCartOutlined />}
-                size="small"
+              <Paper
+                elevation={2}
                 sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
+                  p: { xs: 1.5, md: 2 },
+                  borderRadius: 3,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
                   width: "100%",
+                  height: "100%", // تساوي ارتفاع الكروت
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                Add to Cart
-              </Button>
-            ) : (
-              <Typography color="error" fontWeight={700}>
-                Out of Stock
-              </Typography>
-            )}
-          </Box>
-        </Paper>
+                {/* عرض الخصم */}
+                {product.discount > 0 && (
+                  <Chip
+                    label={`${product.discount}% off`}
+                    color="secondary"
+                    size="small"
+                    sx={{
+                      position: "absolute",
+                      top: 10,
+                      left: 10,
+                      zIndex: 2,
+                    }}
+                  />
+                )}
+
+                {/* صورة المنتج */}
+                <Box
+                  component={Link}
+                  href={`/product/${encodeURIComponent(product.title)}`}
+                  sx={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    flexGrow: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                  }}
+                >
+                  <ProductImage
+                    image_url={product.image_url}
+                    title={product.title}
+                  />
+
+                  {/* العنوان */}
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{
+                      mb: 0.5,
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      minHeight: 48, // لتثبيت ارتفاع العنوان
+                    }}
+                  >
+                    {product.title}
+                  </Typography>
+
+                  {/* الوصف */}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      display: "block",
+                      mb: 1,
+                      fontSize: { xs: "0.7rem", md: "0.75rem" },
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      minHeight: 32, // لتثبيت ارتفاع الوصف
+                    }}
+                  >
+                    {product.description?.slice(0, 60)}
+                  </Typography>
+
+                  {/* السعر */}
+                  {product.discount > 0 ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.3,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ textDecoration: "line-through" }}
+                      >
+                        ${product.price}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        color="secondary"
+                        fontWeight={700}
+                        sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                      >
+                        ${discountedPrice.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography
+                      variant="h6"
+                      color="secondary"
+                      fontWeight={700}
+                      sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                    >
+                      ${product.price}
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* زرار أو Out of Stock */}
+                <Box
+                  sx={{
+                    mt: "auto",
+                    pt: { xs: 1, md: 2 },
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  {product.stock > 0 ? (
+                    <Button
+                      href={`/product/${encodeURIComponent(product.title)}`}
+                      variant="contained"
+                      startIcon={<ShoppingCartOutlined />}
+                      size="small"
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: "none",
+                        width: "100%",
+                      }}
+                    >
+                      Add to Cart
+                    </Button>
+                  ) : (
+                    <Typography color="error" fontWeight={700}>
+                      Out of Stock
+                    </Typography>
+                  )}
+                </Box>
+              </Paper>
+            </Grid>
+          );
+        })}
       </Grid>
-    );
-  })}
-</Grid>
 
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <Pagination count={pages} page={page} onChange={(_, val) => setPage(val)} color="primary" shape="rounded" />
