@@ -497,7 +497,7 @@ export default function ProductPage({ params }) {
               </Box>
 
               <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                {/* <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     {product.title}
                   </Typography>
@@ -507,7 +507,7 @@ export default function ProductPage({ params }) {
                     onClick={() => setLbAutoplay((s) => !s)}
                     sx={{ cursor: "pointer" }}
                   />
-                </Stack>
+                </Stack> */}
 
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
                   {images.map((img, i) => (
