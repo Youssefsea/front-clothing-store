@@ -530,14 +530,14 @@ export default function ProductPage({ params }) {
                   ))}
                 </Box>
 
-                <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                {/* <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                   <Button fullWidth variant="outlined" onClick={goPrev}>
                     Prev
                   </Button>
                   <Button fullWidth variant="contained" onClick={goNext}>
                     Next
                   </Button>
-                </Stack>
+                </Stack> */}
               </Box>
             </Box>
           </Box>
