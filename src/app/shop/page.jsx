@@ -49,7 +49,6 @@ export default function AllProducts() {
   const [tempMinPrice, setTempMinPrice] = useState("");
   const [tempMaxPrice, setTempMaxPrice] = useState("");
 
-  // Lightbox-related state kept but unused (per request we won't open it on image click)
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [lbImages, setLbImages] = useState([]);
@@ -183,11 +182,12 @@ export default function AllProducts() {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
-  // ======================================================
-  // ProductImage - now: image always scales to card area and NOT open lightbox on click.
-  // Click goes to product page because image is wrapped by Link in card.
-  // ======================================================
-  function ProductImage({ image_url, title }) {
+  // -- Product Image with consistent aspect and click-to-open lightbox
+  // Changes:
+  // - bigger aspect box (taller)
+  // - image uses most of height and centered with contain
+  // - card padding slightly reduced so image area larger
+  function ProductImage({ image_url, title, onOpen }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [fade, setFade] = useState(true);
@@ -205,8 +205,8 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    // Balanced aspect so image area matches card size proportionally
-    const aspectPt = { xs: "72%", sm: "68%", md: "62%" };
+    const aspectPt = { xs: "92%", sm: "88%", md: "78%" };
+
     const placeholder = "/placeholder.png";
     let imgSrc = images[currentIndex] || placeholder;
     try { imgSrc = encodeURI(imgSrc); } catch (e) {}
@@ -219,21 +219,24 @@ export default function AllProducts() {
 
     return (
       <Box
+        onClick={() => {
+          if (onOpen) {
+            onOpen(images, currentIndex);
+          }
+        }}
         sx={{
           position: "relative",
           width: "100%",
           pt: aspectPt,
           overflow: "hidden",
-          borderRadius: 3,
-          bgcolor: "#fafafa",
+          borderRadius: 2,
+          bgcolor: failed ? "#f0f0f0" : "#fff",
+          cursor: "zoom-in",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        {/* Image fills the available card image area while keeping aspect ratio.
-            objectFit: 'cover' will fill the box (may crop) but keep consistent visual size across cards.
-            If you prefer no cropping, change to objectFit: 'contain' and maybe set background to a soft color. */}
         <Box
           component="img"
           src={imgSrc}
@@ -241,25 +244,23 @@ export default function AllProducts() {
           onError={handleImgError}
           sx={{
             position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transition: "opacity 0.35s ease, transform 0.35s ease",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%,-50%)",
+            width: "auto",
+            height: "92%", // larger height for bigger appearance
+            objectFit: "contain",
+            transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
             opacity: fade ? 1 : 0,
-            "&:hover": { transform: "scale(1.03)" },
+            "&:hover": { transform: "translate(-50%,-50%) scale(1.03)" },
+            backgroundColor: "#fff",
           }}
         />
-        {failed && (
-          <Box sx={{ position: "absolute", color: "text.secondary", fontSize: 12 }}>
-            Image unavailable
-          </Box>
-        )}
       </Box>
     );
   }
 
-  // Lightbox kept but won't be triggered on image click (per request). Implementation unchanged.
+  // -- Lightbox component (modal) (kept unchanged)
   function Lightbox({ open, images, startIndex, onClose }) {
     const [index, setIndex] = useState(startIndex || 0);
     const autoplayRef = useRef(null);
@@ -301,7 +302,6 @@ export default function AllProducts() {
     const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
     const goNext = () => setIndex((i) => (i + 1) % images.length);
 
-    // touch handlers (kept)
     const onTouchStart = (e) => {
       const t = e.touches && e.touches[0];
       if (!t) return;
@@ -356,34 +356,108 @@ export default function AllProducts() {
 
     return (
       <Modal open={open} onClose={onClose} closeAfterTransition BackdropProps={{ timeout: 300 }}>
-        <Box sx={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", p: 2, bgcolor: "rgba(10,10,10,0.6)", zIndex: 1500 }}>
-          <Paper sx={{ width: { xs: "96%", md: "80%", lg: "72%" }, maxWidth: 1200, bgcolor: "background.paper", borderRadius: 2, p: 2, position: "relative" }} elevation={24}>
-            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}><CloseIcon /></MuiIconButton>
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 2,
+            bgcolor: "rgba(10,10,10,0.6)",
+            zIndex: 1500,
+          }}
+        >
+          <Paper
+            sx={{
+              width: { xs: "96%", md: "80%", lg: "72%" },
+              maxWidth: 1200,
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              p: 2,
+              position: "relative",
+            }}
+            elevation={24}
+          >
+            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}>
+              <CloseIcon />
+            </MuiIconButton>
 
-            <MuiIconButton onClick={() => { setLbAutoplay(false); goPrev(); }} sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}>
+            <MuiIconButton
+              onClick={() => { setLbAutoplay(false); goPrev(); }}
+              sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
+            >
               <ArrowBackIosNewIcon />
             </MuiIconButton>
 
-            <MuiIconButton onClick={() => { setLbAutoplay(false); goNext(); }} sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}>
+            <MuiIconButton
+              onClick={() => { setLbAutoplay(false); goNext(); }}
+              sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
+            >
               <ArrowForwardIosIcon />
             </MuiIconButton>
 
             <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
               <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                <Box onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseMove={onMouseMoveMagnifier} onMouseLeave={onMouseLeaveMagnifier} sx={{ width: "100%", maxHeight: { xs: 360, md: 600 }, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", borderRadius: 1, bgcolor: "#fafafa", position: "relative", touchAction: "pan-y" }}>
-                  <Box component="img" src={images[index]} alt={`img-${index}`} sx={{ maxWidth: "100%", maxHeight: { xs: 320, md: 560 }, objectFit: "contain", transition: "transform 0.25s ease, opacity 0.25s ease", transform: `translateX(${translateX}px)`, cursor: "zoom-out" }} onClick={() => setLbAutoplay((s) => !s)} draggable={false} />
+                <Box
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  onMouseMove={onMouseMoveMagnifier}
+                  onMouseLeave={onMouseLeaveMagnifier}
+                  sx={{
+                    width: "100%",
+                    maxHeight: { xs: 360, md: 600 },
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    borderRadius: 1,
+                    bgcolor: "#fafafa",
+                    position: "relative",
+                    touchAction: "pan-y",
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={images[index]}
+                    alt={`img-${index}`}
+                    sx={{
+                      maxWidth: "100%",
+                      maxHeight: { xs: 320, md: 560 },
+                      objectFit: "contain",
+                      transition: "transform 0.25s ease, opacity 0.25s ease",
+                      transform: `translateX(${translateX}px)`,
+                      cursor: "zoom-out",
+                    }}
+                    onClick={() => setLbAutoplay((s) => !s)}
+                    draggable={false}
+                  />
                 </Box>
               </Box>
 
               <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{/* title omitted */}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{/* title omitted to keep compact */}</Typography>
                   <Chip label={lbAutoplay ? "Auto" : "Paused"} size="small" onClick={() => setLbAutoplay((s) => !s)} sx={{ cursor: "pointer" }} />
                 </Stack>
 
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
                   {images.map((img, i) => (
-                    <Box key={i} onClick={() => setIndex(i)} sx={{ width: 66, height: 66, borderRadius: 1, overflow: "hidden", border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)", borderColor: i === index ? "primary.main" : "divider", cursor: "pointer", "& img": { width: "100%", height: "100%", objectFit: "cover" } }}>
+                    <Box
+                      key={i}
+                      onClick={() => setIndex(i)}
+                      sx={{
+                        width: 66,
+                        height: 66,
+                        borderRadius: 1,
+                        overflow: "hidden",
+                        border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)",
+                        borderColor: i === index ? "primary.main" : "divider",
+                        cursor: "pointer",
+                        "& img": { width: "100%", height: "100%", objectFit: "cover" },
+                      }}
+                    >
                       <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
                     </Box>
                   ))}
@@ -401,7 +475,7 @@ export default function AllProducts() {
     );
   }
 
-  // open lightbox from product card (kept but not used on image click)
+  // Handler to open modal from card
   const openLightboxFromProduct = (images, idx) => {
     setLbImages(images || []);
     setLbIndex(idx || 0);
@@ -409,14 +483,21 @@ export default function AllProducts() {
     setLbAutoplay(true);
   };
 
-  // ======================================================
-  // Render
-  // ======================================================
   return (
-    <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" }, p: { xs: 2, md: 3 } }}>
-      {/* Filters column */}
-      <Paper elevation={1} sx={{ width: { xs: "100%", md: 300 }, p: { xs: 2, md: 3 }, position: { xs: "static", md: "sticky" }, top: { md: 24 }, alignSelf: "flex-start", height: "fit-content", display: { xs: "none", md: "block" }, borderRadius: 3, boxShadow: "0 6px 20px rgba(20,20,20,0.04)" }}>
-        <Typography variant="h6" fontWeight={800} gutterBottom>Filter Options</Typography>
+    <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
+      <Paper
+        elevation={1}
+        sx={{
+          width: { xs: "100%", md: 280 },
+          p: { xs: 2, md: 3 },
+          position: { xs: "static", md: "sticky" },
+          top: { md: 24 },
+          alignSelf: "flex-start",
+          height: "fit-content",
+          display: { xs: "none", md: "block" },
+        }}
+      >
+        <Typography variant="h6" fontWeight={700} gutterBottom>Filter Options</Typography>
         <Divider sx={{ mb: 2 }} />
         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
           <InputLabel>Category</InputLabel>
@@ -440,48 +521,83 @@ export default function AllProducts() {
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
           {availableColors.map((c) => {
             const selected = colorFilters.includes(c);
-            return (
-              <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 26, height: 26, borderRadius: "50%", border: selected ? "3px solid #b8732a" : "2px solid #eee", cursor: "pointer", backgroundColor: c.toLowerCase(), boxShadow: selected ? "0 2px 8px rgba(184,115,42,0.18)" : "none" }} title={c} />
-            );
+            return <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", outline: selected ? "2px solid #c99746" : "none", outlineOffset: 2, backgroundColor: c.toLowerCase() }} title={c} />;
           })}
         </Box>
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Size</Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {availableSizes.map((s) => (
-            <Button key={s} size="small" variant={sizeFilters.includes(s) ? "contained" : "outlined"} onClick={() => toggleSize(s)} sx={{ borderRadius: 1, textTransform: "none" }}>{s}</Button>
-          ))}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          {availableSizes.map((s) => <FormControlLabel key={s} control={<Checkbox checked={sizeFilters.includes(s)} onChange={() => toggleSize(s)} size="small" />} label={s} />)}
         </Box>
 
         <Divider sx={{ my: 2 }} />
         <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }}>Clear All</Button>
       </Paper>
 
-      {/* Main content */}
+      <Drawer anchor="left" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
+        <Box sx={{ width: 300, p: 2 }} role="presentation">
+          <Typography variant="h6" fontWeight={700} gutterBottom>Filter Options</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Category</InputLabel>
+            <Select value={category} label="Category" onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
+              {categories.map((c, idx) => <MenuItem key={idx} value={c}>{c === "" ? "All Categories" : c}</MenuItem>)}
+            </Select>
+          </FormControl>
+
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>Price</Typography>
+            <Slider value={priceRange} onChange={handleSliderChange} valueLabelDisplay="auto" min={0} max={2000} step={1} />
+            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <TextField size="small" placeholder="Min" value={tempMinPrice} onChange={(e) => setTempMinPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
+              <TextField size="small" placeholder="Max" value={tempMaxPrice} onChange={(e) => setTempMaxPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
+            </Stack>
+            <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={handlePriceApply}>Apply</Button>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Color</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
+            {availableColors.map((c) => {
+              const selected = colorFilters.includes(c);
+              return <Box key={`m-${c}`} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", outline: selected ? "2px solid #c99746" : "none", outlineOffset: 2, backgroundColor: c.toLowerCase() }} title={c} />;
+            })}
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Size</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            {availableSizes.map((s) => <FormControlLabel key={`m-${s}`} control={<Checkbox checked={sizeFilters.includes(s)} onChange={() => toggleSize(s)} size="small" />} label={s} />)}
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+          <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }}>Clear All</Button>
+        </Box>
+      </Drawer>
+
       <Box sx={{ flex: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h4" fontWeight={900} sx={{ mb: 0.5 }}>Shop</Typography>
+          <Typography variant="h4" fontWeight={800} sx={{ mb: 0.5 }}>Shop</Typography>
           <Typography variant="body2" color="text.secondary">Home / Shop</Typography>
         </Box>
 
-        <Stack direction={{ xs: "column", md: "row" }} alignItems="center" justifyContent="space-between" sx={{ mb: 3, gap: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} sx={{ mb: 3, gap: 2 }}>
           <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%" }}>
             <Button startIcon={<FilterAltIcon />} variant="outlined" onClick={() => setFiltersOpen(true)} sx={{ mr: 2 }}>Filters</Button>
           </Box>
-
-          <form onSubmit={handleSearchSubmit} style={{ width: "100%", maxWidth: 640 }}>
+          <form onSubmit={handleSearchSubmit} style={{ width: "100%", maxWidth: 560 }}>
             <Stack direction="row" spacing={1}>
               <TextField fullWidth size="small" placeholder="Search products..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
               <IconButton type="submit" color="primary" sx={{ bgcolor: "secondary.light" }}><SearchIcon /></IconButton>
             </Stack>
           </form>
 
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ width: "100%", justifyContent: { xs: "stretch", md: "flex-end" } }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }} sx={{ width: "100%", justifyContent: { xs: "stretch", md: "flex-end" } }}>
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: "center", sm: "left" } }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, filtered.length)} of {filtered.length} results
             </Typography>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 },margin:"10 auto" }}>
               <InputLabel>Sort</InputLabel>
               <Select label="Sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <MenuItem value="default">Default Sorting</MenuItem>
@@ -491,8 +607,8 @@ export default function AllProducts() {
               </Select>
             </FormControl>
           </Stack>
-        </Stack>
 
+        </Stack>
         <Divider sx={{ mb: 3 }} />
 
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}>
@@ -504,19 +620,23 @@ export default function AllProducts() {
         </Stack>
 
         {loading ? (
-          <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" } }}>
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <Paper key={idx} sx={{ p: 2, height: { xs: 380, md: 440 }, display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ height: { xs: 240, md: 300 }, bgcolor: "#f2f2f2", borderRadius: 2 }} />
-                <Box sx={{ height: 16, bgcolor: "#eaeaea", borderRadius: 1 }} />
-                <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
-                <Box sx={{ mt: "auto", height: 40, bgcolor: "#eaeaea", borderRadius: 1 }} />
-              </Paper>
-            ))}
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
+            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
+            sx={{ p: 2, height: { xs: 340, md: 380 }, display: "flex", flexDirection: "column", gap: 1 }}>
+              <Box sx={{ height: { xs: 220, md: 260 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
+              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
+              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
+            <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
           </Box>
         ) : (
           <>
-            <Grid container spacing={{ xs: 2, md: 3 }}>
+            <Grid
+              container
+              spacing={{ xs: 2, md: 3 }}
+              sx={{
+                alignItems: "stretch",
+              }}
+            >
               {visibleProducts.map((product) => {
                 const discountedPrice =
                   product.discount > 0
@@ -524,48 +644,133 @@ export default function AllProducts() {
                     : null;
 
                 return (
-                  <Grid item xs={6} sm={6} md={4} key={product.id}>
-                    <Paper elevation={3} sx={{ p: { xs: 1.25, md: 1.5 }, borderRadius: 3, display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", position: "relative", overflow: "hidden", minHeight: { xs: 420, md: 480 }, boxShadow: "0 8px 24px rgba(20,20,20,0.06)", transition: "transform 0.18s ease, box-shadow 0.18s ease", "&:hover": { transform: "translateY(-6px)", boxShadow: "0 14px 36px rgba(20,20,20,0.08)" } }}>
+                  <Grid
+                    item
+                    xs={6}    // mobile: 2 per row
+                    sm={6}    // tablet: 2 per row (bigger cards)
+                    md={4}    // desktop: 3 per row (bigger cards than md=3)
+                    key={product.id}
+                    sx={{ display: "flex", flexDirection: "column" }}
+                  >
+                    <Paper
+                      elevation={2}
+                      sx={{
+                        p: { xs: 1.25, md: 1.5 }, // slightly reduced padding to give more space to image
+                        borderRadius: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        width: "100%",
+                        flex: 1,
+                        position: "relative",
+                        overflow: "hidden",
+                        minHeight: { xs: 420, md: 480 }, // ensure cards are taller to fit bigger images
+                      }}
+                    >
                       {product.discount > 0 && (
-                        <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12, zIndex: 2, bgcolor: "#f1e1c6", color: "#6b4b2e", fontWeight: 700, borderRadius: 2, px: 1.2 }} />
+                        <Chip
+                          label={`${product.discount}% off`}
+                          color="secondary"
+                          size="small"
+                          sx={{
+                            position: "absolute",
+                            top: 10,
+                            left: 10,
+                            zIndex: 2,
+                          }}
+                        />
                       )}
 
-                      <Link href={`/product/${encodeURIComponent(product.title)}`} style={{ textDecoration: "none", color: "inherit" }}>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, flexGrow: 1, px: 0.5 }}>
-                          <ProductImage image_url={product.image_url} title={product.title} />
+                      <Box
+                        component={Link}
+                        href={`/product/${encodeURIComponent(product.title)}`}
+                        sx={{
+                          textDecoration: "none",
+                          color: "inherit",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
+                          flexGrow: 1,
+                          px: 0.5,
+                        }}
+                      >
+                        <ProductImage
+                          image_url={product.image_url}
+                          title={product.title}
+                          onOpen={openLightboxFromProduct}
+                        />
 
-                          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5, fontSize: { xs: "1rem", md: "1.05rem" }, minHeight: 52 }}>
-                            {product.title}
-                          </Typography>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={600}
+                          sx={{
+                            mb: 0.5,
+                            fontSize: { xs: "1rem", md: "1.05rem" },
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            minHeight: 52,
+                          }}
+                        >
+                          {product.title}
+                        </Typography>
 
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, minHeight: 36 }}>
-                            {product.description?.slice(0, 60)}
-                          </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: "block",
+                            mb: 1,
+                            fontSize: { xs: "0.75rem", md: "0.8rem" },
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            minHeight: 36,
+                          }}
+                        >
+                          {product.description?.slice(0, 60)}
+                        </Typography>
 
-                          {product.discount > 0 ? (
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through" }}>
-                                ${product.price}
-                              </Typography>
-                              <Typography variant="h6" color="secondary" fontWeight={800} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
-                                ${discountedPrice.toFixed(2)}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="h6" color="secondary" fontWeight={800} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
+                        {product.discount > 0 ? (
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through" }}>
                               ${product.price}
                             </Typography>
-                          )}
-                        </Box>
-                      </Link>
+                            <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
+                              ${discountedPrice.toFixed(2)}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
+                            ${product.price}
+                          </Typography>
+                        )}
+                      </Box>
 
                       <Box sx={{ mt: 1, display: "flex", justifyContent: "center", px: 1 }}>
                         {product.stock > 0 ? (
-                          <Button href={`/product/${encodeURIComponent(product.title)}`} variant="contained" startIcon={<ShoppingCartOutlined />} size="medium" sx={{ borderRadius: 2, textTransform: "none", width: "100%", py: 1.05, backgroundColor: "#3e2723", "&:hover": { backgroundColor: "#2f1f1a" } }}>
+                          <Button
+                            href={`/product/${encodeURIComponent(product.title)}`}
+                            variant="contained"
+                            startIcon={<ShoppingCartOutlined />}
+                            size="small"
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: "none",
+                              width: "100%",
+                              py: 1.1,
+                            }}
+                          >
                             Add to Cart
                           </Button>
                         ) : (
-                          <Typography color="error" fontWeight={700}>Out of Stock</Typography>
+                          <Typography color="error" fontWeight={700}>
+                            Out of Stock
+                          </Typography>
                         )}
                       </Box>
                     </Paper>
@@ -581,7 +786,7 @@ export default function AllProducts() {
         )}
       </Box>
 
-      {/* Lightbox Modal (kept but not triggered on image click) */}
+      {/* Lightbox Modal */}
       <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
     </Box>
   );
