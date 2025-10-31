@@ -650,7 +650,7 @@ export default function AllProducts() {
                     md={3}
                     key={product.id}
                     sx={{ display: "flex", flexDirection: "column" }}
-                    margin={"10px"}
+                    margin={"5px"}
 width={"250px"}
                   >
                     <Paper
