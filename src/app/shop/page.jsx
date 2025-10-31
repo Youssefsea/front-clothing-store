@@ -228,7 +228,7 @@ export default function AllProducts() {
           overflow: "hidden",
           borderRadius: 2,
           bgcolor: failed ? "#f0f0f0" : "#f7f7f7",
-          cursor: "zoom-in",
+        
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -695,7 +695,7 @@ export default function AllProducts() {
                         <ProductImage
                           image_url={product.image_url}
                           title={product.title}
-                          onOpen={openLightboxFromProduct}
+                         
                         />
 
                         <Typography
