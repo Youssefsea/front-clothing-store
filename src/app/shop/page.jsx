@@ -183,10 +183,10 @@ export default function AllProducts() {
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
   // -- Product Image with consistent aspect and click-to-open lightbox
-  // Changed to:
-  // - give larger aspect-box height so images appear bigger
-  // - use objectFit: 'contain' so full image is visible (not cropped)
-  // - ensure image centered and has fallback logic (placeholder)
+  // Changes:
+  // - bigger aspect box (taller)
+  // - image uses most of height and centered with contain
+  // - card padding slightly reduced so image area larger
   function ProductImage({ image_url, title, onOpen }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -205,11 +205,9 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    // larger aspect box: increase pt so image area is taller
-    // tweak these values to control image size: e.g. 'pt: "85%"' makes images taller
-    const aspectPt = { xs: "85%", md: "70%" };
+    // make the image area bigger: increase pt
+    const aspectPt = { xs: "92%", sm: "88%", md: "78%" };
 
-    // pick current src, fallback to placeholder
     const placeholder = "/placeholder.png";
     let imgSrc = images[currentIndex] || placeholder;
     try { imgSrc = encodeURI(imgSrc); } catch (e) {}
@@ -233,7 +231,7 @@ export default function AllProducts() {
           pt: aspectPt,
           overflow: "hidden",
           borderRadius: 2,
-          bgcolor: failed ? "#f0f0f0" : "#f7f7f7",
+          bgcolor: failed ? "#f0f0f0" : "#fff",
           cursor: "zoom-in",
           display: "flex",
           alignItems: "center",
@@ -251,19 +249,19 @@ export default function AllProducts() {
             left: "50%",
             transform: "translate(-50%,-50%)",
             width: "auto",
-            height: "90%", // ensure it uses most of the available height
-            objectFit: "contain", // show full image without cropping
+            height: "92%", // larger height for bigger appearance
+            objectFit: "contain",
             transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
             opacity: fade ? 1 : 0,
             "&:hover": { transform: "translate(-50%,-50%) scale(1.03)" },
-            backgroundColor: "#f7f7f7",
+            backgroundColor: "#fff",
           }}
         />
       </Box>
     );
   }
 
-  // -- Lightbox component (modal) with swipe support for mobile
+  // -- Lightbox component (modal) (kept unchanged)
   function Lightbox({ open, images, startIndex, onClose }) {
     const [index, setIndex] = useState(startIndex || 0);
     const autoplayRef = useRef(null);
@@ -305,7 +303,6 @@ export default function AllProducts() {
     const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
     const goNext = () => setIndex((i) => (i + 1) % images.length);
 
-    // touch handlers for swipe
     const onTouchStart = (e) => {
       const t = e.touches && e.touches[0];
       if (!t) return;
@@ -353,9 +350,7 @@ export default function AllProducts() {
       setTimeout(() => setLbAutoplay(true), 600);
     };
 
-    const onMouseMoveMagnifier = (e) => {
-      setLbHover(true);
-    };
+    const onMouseMoveMagnifier = () => setLbHover(true);
     const onMouseLeaveMagnifier = () => setLbHover(false);
 
     if (!images || images.length === 0) return null;
@@ -494,7 +489,7 @@ export default function AllProducts() {
       <Paper
         elevation={1}
         sx={{
-          width: { xs: "100%", md: 260 },
+          width: { xs: "100%", md: 280 },
           p: { xs: 2, md: 3 },
           position: { xs: "static", md: "sticky" },
           top: { md: 24 },
@@ -628,8 +623,8 @@ export default function AllProducts() {
         {loading ? (
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
             {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
-            sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
-              <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
+            sx={{ p: 2, height: { xs: 340, md: 380 }, display: "flex", flexDirection: "column", gap: 1 }}>
+              <Box sx={{ height: { xs: 220, md: 260 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
               <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
               <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
             <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
@@ -652,16 +647,16 @@ export default function AllProducts() {
                 return (
                   <Grid
                     item
-                    xs={6}
-                    sm={4}
-                    md={3}
+                    xs={6}    // mobile: 2 per row
+                    sm={6}    // tablet: 2 per row (bigger cards)
+                    md={4}    // desktop: 3 per row (bigger cards than md=3)
                     key={product.id}
                     sx={{ display: "flex", flexDirection: "column" }}
                   >
                     <Paper
                       elevation={2}
                       sx={{
-                        p: { xs: 1.5, md: 2 },
+                        p: { xs: 1.25, md: 1.5 }, // slightly reduced padding to give more space to image
                         borderRadius: 3,
                         display: "flex",
                         flexDirection: "column",
@@ -670,6 +665,7 @@ export default function AllProducts() {
                         flex: 1,
                         position: "relative",
                         overflow: "hidden",
+                        minHeight: { xs: 420, md: 480 }, // ensure cards are taller to fit bigger images
                       }}
                     >
                       {product.discount > 0 && (
@@ -696,6 +692,7 @@ export default function AllProducts() {
                           flexDirection: "column",
                           gap: 1,
                           flexGrow: 1,
+                          px: 0.5,
                         }}
                       >
                         <ProductImage
@@ -709,13 +706,13 @@ export default function AllProducts() {
                           fontWeight={600}
                           sx={{
                             mb: 0.5,
-                            fontSize: { xs: "0.9rem", md: "1rem" },
+                            fontSize: { xs: "1rem", md: "1.05rem" },
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
-                            minHeight: 48,
+                            minHeight: 52,
                           }}
                         >
                           {product.title}
@@ -727,13 +724,13 @@ export default function AllProducts() {
                           sx={{
                             display: "block",
                             mb: 1,
-                            fontSize: { xs: "0.7rem", md: "0.75rem" },
+                            fontSize: { xs: "0.75rem", md: "0.8rem" },
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
-                            minHeight: 32,
+                            minHeight: 36,
                           }}
                         >
                           {product.description?.slice(0, 60)}
@@ -744,18 +741,18 @@ export default function AllProducts() {
                             <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through" }}>
                               ${product.price}
                             </Typography>
-                            <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>
+                            <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
                               ${discountedPrice.toFixed(2)}
                             </Typography>
                           </Box>
                         ) : (
-                          <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>
+                          <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1.05rem", md: "1.35rem" } }}>
                             ${product.price}
                           </Typography>
                         )}
                       </Box>
 
-                      <Box sx={{ mt: 1, display: "flex", justifyContent: "center" }}>
+                      <Box sx={{ mt: 1, display: "flex", justifyContent: "center", px: 1 }}>
                         {product.stock > 0 ? (
                           <Button
                             href={`/product/${encodeURIComponent(product.title)}`}
@@ -766,6 +763,7 @@ export default function AllProducts() {
                               borderRadius: 2,
                               textTransform: "none",
                               width: "100%",
+                              py: 1.1,
                             }}
                           >
                             Add to Cart
