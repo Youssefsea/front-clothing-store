@@ -659,8 +659,9 @@ export default function AllProducts() {
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "space-between",
-                        width: "150%",
+                        width: "100%",
                         flex: 1,
+                        padding:21,
                         position: "relative",
                         overflow: "hidden",
                       }}
