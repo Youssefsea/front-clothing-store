@@ -49,6 +49,7 @@ export default function AllProducts() {
   const [tempMinPrice, setTempMinPrice] = useState("");
   const [tempMaxPrice, setTempMaxPrice] = useState("");
 
+  // Lightbox-related state kept but unused (per request we won't open it on image click)
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [lbImages, setLbImages] = useState([]);
@@ -183,9 +184,10 @@ export default function AllProducts() {
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
   // ======================================================
-  // ProductImage - improved visuals: centered, bigger, rounded bg
+  // ProductImage - now: image always scales to card area and NOT open lightbox on click.
+  // Click goes to product page because image is wrapped by Link in card.
   // ======================================================
-  function ProductImage({ image_url, title, onOpen }) {
+  function ProductImage({ image_url, title }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [fade, setFade] = useState(true);
@@ -203,7 +205,8 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    const aspectPt = { xs: "88%", sm: "78%", md: "66%" }; // balanced sizes
+    // Balanced aspect so image area matches card size proportionally
+    const aspectPt = { xs: "72%", sm: "68%", md: "62%" };
     const placeholder = "/placeholder.png";
     let imgSrc = images[currentIndex] || placeholder;
     try { imgSrc = encodeURI(imgSrc); } catch (e) {}
@@ -216,23 +219,21 @@ export default function AllProducts() {
 
     return (
       <Box
-        onClick={() => {
-          if (onOpen) onOpen(images, currentIndex);
-        }}
         sx={{
           position: "relative",
           width: "100%",
           pt: aspectPt,
           overflow: "hidden",
           borderRadius: 3,
-          bgcolor: "#fbfaf8",
-          cursor: "zoom-in",
+          bgcolor: "#fafafa",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
         }}
       >
+        {/* Image fills the available card image area while keeping aspect ratio.
+            objectFit: 'cover' will fill the box (may crop) but keep consistent visual size across cards.
+            If you prefer no cropping, change to objectFit: 'contain' and maybe set background to a soft color. */}
         <Box
           component="img"
           src={imgSrc}
@@ -240,28 +241,25 @@ export default function AllProducts() {
           onError={handleImgError}
           sx={{
             position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
-            width: "auto",
-            height: "92%",
-            objectFit: "contain",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
             transition: "opacity 0.35s ease, transform 0.35s ease",
             opacity: fade ? 1 : 0,
-            "&:hover": { transform: "translate(-50%,-50%) scale(1.04)" },
-            borderRadius: 2,
-            backgroundColor: "#fbfaf8",
+            "&:hover": { transform: "scale(1.03)" },
           }}
         />
-        {/* small overlay-shadow bottom to separate from card */}
-        <Box sx={{ position: "absolute", bottom: 6, left: 12, right: 12, height: 8, borderRadius: 8, bgcolor: "rgba(0,0,0,0.02)" }} />
+        {failed && (
+          <Box sx={{ position: "absolute", color: "text.secondary", fontSize: 12 }}>
+            Image unavailable
+          </Box>
+        )}
       </Box>
     );
   }
 
-  // ======================================================
-  // Lightbox (kept as before) - unchanged for brevity
-  // ======================================================
+  // Lightbox kept but won't be triggered on image click (per request). Implementation unchanged.
   function Lightbox({ open, images, startIndex, onClose }) {
     const [index, setIndex] = useState(startIndex || 0);
     const autoplayRef = useRef(null);
@@ -303,6 +301,7 @@ export default function AllProducts() {
     const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
     const goNext = () => setIndex((i) => (i + 1) % images.length);
 
+    // touch handlers (kept)
     const onTouchStart = (e) => {
       const t = e.touches && e.touches[0];
       if (!t) return;
@@ -357,83 +356,22 @@ export default function AllProducts() {
 
     return (
       <Modal open={open} onClose={onClose} closeAfterTransition BackdropProps={{ timeout: 300 }}>
-        <Box
-          sx={{
-            position: "fixed",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            p: 2,
-            bgcolor: "rgba(10,10,10,0.6)",
-            zIndex: 1500,
-          }}
-        >
-          <Paper
-            sx={{
-              width: { xs: "96%", md: "80%", lg: "72%" },
-              maxWidth: 1200,
-              bgcolor: "background.paper",
-              borderRadius: 2,
-              p: 2,
-              position: "relative",
-            }}
-            elevation={24}
-          >
-            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}>
-              <CloseIcon />
-            </MuiIconButton>
+        <Box sx={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", p: 2, bgcolor: "rgba(10,10,10,0.6)", zIndex: 1500 }}>
+          <Paper sx={{ width: { xs: "96%", md: "80%", lg: "72%" }, maxWidth: 1200, bgcolor: "background.paper", borderRadius: 2, p: 2, position: "relative" }} elevation={24}>
+            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}><CloseIcon /></MuiIconButton>
 
-            <MuiIconButton
-              onClick={() => { setLbAutoplay(false); goPrev(); }}
-              sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
-            >
+            <MuiIconButton onClick={() => { setLbAutoplay(false); goPrev(); }} sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}>
               <ArrowBackIosNewIcon />
             </MuiIconButton>
 
-            <MuiIconButton
-              onClick={() => { setLbAutoplay(false); goNext(); }}
-              sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
-            >
+            <MuiIconButton onClick={() => { setLbAutoplay(false); goNext(); }} sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}>
               <ArrowForwardIosIcon />
             </MuiIconButton>
 
             <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
               <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                <Box
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  onMouseMove={onMouseMoveMagnifier}
-                  onMouseLeave={onMouseLeaveMagnifier}
-                  sx={{
-                    width: "100%",
-                    maxHeight: { xs: 360, md: 600 },
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    borderRadius: 1,
-                    bgcolor: "#fafafa",
-                    position: "relative",
-                    touchAction: "pan-y",
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={images[index]}
-                    alt={`img-${index}`}
-                    sx={{
-                      maxWidth: "100%",
-                      maxHeight: { xs: 320, md: 560 },
-                      objectFit: "contain",
-                      transition: "transform 0.25s ease, opacity 0.25s ease",
-                      transform: `translateX(${translateX}px)`,
-                      cursor: "zoom-out",
-                    }}
-                    onClick={() => setLbAutoplay((s) => !s)}
-                    draggable={false}
-                  />
+                <Box onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseMove={onMouseMoveMagnifier} onMouseLeave={onMouseLeaveMagnifier} sx={{ width: "100%", maxHeight: { xs: 360, md: 600 }, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", borderRadius: 1, bgcolor: "#fafafa", position: "relative", touchAction: "pan-y" }}>
+                  <Box component="img" src={images[index]} alt={`img-${index}`} sx={{ maxWidth: "100%", maxHeight: { xs: 320, md: 560 }, objectFit: "contain", transition: "transform 0.25s ease, opacity 0.25s ease", transform: `translateX(${translateX}px)`, cursor: "zoom-out" }} onClick={() => setLbAutoplay((s) => !s)} draggable={false} />
                 </Box>
               </Box>
 
@@ -445,20 +383,7 @@ export default function AllProducts() {
 
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
                   {images.map((img, i) => (
-                    <Box
-                      key={i}
-                      onClick={() => setIndex(i)}
-                      sx={{
-                        width: 66,
-                        height: 66,
-                        borderRadius: 1,
-                        overflow: "hidden",
-                        border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)",
-                        borderColor: i === index ? "primary.main" : "divider",
-                        cursor: "pointer",
-                        "& img": { width: "100%", height: "100%", objectFit: "cover" },
-                      }}
-                    >
+                    <Box key={i} onClick={() => setIndex(i)} sx={{ width: 66, height: 66, borderRadius: 1, overflow: "hidden", border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)", borderColor: i === index ? "primary.main" : "divider", cursor: "pointer", "& img": { width: "100%", height: "100%", objectFit: "cover" } }}>
                       <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
                     </Box>
                   ))}
@@ -476,7 +401,7 @@ export default function AllProducts() {
     );
   }
 
-  // open lightbox from product card
+  // open lightbox from product card (kept but not used on image click)
   const openLightboxFromProduct = (images, idx) => {
     setLbImages(images || []);
     setLbIndex(idx || 0);
@@ -490,20 +415,7 @@ export default function AllProducts() {
   return (
     <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" }, p: { xs: 2, md: 3 } }}>
       {/* Filters column */}
-      <Paper
-        elevation={1}
-        sx={{
-          width: { xs: "100%", md: 300 },
-          p: { xs: 2, md: 3 },
-          position: { xs: "static", md: "sticky" },
-          top: { md: 24 },
-          alignSelf: "flex-start",
-          height: "fit-content",
-          display: { xs: "none", md: "block" },
-          borderRadius: 3,
-          boxShadow: "0 6px 20px rgba(20,20,20,0.04)"
-        }}
-      >
+      <Paper elevation={1} sx={{ width: { xs: "100%", md: 300 }, p: { xs: 2, md: 3 }, position: { xs: "static", md: "sticky" }, top: { md: 24 }, alignSelf: "flex-start", height: "fit-content", display: { xs: "none", md: "block" }, borderRadius: 3, boxShadow: "0 6px 20px rgba(20,20,20,0.04)" }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>Filter Options</Typography>
         <Divider sx={{ mb: 2 }} />
         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -529,20 +441,7 @@ export default function AllProducts() {
           {availableColors.map((c) => {
             const selected = colorFilters.includes(c);
             return (
-              <Box
-                key={c}
-                onClick={() => toggleColor(c)}
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  border: selected ? "3px solid #b8732a" : "2px solid #eee",
-                  cursor: "pointer",
-                  backgroundColor: c.toLowerCase(),
-                  boxShadow: selected ? "0 2px 8px rgba(184,115,42,0.18)" : "none"
-                }}
-                title={c}
-              />
+              <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 26, height: 26, borderRadius: "50%", border: selected ? "3px solid #b8732a" : "2px solid #eee", cursor: "pointer", backgroundColor: c.toLowerCase(), boxShadow: selected ? "0 2px 8px rgba(184,115,42,0.18)" : "none" }} title={c} />
             );
           })}
         </Box>
@@ -551,15 +450,7 @@ export default function AllProducts() {
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Size</Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {availableSizes.map((s) => (
-            <Button
-              key={s}
-              size="small"
-              variant={sizeFilters.includes(s) ? "contained" : "outlined"}
-              onClick={() => toggleSize(s)}
-              sx={{ borderRadius: 1, textTransform: "none" }}
-            >
-              {s}
-            </Button>
+            <Button key={s} size="small" variant={sizeFilters.includes(s) ? "contained" : "outlined"} onClick={() => toggleSize(s)} sx={{ borderRadius: 1, textTransform: "none" }}>{s}</Button>
           ))}
         </Box>
 
@@ -590,7 +481,6 @@ export default function AllProducts() {
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: "center", sm: "left" } }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, filtered.length)} of {filtered.length} results
             </Typography>
-
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>Sort</InputLabel>
               <Select label="Sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -634,53 +524,15 @@ export default function AllProducts() {
                     : null;
 
                 return (
-                  <Grid
-                    item
-                    xs={6}    // mobile: 2 per row
-                    sm={6}    // tablet: 2 per row
-                    md={4}    // desktop: 3 per row (bigger cards)
-                    key={product.id}
-                  >
-                    <Paper
-                      elevation={3}
-                      sx={{
-                        p: { xs: 1.25, md: 1.5 },
-                        borderRadius: 3,
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        height: "100%",
-                        position: "relative",
-                        overflow: "hidden",
-                        minHeight: { xs: 420, md: 480 },
-                        boxShadow: "0 8px 24px rgba(20,20,20,0.06)",
-                        transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                        "&:hover": { transform: "translateY(-6px)", boxShadow: "0 14px 36px rgba(20,20,20,0.08)" }
-                      }}
-                    >
+                  <Grid item xs={6} sm={6} md={4} key={product.id}>
+                    <Paper elevation={3} sx={{ p: { xs: 1.25, md: 1.5 }, borderRadius: 3, display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", position: "relative", overflow: "hidden", minHeight: { xs: 420, md: 480 }, boxShadow: "0 8px 24px rgba(20,20,20,0.06)", transition: "transform 0.18s ease, box-shadow 0.18s ease", "&:hover": { transform: "translateY(-6px)", boxShadow: "0 14px 36px rgba(20,20,20,0.08)" } }}>
                       {product.discount > 0 && (
-                        <Chip
-                          label={`${product.discount}% off`}
-                          color="secondary"
-                          size="small"
-                          sx={{
-                            position: "absolute",
-                            top: 12,
-                            left: 12,
-                            zIndex: 2,
-                            bgcolor: "#f1e1c6",
-                            color: "#6b4b2e",
-                            fontWeight: 700,
-                            borderRadius: 2,
-                            px: 1.2
-                          }}
-                        />
+                        <Chip label={`${product.discount}% off`} color="secondary" size="small" sx={{ position: "absolute", top: 12, left: 12, zIndex: 2, bgcolor: "#f1e1c6", color: "#6b4b2e", fontWeight: 700, borderRadius: 2, px: 1.2 }} />
                       )}
 
                       <Link href={`/product/${encodeURIComponent(product.title)}`} style={{ textDecoration: "none", color: "inherit" }}>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, flexGrow: 1, px: 0.5 }}>
-                          <ProductImage image_url={product.image_url} title={product.title} onOpen={openLightboxFromProduct} />
+                          <ProductImage image_url={product.image_url} title={product.title} />
 
                           <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5, fontSize: { xs: "1rem", md: "1.05rem" }, minHeight: 52 }}>
                             {product.title}
@@ -709,26 +561,11 @@ export default function AllProducts() {
 
                       <Box sx={{ mt: 1, display: "flex", justifyContent: "center", px: 1 }}>
                         {product.stock > 0 ? (
-                          <Button
-                            href={`/product/${encodeURIComponent(product.title)}`}
-                            variant="contained"
-                            startIcon={<ShoppingCartOutlined />}
-                            size="medium"
-                            sx={{
-                              borderRadius: 2,
-                              textTransform: "none",
-                              width: "100%",
-                              py: 1.05,
-                              backgroundColor: "#3e2723",
-                              "&:hover": { backgroundColor: "#2f1f1a" }
-                            }}
-                          >
+                          <Button href={`/product/${encodeURIComponent(product.title)}`} variant="contained" startIcon={<ShoppingCartOutlined />} size="medium" sx={{ borderRadius: 2, textTransform: "none", width: "100%", py: 1.05, backgroundColor: "#3e2723", "&:hover": { backgroundColor: "#2f1f1a" } }}>
                             Add to Cart
                           </Button>
                         ) : (
-                          <Typography color="error" fontWeight={700}>
-                            Out of Stock
-                          </Typography>
+                          <Typography color="error" fontWeight={700}>Out of Stock</Typography>
                         )}
                       </Box>
                     </Paper>
@@ -744,7 +581,7 @@ export default function AllProducts() {
         )}
       </Box>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal (kept but not triggered on image click) */}
       <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
     </Box>
   );
