@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import axiosInstance from "../axios";
 import {
@@ -23,10 +21,15 @@ import {
   Stack,
   Drawer,
   Pagination,
+  Modal,
+  IconButton as MuiIconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ShoppingCartOutlined from "@mui/icons-material/ShoppingCartOutlined";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import CloseIcon from "@mui/icons-material/Close";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 export default function AllProducts() {
   const [products, setProducts] = useState([]);
@@ -43,6 +46,15 @@ export default function AllProducts() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [tempMinPrice, setTempMinPrice] = useState("");
   const [tempMaxPrice, setTempMaxPrice] = useState("");
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lbIndex, setLbIndex] = useState(0);
+  const [lbImages, setLbImages] = useState([]);
+  const [lbAutoplay, setLbAutoplay] = useState(true);
+  const [lbHover, setLbHover] = useState(false);
+  const [translateX, setTranslateX] = useState(0);
+  const touchStartRef = useRef({ x: 0, time: 0 });
+  const draggingRef = useRef(false);
 
   const categories = useMemo(() => ["", "Men", "Women", "Shirt", "Hoodie", "Accessories"], []);
   const availableColors = ["Black", "Grey", "Green", "Red", "Orange", "Blue", "Pink", "White"];
@@ -64,60 +76,9 @@ export default function AllProducts() {
     }
   }
 
-  function ProductImage({ image_url, title }) {
-    const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [fade, setFade] = useState(true);
-
-    useEffect(() => {
-      if (images.length <= 1) return;
-
-      const interval = setInterval(() => {
-        setFade(false);
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % images.length);
-          setFade(true);
-        }, 300);
-      }, 3000);
-
-      return () => clearInterval(interval);
-    }, [images.length]);
-
-    // Use aspect-ratio approach (padding-top) to force same image height for all cards
-    const imgSrc = images[currentIndex] || "/placeholder.png";
-
-    return (
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          pt: { xs: "100%", md: "75%" }, // 1:1 for narrow screens, 4:3 for larger screens (تعديل حسب الرغبة)
-          overflow: "hidden",
-          borderRadius: 2,
-          bgcolor: "#f7f7f7",
-        }}
-      >
-        <Box
-          component="img"
-          src={imgSrc}
-          alt={`${title} image`}
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
-            opacity: fade ? 1 : 0,
-            "&:hover": {
-              transform: "scale(1.03)",
-            },
-          }}
-        />
-      </Box>
-    );
-  }
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
 
   async function fetchFiltered() {
     try {
@@ -219,9 +180,296 @@ export default function AllProducts() {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
-  useEffect(() => {
-    fetchAllProducts();
-  }, []);
+  // -- Product Image with consistent aspect and click-to-open lightbox
+  function ProductImage({ image_url, title, onOpen }) {
+    const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [fade, setFade] = useState(true);
+
+    useEffect(() => {
+      if (images.length <= 1) return;
+      const interval = setInterval(() => {
+        setFade(false);
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % images.length);
+          setFade(true);
+        }, 300);
+      }, 3000);
+      return () => clearInterval(interval);
+    }, [images.length]);
+
+    const imgSrc = images[currentIndex] || "/placeholder.png";
+
+    return (
+      <Box
+        onClick={() => {
+          if (onOpen) {
+            onOpen(images, currentIndex);
+          }
+        }}
+        sx={{
+          position: "relative",
+          width: "100%",
+          pt: { xs: "100%", md: "75%" },
+          overflow: "hidden",
+          borderRadius: 2,
+          bgcolor: "#f7f7f7",
+          cursor: "zoom-in",
+        }}
+      >
+        <Box
+          component="img"
+          src={imgSrc}
+          alt={`${title} image`}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
+            opacity: fade ? 1 : 0,
+            "&:hover": { transform: "scale(1.03)" },
+          }}
+        />
+      </Box>
+    );
+  }
+
+  // -- Lightbox component (modal) with swipe support for mobile
+  function Lightbox({ open, images, startIndex, onClose }) {
+    const [index, setIndex] = useState(startIndex || 0);
+    const autoplayRef = useRef(null);
+
+    useEffect(() => {
+      setIndex(startIndex || 0);
+      setTranslateX(0);
+    }, [startIndex, open]);
+
+    useEffect(() => {
+      if (!open) return;
+      if (!lbAutoplay) return;
+      if (!images || images.length <= 1) return;
+      if (lbHover) return;
+
+      autoplayRef.current = window.setInterval(() => {
+        setIndex((prev) => (prev + 1) % images.length);
+      }, 3000);
+
+      return () => {
+        if (autoplayRef.current) {
+          clearInterval(autoplayRef.current);
+          autoplayRef.current = null;
+        }
+      };
+    }, [open, lbAutoplay, lbHover, images]);
+
+    useEffect(() => {
+      function onKey(e) {
+        if (!open) return;
+        if (e.key === "Escape") onClose();
+        if (e.key === "ArrowRight") setIndex((i) => (i + 1) % images.length);
+        if (e.key === "ArrowLeft") setIndex((i) => (i - 1 + images.length) % images.length);
+      }
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [open, onClose, images]);
+
+    const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
+    const goNext = () => setIndex((i) => (i + 1) % images.length);
+
+    // touch handlers for swipe
+    const onTouchStart = (e) => {
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      touchStartRef.current = { x: t.clientX, time: Date.now() };
+      draggingRef.current = true;
+      setTranslateX(0);
+      setLbAutoplay(false);
+    };
+
+    const onTouchMove = (e) => {
+      if (!draggingRef.current) return;
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - touchStartRef.current.x;
+      // if vertical movement bigger, ignore horizontal swipe (let page scroll)
+      // but here we approximate by checking dy via changedTouches if available
+      setTranslateX(dx);
+      if (Math.abs(dx) > 10) e.preventDefault();
+    };
+
+    const onTouchEnd = (e) => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      const t = (e.changedTouches && e.changedTouches[0]) || {};
+      const dx = (t.clientX || 0) - touchStartRef.current.x;
+      const dt = Date.now() - touchStartRef.current.time;
+      const velocity = dx / Math.max(dt, 1);
+      const threshold = 60;
+      const velocityThreshold = 0.3;
+
+      if (dx <= -threshold || velocity < -velocityThreshold) {
+        setTranslateX(-200);
+        setTimeout(() => {
+          setTranslateX(0);
+          goNext();
+        }, 180);
+      } else if (dx >= threshold || velocity > velocityThreshold) {
+        setTranslateX(200);
+        setTimeout(() => {
+          setTranslateX(0);
+          goPrev();
+        }, 180);
+      } else {
+        setTranslateX(0);
+      }
+
+      setTimeout(() => setLbAutoplay(true), 600);
+    };
+
+    const onMouseMoveMagnifier = (e) => {
+      const el = e.currentTarget;
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      // we'll show magnifier using CSS background positioning if needed (kept minimal here)
+      // storing lbHover to pause autoplay
+      setLbHover(true);
+    };
+    const onMouseLeaveMagnifier = () => setLbHover(false);
+
+    if (!images || images.length === 0) return null;
+
+    return (
+      <Modal open={open} onClose={onClose} closeAfterTransition BackdropProps={{ timeout: 300 }}>
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 2,
+            bgcolor: "rgba(10,10,10,0.6)",
+            zIndex: 1500,
+          }}
+        >
+          <Paper
+            sx={{
+              width: { xs: "96%", md: "80%", lg: "72%" },
+              maxWidth: 1200,
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              p: 2,
+              position: "relative",
+            }}
+            elevation={24}
+          >
+            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}>
+              <CloseIcon />
+            </MuiIconButton>
+
+            <MuiIconButton
+              onClick={() => { setLbAutoplay(false); goPrev(); }}
+              sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
+            >
+              <ArrowBackIosNewIcon />
+            </MuiIconButton>
+
+            <MuiIconButton
+              onClick={() => { setLbAutoplay(false); goNext(); }}
+              sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
+            >
+              <ArrowForwardIosIcon />
+            </MuiIconButton>
+
+            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
+              <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+                <Box
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  onMouseMove={onMouseMoveMagnifier}
+                  onMouseLeave={onMouseLeaveMagnifier}
+                  sx={{
+                    width: "100%",
+                    maxHeight: { xs: 360, md: 600 },
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    borderRadius: 1,
+                    bgcolor: "#fafafa",
+                    position: "relative",
+                    touchAction: "pan-y",
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={images[index]}
+                    alt={`img-${index}`}
+                    sx={{
+                      maxWidth: "100%",
+                      maxHeight: { xs: 320, md: 560 },
+                      objectFit: "contain",
+                      transition: "transform 0.25s ease, opacity 0.25s ease",
+                      transform: `translateX(${translateX}px)`,
+                      cursor: "zoom-out",
+                    }}
+                    onClick={() => setLbAutoplay((s) => !s)}
+                    draggable={false}
+                  />
+                </Box>
+              </Box>
+
+              <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{/* title omitted to keep compact */}</Typography>
+                  <Chip label={lbAutoplay ? "Auto" : "Paused"} size="small" onClick={() => setLbAutoplay((s) => !s)} sx={{ cursor: "pointer" }} />
+                </Stack>
+
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
+                  {images.map((img, i) => (
+                    <Box
+                      key={i}
+                      onClick={() => setIndex(i)}
+                      sx={{
+                        width: 66,
+                        height: 66,
+                        borderRadius: 1,
+                        overflow: "hidden",
+                        border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)",
+                        borderColor: i === index ? "primary.main" : "divider",
+                        cursor: "pointer",
+                        "& img": { width: "100%", height: "100%", objectFit: "cover" },
+                      }}
+                    >
+                      <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
+                    </Box>
+                  ))}
+                </Box>
+
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                  <Button fullWidth variant="outlined" onClick={goPrev}>Prev</Button>
+                  <Button fullWidth variant="contained" onClick={goNext}>Next</Button>
+                </Stack>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+      </Modal>
+    );
+  }
+
+  // Handler to open modal from card
+  const openLightboxFromProduct = (images, idx) => {
+    setLbImages(images || []);
+    setLbIndex(idx || 0);
+    setLightboxOpen(true);
+    setLbAutoplay(true);
+  };
 
   return (
     <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
@@ -390,7 +638,6 @@ export default function AllProducts() {
                     sm={4}
                     md={3}
                     key={product.id}
-                    // Ensure grid item is column and stretches vertically
                     sx={{ display: "flex", flexDirection: "column" }}
                   >
                     <Paper
@@ -402,7 +649,6 @@ export default function AllProducts() {
                         flexDirection: "column",
                         justifyContent: "space-between",
                         width: "100%",
-                        // Let paper fill the grid item height so all papers equal height
                         flex: 1,
                         position: "relative",
                         overflow: "hidden",
@@ -431,13 +677,13 @@ export default function AllProducts() {
                           display: "flex",
                           flexDirection: "column",
                           gap: 1,
-                          // allow link area to grow so the footer button stays at bottom
                           flexGrow: 1,
                         }}
                       >
                         <ProductImage
                           image_url={product.image_url}
                           title={product.title}
+                          onOpen={openLightboxFromProduct}
                         />
 
                         <Typography
@@ -524,6 +770,9 @@ export default function AllProducts() {
           </>
         )}
       </Box>
+
+      {/* Lightbox Modal */}
+      <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
     </Box>
   );
 }
