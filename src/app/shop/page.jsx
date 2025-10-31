@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import axiosInstance from "../axios";
@@ -182,10 +183,15 @@ export default function AllProducts() {
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
   // -- Product Image with consistent aspect and click-to-open lightbox
+  // Changed to:
+  // - give larger aspect-box height so images appear bigger
+  // - use objectFit: 'contain' so full image is visible (not cropped)
+  // - ensure image centered and has fallback logic (placeholder)
   function ProductImage({ image_url, title, onOpen }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [fade, setFade] = useState(true);
+    const [failed, setFailed] = useState(false);
 
     useEffect(() => {
       if (images.length <= 1) return;
@@ -199,7 +205,20 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    const imgSrc = images[currentIndex] || "/placeholder.png";
+    // larger aspect box: increase pt so image area is taller
+    // tweak these values to control image size: e.g. 'pt: "85%"' makes images taller
+    const aspectPt = { xs: "85%", md: "70%" };
+
+    // pick current src, fallback to placeholder
+    const placeholder = "/placeholder.png";
+    let imgSrc = images[currentIndex] || placeholder;
+    try { imgSrc = encodeURI(imgSrc); } catch (e) {}
+
+    const handleImgError = (ev) => {
+      setFailed(true);
+      ev.currentTarget.src = placeholder;
+      console.error("Image load failed:", imgSrc);
+    };
 
     return (
       <Box
@@ -211,27 +230,33 @@ export default function AllProducts() {
         sx={{
           position: "relative",
           width: "100%",
-          pt: { xs: "100%", md: "75%" },
+          pt: aspectPt,
           overflow: "hidden",
           borderRadius: 2,
-          bgcolor: "#f7f7f7",
+          bgcolor: failed ? "#f0f0f0" : "#f7f7f7",
           cursor: "zoom-in",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <Box
           component="img"
           src={imgSrc}
           alt={`${title} image`}
+          onError={handleImgError}
           sx={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%,-50%)",
+            width: "auto",
+            height: "90%", // ensure it uses most of the available height
+            objectFit: "contain", // show full image without cropping
             transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
             opacity: fade ? 1 : 0,
-            "&:hover": { transform: "scale(1.03)" },
+            "&:hover": { transform: "translate(-50%,-50%) scale(1.03)" },
+            backgroundColor: "#f7f7f7",
           }}
         />
       </Box>
@@ -295,8 +320,6 @@ export default function AllProducts() {
       const t = e.touches && e.touches[0];
       if (!t) return;
       const dx = t.clientX - touchStartRef.current.x;
-      // if vertical movement bigger, ignore horizontal swipe (let page scroll)
-      // but here we approximate by checking dy via changedTouches if available
       setTranslateX(dx);
       if (Math.abs(dx) > 10) e.preventDefault();
     };
@@ -331,12 +354,6 @@ export default function AllProducts() {
     };
 
     const onMouseMoveMagnifier = (e) => {
-      const el = e.currentTarget;
-      const rect = el.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      // we'll show magnifier using CSS background positioning if needed (kept minimal here)
-      // storing lbHover to pause autoplay
       setLbHover(true);
     };
     const onMouseLeaveMagnifier = () => setLbHover(false);
