@@ -201,7 +201,7 @@ export default function AllProducts() {
     }, [images.length]);
 
   
-    const aspectPt = { xs: "85%", md: "70%" };
+    const aspectPt = { xs: "95%", md: "85%" };
 
    
     const placeholder = "/placeholder.png";
@@ -245,8 +245,8 @@ export default function AllProducts() {
             left: "50%",
             transform: "translate(-50%,-50%)",
             width: "auto",
-            height: "90%", // ensure it uses most of the available height
-            objectFit: "contain", // show full image without cropping
+            height: "100%", 
+            objectFit: "contain", 
             transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
             opacity: fade ? 1 : 0,
             "&:hover": { transform: "translate(-50%,-50%) scale(1.03)" },
