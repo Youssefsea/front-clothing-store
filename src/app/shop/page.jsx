@@ -725,13 +725,14 @@ width={"200px"}
                           sx={{
                             display: "block",
                             mb: 1,
-                            fontSize: { xs: "0.7rem", md: "0.75rem" },
+                            fontSize: { xs: "0.9rem", md: "0.85rem" },
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
                             minHeight: 32,
+                            fontStyle:"bold"
                           }}
                         >
                           {product.description?.slice(0, 60)}
@@ -788,7 +789,6 @@ width={"200px"}
         )}
       </Box>
 
-      {/* Lightbox Modal */}
       <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
     </Box>
   );
