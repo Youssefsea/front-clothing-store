@@ -690,6 +690,7 @@ export default function AllProducts() {
                           flexDirection: "column",
                           gap: 1,
                           flexGrow: 1,
+                          width:"100%"
                         }}
                       >
                         <ProductImage
