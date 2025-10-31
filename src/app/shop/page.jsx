@@ -650,6 +650,8 @@ export default function AllProducts() {
                     md={3}
                     key={product.id}
                     sx={{ display: "flex", flexDirection: "column" }}
+                    margin={"10px"}
+width={"250px"}
                   >
                     <Paper
                       elevation={2}
@@ -690,7 +692,8 @@ export default function AllProducts() {
                           flexDirection: "column",
                           gap: 1,
                           flexGrow: 1,
-                          width:"200%"
+                          width:"100%",
+                       
                         }}
                       >
                         <ProductImage
@@ -772,6 +775,7 @@ export default function AllProducts() {
                         )}
                       </Box>
                     </Paper>
+
                   </Grid>
                 );
               })}
