@@ -182,11 +182,6 @@ export default function AllProducts() {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
-  // -- Product Image with consistent aspect and click-to-open lightbox
-  // Changed to:
-  // - give larger aspect-box height so images appear bigger
-  // - use objectFit: 'contain' so full image is visible (not cropped)
-  // - ensure image centered and has fallback logic (placeholder)
   function ProductImage({ image_url, title, onOpen }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -205,11 +200,10 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    // larger aspect box: increase pt so image area is taller
-    // tweak these values to control image size: e.g. 'pt: "85%"' makes images taller
+  
     const aspectPt = { xs: "85%", md: "70%" };
 
-    // pick current src, fallback to placeholder
+   
     const placeholder = "/placeholder.png";
     let imgSrc = images[currentIndex] || placeholder;
     try { imgSrc = encodeURI(imgSrc); } catch (e) {}
@@ -263,7 +257,6 @@ export default function AllProducts() {
     );
   }
 
-  // -- Lightbox component (modal) with swipe support for mobile
   function Lightbox({ open, images, startIndex, onClose }) {
     const [index, setIndex] = useState(startIndex || 0);
     const autoplayRef = useRef(null);
@@ -666,7 +659,7 @@ export default function AllProducts() {
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "space-between",
-                        width: "100%",
+                        width: "150%",
                         flex: 1,
                         position: "relative",
                         overflow: "hidden",
