@@ -651,7 +651,7 @@ export default function AllProducts() {
                     key={product.id}
                     sx={{ display: "flex", flexDirection: "column" }}
                     margin={"5px"}
-width={"250px"}
+width={"200px"}
                   >
                     <Paper
                       elevation={2}
