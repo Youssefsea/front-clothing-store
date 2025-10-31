@@ -205,7 +205,6 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-    // make the image area bigger: increase pt
     const aspectPt = { xs: "92%", sm: "88%", md: "78%" };
 
     const placeholder = "/placeholder.png";
@@ -248,7 +247,7 @@ export default function AllProducts() {
             top: "50%",
             left: "50%",
             transform: "translate(-50%,-50%)",
-            width: "auto",
+            width: "100%",
             height: "92%", // larger height for bigger appearance
             objectFit: "contain",
             transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
