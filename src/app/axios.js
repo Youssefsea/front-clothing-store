@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://clothing-wep-gpb7ederazceb8fv.spaincentral-01.azurewebsites.net",
+  baseURL: "https://geophysically-subdentated-johnsie.ngrok-free.dev",
   withCredentials: true,
 });
 
