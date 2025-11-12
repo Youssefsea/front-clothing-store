@@ -615,10 +615,7 @@ export default function AllProducts() {
           {searchName && <Chip label={`Search: ${searchName}`} onDelete={() => { setSearchName(""); setSearchInput(""); setPage(1); }} />}
           {(priceRange?.[0] !== undefined && priceRange?.[1] !== undefined) && <Chip label={`Price: ${priceRange[0]} - ${priceRange[1]}`} onDelete={() => { setPriceRange([0, 1000]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); }} />}
           {sizeFilters.map((s) => <Chip key={`size-${s}`} label={`Size: ${s}`} onDelete={() => toggleSize(s)} />)}
-          {colorFilters.map((c) => <Chip key={`color-${c}`} label={`Color: ${c}`} onDelete={() => toggleColor(c)} />)}
-        </Stack>
-
-        {loading ? (
+          {colorFilters.map((c) => <Chip key={`color-${c}`} label={`Color: ${c}`} onDelete={() => toggleColor(c)} />)}        </Stack>        {loading ? (
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
             {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
             sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
@@ -629,161 +626,192 @@ export default function AllProducts() {
           </Box>
         ) : (
           <>
-            <Grid
-              container
-              spacing={{ xs: 2, md: 3 }}
-              sx={{
-                alignItems: "stretch",
-              }}
-            >
-              {visibleProducts.map((product) => {
-                const discountedPrice =
-                  product.discount > 0
-                    ? (Number(product.price) * (100 - Number(product.discount))) / 100
-                    : null;
-                return (
-                  <Grid
-                    item
-                    xs={6}
-                    sm={4}
-                    md={3}
-                    key={product.id}
-                    sx={{ display: "flex", flexDirection: "column" }}
-                    margin={"5px"}
-width={"200px"}
-                  >
-                    <Paper
-                      elevation={2}
-                      sx={{
-                        p: { xs: 1.5, md: 2 },
-                        borderRadius: 3,
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        flex: 1,
-                        padding:21,
-                        position: "relative",
-                        overflow: "hidden",
-                      }}
+            <Box sx={{ px: { xs: 2, sm: 0 } }}>
+              <Grid
+                container
+                spacing={{ xs: 2, sm: 2, md: 3 }}
+                sx={{
+                  alignItems: "stretch",
+                }}
+              >
+                {visibleProducts.map((product) => {
+                  const discountedPrice =
+                    product.discount > 0
+                      ? (Number(product.price) * (100 - Number(product.discount))) / 100
+                      : null;
+                  return (
+                    <Grid
+                      item
+                      xs={6}
+                      sm={4}
+                      md={3}
+                      key={product.id}
+                      sx={{ display: "flex", flexDirection: "column" }}
                     >
-                      {product.discount > 0 && (
-                        <Chip
-                          label={`${product.discount}% off`}
-                          color="secondary"
-                          size="small"
-                          sx={{
-                            position: "absolute",
-                            top: 10,
-                            left: 10,
-                            zIndex: 2,
-                          }}
-                        />
-                      )}
-
-                      <Box
-                        component={Link}
-                        href={`/product/${encodeURIComponent(product.title)}`}
+                      <Paper
+                        elevation={3}
                         sx={{
-                          textDecoration: "none",
-                          color: "inherit",
+                          p: { xs: 1.5, sm: 2, md: 2 },
+                          borderRadius: { xs: 2, md: 3 },
                           display: "flex",
                           flexDirection: "column",
-                          gap: 1,
-                          flexGrow: 1,
-                          width:"100%",
-                       
+                          width: "100%",
+                          flex: 1,
+                          position: "relative",
+                          overflow: "hidden",
+                          minHeight: { xs: 300, sm: 340, md: 380 },
+                          transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                          "&:hover": {
+                            transform: "translateY(-4px)",
+                            boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+                          }
                         }}
                       >
-                        <ProductImage
-                          image_url={product.image_url}
-                          title={product.title}
-                         
-                        />
-
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight={600}
-                          sx={{
-                            mb: 0.5,
-                            fontSize: { xs: "0.9rem", md: "1rem" },
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            minHeight: 48,
-                          }}
-                        >
-                          {product.title}
-                        </Typography>
-
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: "block",
-                            mb: 1,
-
-                            fontSize: { xs: "0.9rem", md: "0.85rem" },
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box", 
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            minHeight: 32,
-                            fontStyle:"bold"
-                          }}
-                        >
-                          {product.description?.slice(0, 60)}
-                        </Typography>
-
-                        {product.discount > 0 ? (
-                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through" }}>
-                              ${product.price}
-                            </Typography>
-                            <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                              ${discountedPrice.toFixed(2)}
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="h6" color="secondary" fontWeight={700} sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>
-                            ${product.price}
-                          </Typography>
-                        )}
-                      </Box>
-
-                      <Box sx={{ mt: 1, display: "flex", justifyContent: "center" }}>
-                        {product.stock > 0 ? (
-                          <Button
-                            href={`/product/${encodeURIComponent(product.title)}`}
-                            variant="contained"
-                            startIcon={<ShoppingCartOutlined />}
+                        {product.discount > 0 && (
+                          <Chip
+                            label={`${product.discount}% off`}
+                            color="secondary"
                             size="small"
                             sx={{
-                              borderRadius: 2,
-                              textTransform: "none",
-                              width: "100%",
+                              position: "absolute",
+                              top: 8,
+                              left: 8,
+                              zIndex: 2,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" }
                             }}
-                          >
-                            Add to Cart
-                          </Button>
-                        ) : (
-                          <Typography color="error" fontWeight={700}>
-                            Out of Stock
-                          </Typography>
+                          />
                         )}
-                      </Box>
-                    </Paper>
+                        
+                        <Box
+                          component={Link}
+                          href={`/product/${encodeURIComponent(product.title)}`}
+                          sx={{
+                            textDecoration: "none",
+                            color: "inherit",
+                            display: "flex",
+                            flexDirection: "column",
+                            flexGrow: 1,
+                            gap: { xs: 1, sm: 1.2 }
+                          }}
+                        >
+                          <ProductImage
+                            image_url={product.image_url}
+                            title={product.title}
+                          />
 
-                  </Grid>
-                );
-              })}
-            </Grid>
+                          <Box sx={{ px: { xs: 0.5, sm: 0 } }}>
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight={600}
+                              sx={{
+                                mb: 0.5,
+                                fontSize: { xs: "0.9rem", sm: "0.95rem", md: "1rem" },
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                minHeight: { xs: 44, sm: 46, md: 48 },
+                                lineHeight: { xs: 1.35, sm: 1.4 },
+                              }}
+                            >
+                              {product.title}
+                            </Typography>
 
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <Pagination count={pages} page={page} onChange={(_, val) => setPage(val)} color="primary" shape="rounded" />
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: "block",
+                                mb: 1.5,
+                                fontSize: { xs: "0.75rem", sm: "0.8rem", md: "0.85rem" },
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                display: "-webkit-box", 
+                                WebkitLineClamp: { xs: 2, sm: 2 },
+                                WebkitBoxOrient: "vertical",
+                                minHeight: { xs: 28, sm: 30, md: 32 },
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {product.description?.slice(0, 70)}
+                            </Typography>
+
+                            {product.discount > 0 ? (
+                              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary" 
+                                  sx={{ 
+                                    textDecoration: "line-through", 
+                                    fontSize: { xs: "0.8rem", md: "0.9rem" } 
+                                  }}
+                                >
+                                  ${product.price}
+                                </Typography>
+                                <Typography 
+                                  variant="h6" 
+                                  color="secondary" 
+                                  fontWeight={700} 
+                                  sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                                >
+                                  ${discountedPrice.toFixed(2)}
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography 
+                                variant="h6" 
+                                color="secondary" 
+                                fontWeight={700} 
+                                sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                              >
+                                ${product.price}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mt: "auto", pt: 1.5, px: { xs: 0.5, sm: 0 } }}>
+                          {product.stock > 0 ? (
+                            <Button
+                              href={`/product/${encodeURIComponent(product.title)}`}
+                              variant="contained"
+                              startIcon={<ShoppingCartOutlined />}
+                              size="small"
+                              fullWidth
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                py: { xs: 1, sm: 1.2 },
+                                fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                                fontWeight: 600
+                              }}
+                            >
+                              Add to Cart
+                            </Button>
+                          ) : (
+                            <Typography 
+                              color="error" 
+                              fontWeight={700} 
+                              align="center"
+                              sx={{ 
+                                fontSize: { xs: "0.85rem", md: "1rem" },
+                                py: 1
+                              }}
+                            >
+                              Out of Stock
+                            </Typography>
+                          )}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                <Pagination count={pages} page={page} onChange={(_, val) => setPage(val)} color="primary" shape="rounded" />
+              </Box>
             </Box>
           </>
         )}
