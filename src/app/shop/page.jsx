@@ -641,7 +641,6 @@ export default function AllProducts() {
                   product.discount > 0
                     ? (Number(product.price) * (100 - Number(product.discount))) / 100
                     : null;
-
                 return (
                   <Grid
                     item
@@ -725,10 +724,11 @@ width={"200px"}
                           sx={{
                             display: "block",
                             mb: 1,
+
                             fontSize: { xs: "0.9rem", md: "0.85rem" },
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            display: "-webkit-box",
+                            display: "-webkit-box", 
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
                             minHeight: 32,
