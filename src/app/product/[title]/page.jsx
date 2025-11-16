@@ -61,7 +61,7 @@ export default function ProductPage({ params }) {
           });
           const relatedFiltered = (relatedRes.data.products || [])
             .filter((r) => r.id !== p.id)
-            .slice(0, 4);
+            .slice(0, 8);
           setRelated(relatedFiltered);
         }
       } catch (err) {
@@ -149,10 +149,10 @@ export default function ProductPage({ params }) {
     .filter(Boolean);
 
   // Small product image component (clickable to open lightbox)
-  function ProductImage({ image_url, title, onOpen }) {
+  // added `size` prop to make compact thumbnails for related products
+  function ProductImage({ image_url, title, onOpen, size = "lg", cover = false }) {
     const imgs = (image_url || "").split(",").map((s) => s.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
-
     useEffect(() => {
       if (imgs.length <= 1) return;
       const interval = setInterval(() => {
@@ -162,12 +162,13 @@ export default function ProductPage({ params }) {
     }, [imgs.length]);
 
     const src = imgs[currentIndex] || "/placeholder.png";
+    const heights = size === "sm" ? { xs: 110, md: 120 } : { xs: 220, md: 360 };
 
     return (
       <Box
         onClick={() => onOpen && onOpen(currentIndex)}
         sx={{
-          height: { xs: 220, md: 360 },
+          height: heights,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -176,8 +177,8 @@ export default function ProductPage({ params }) {
           cursor: onOpen ? "zoom-in" : "default",
           borderRadius: 2,
           overflow: "hidden",
-          boxShadow: 3,
-          bgcolor: "#fff"
+          boxShadow: 0,
+          bgcolor: "#fff",
         }}
       >
         <Box
@@ -185,11 +186,12 @@ export default function ProductPage({ params }) {
           src={src}
           alt={`${title} image`}
           sx={{
-            maxHeight: "100%",
-            width: "auto",
-            objectFit: "contain",
-            transition: "transform 0.4s ease, opacity 0.4s ease",
+            width: "100%",
+            height: "100%",
+            objectFit: cover ? "cover" : "contain",
+            transition: "transform 0.35s ease, opacity 0.35s ease",
             "&:hover": { transform: onOpen ? "scale(1.03)" : "none" },
+            backgroundColor: "#f7f7f7",
           }}
         />
       </Box>
@@ -498,18 +500,6 @@ export default function ProductPage({ params }) {
               </Box>
 
               <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
-                {/* <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    {product.title}
-                  </Typography>
-                  <Chip
-                    label={lbAutoplay ? "Auto" : "Paused"}
-                    size="small"
-                    onClick={() => setLbAutoplay((s) => !s)}
-                    sx={{ cursor: "pointer" }}
-                  />
-                </Stack> */}
-
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
                   {images.map((img, i) => (
                     <Box
@@ -530,15 +520,6 @@ export default function ProductPage({ params }) {
                     </Box>
                   ))}
                 </Box>
-
-                {/* <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                  <Button fullWidth variant="outlined" onClick={goPrev}>
-                    Prev
-                  </Button>
-                  <Button fullWidth variant="contained" onClick={goNext}>
-                    Next
-                  </Button>
-                </Stack> */}
               </Box>
             </Box>
           </Box>
@@ -573,6 +554,8 @@ export default function ProductPage({ params }) {
                 setLightboxOpen(true);
                 setLbAutoplay(true);
               }}
+              size="lg"
+              cover={false}
             />
           </div>
         </div>
@@ -584,10 +567,10 @@ export default function ProductPage({ params }) {
             {discountedPrice ? (
               <>
                 <span className="pd-price" style={{ fontWeight: 700, color: "#b8732a", fontSize: 20 }}>${discountedPrice.toFixed(2)}</span>
-                <span className="pd-price-old" style={{ marginLeft: 8, textDecoration: "line-through", color: "#888" }}>${product.price}</span>
+                <span className="pd-price-old" style={{ marginLeft: 8, textDecoration: "line-through", color: "#888" }}>${Number(product.price).toFixed(2)}</span>
               </>
             ) : (
-              <span className="pd-price" style={{ fontWeight: 700, color: "#b8732a", fontSize: 20 }}>${product.price}</span>
+              <span className="pd-price" style={{ fontWeight: 700, color: "#b8732a", fontSize: 20 }}>${Number(product.price).toFixed(2)}</span>
             )}
           </div>
 
@@ -698,70 +681,93 @@ export default function ProductPage({ params }) {
 
       {related.length > 0 && (
         <div className="container pd-related" style={{ marginTop: 32 }}>
-          <h2 className="pd-related-title">Explore Related Products</h2>
-          <div className="pd-related-grid" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <h2 className="pd-related-title" style={{ marginBottom: 12 }}>Explore Related Products</h2>
+
+          {/* responsive grid for related products: nicer on desktop and mobile */}
+          <div
+            className="pd-related-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+              gap: 16,
+              alignItems: "stretch",
+            }}
+          >
             {related.map((item) => {
               const itemDiscounted = item.discount && Number(item.discount) > 0;
               const itemPriceNum = Number(item.price) || 0;
               const itemDiscountedPrice = itemDiscounted ? (itemPriceNum * (100 - Number(item.discount))) / 100 : null;
+
               return (
                 <Link
                   key={item.id}
                   href={`/product/${encodeURIComponent(item.title)}`}
-                  className="pd-related-card"
-                  style={{
-                    width: 180,
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    background: "#fff",
-                    boxShadow: "0 8px 22px rgba(15,15,15,0.06)",
-                    textDecoration: "none",
-                    color: "inherit",
-                    transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
+                  style={{ textDecoration: "none", color: "inherit" }}
                 >
-                  {/* keep image consistent using the ProductImage component */}
-                  <div style={{ padding: 8, paddingBottom: 0 }}>
-                    <ProductImage image_url={item.image_url} title={item.title} />
-                  </div>
+                  <Box
+                    className="pd-related-card"
+                    sx={{
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      background: "#fff",
+                      boxShadow: "0 8px 20px rgba(15,15,15,0.06)",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                      transition: "transform 0.14s ease, box-shadow 0.14s ease",
+                      "&:hover": {
+                        transform: "translateY(-6px)",
+                        boxShadow: "0 18px 40px rgba(12,12,12,0.10)"
+                      }
+                    }}
+                  >
+                    <Box sx={{ p: 8 / 2, pBottom: 0 }}>
+                      {/* compact image so cards are consistent on desktop */}
+                      <ProductImage image_url={item.image_url} title={item.title} size="sm" cover={true} />
+                    </Box>
 
-                  <div style={{ padding: 10, paddingTop: 8, display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                    <div
-                      className="title"
-                      title={item.title}
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 14,
-                        lineHeight: "1.2",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        minHeight: 40,
-                      }}
-                    >
-                      {item.title}
-                    </div>
+                    <Box sx={{ p: 1.2, pt: 0.8, display: "flex", flexDirection: "column", gap: 0.6, flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: 13,
+                          lineHeight: 1.2,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          minHeight: 36,
+                        }}
+                        title={item.title}
+                      >
+                        {item.title}
+                      </Typography>
 
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        {itemDiscountedPrice ? (
-                          <>
-                            <span style={{ color: "#b8732a", fontWeight: 800, fontSize: 15 }}>${itemDiscountedPrice.toFixed(2)}</span>
-                            <span style={{ textDecoration: "line-through", color: "#888", fontSize: 12 }}>${itemPriceNum.toFixed(2)}</span>
-                          </>
-                        ) : (
-                          <span style={{ color: "#b8732a", fontWeight: 800, fontSize: 15 }}>${itemPriceNum.toFixed(2)}</span>
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "auto" }}>
+                        <Box>
+                          {itemDiscountedPrice ? (
+                            <Box sx={{ display: "flex", flexDirection: "column" }}>
+                              <Typography sx={{ color: "#b8732a", fontWeight: 800, fontSize: 14 }}>
+                                ${itemDiscountedPrice.toFixed(2)}
+                              </Typography>
+                              <Typography sx={{ textDecoration: "line-through", color: "#888", fontSize: 12 }}>
+                                ${itemPriceNum.toFixed(2)}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography sx={{ color: "#b8732a", fontWeight: 800, fontSize: 14 }}>
+                              ${itemPriceNum.toFixed(2)}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {itemDiscounted && (
+                          <Chip label={`${item.discount}%`} color="secondary" size="small" sx={{ height: 26 }} />
                         )}
-                      </div>
-
-                      {itemDiscounted && (
-                        <Chip label={`${item.discount}%`} color="secondary" size="small" sx={{ height: 24 }} />
-                      )}
-                    </div>
-                  </div>
+                      </Box>
+                    </Box>
+                  </Box>
                 </Link>
               );
             })}

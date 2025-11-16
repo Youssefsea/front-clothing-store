@@ -182,7 +182,8 @@ export default function AllProducts() {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
-  function ProductImage({ image_url, title, onOpen }) {
+  // Product image: make fixed height for consistent cards across desktop and mobile
+  function ProductImage({ image_url, title, onOpen, cover = true }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [fade, setFade] = useState(true);
@@ -200,10 +201,6 @@ export default function AllProducts() {
       return () => clearInterval(interval);
     }, [images.length]);
 
-  
-    const aspectPt = { xs: "95%", md: "85%" };
-
-   
     const placeholder = "/placeholder.png";
     let imgSrc = images[currentIndex] || placeholder;
     try { imgSrc = encodeURI(imgSrc); } catch (e) {}
@@ -224,11 +221,10 @@ export default function AllProducts() {
         sx={{
           position: "relative",
           width: "100%",
-          pt: aspectPt,
+          height: { xs: 160, sm: 180, md: 200 }, // fixed heights keep desktop tidy
           overflow: "hidden",
           borderRadius: 2,
           bgcolor: failed ? "#f0f0f0" : "#f7f7f7",
-        
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -240,17 +236,12 @@ export default function AllProducts() {
           alt={`${title} image`}
           onError={handleImgError}
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%,-50%)",
-            width: "auto",
-            height: "100%", 
-            objectFit: "contain", 
-            transition: "opacity 0.4s ease-in-out, transform 0.4s ease",
+            width: "100%",
+            height: "100%",
+            objectFit: cover ? "cover" : "contain",
+            transition: "opacity 0.35s ease-in-out, transform 0.35s ease",
             opacity: fade ? 1 : 0,
-            "&:hover": { transform: "translate(-50%,-50%) scale(1.03)" },
-            backgroundColor: "#f7f7f7",
+            "&:hover": { transform: "scale(1.02)" },
           }}
         />
       </Box>
@@ -520,7 +511,7 @@ export default function AllProducts() {
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
           {availableColors.map((c) => {
             const selected = colorFilters.includes(c);
-            return <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", outline: selected ? "2px solid #c99746" : "none", outlineOffset: 2, backgroundColor: c.toLowerCase() }} title={c} />;
+            return <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", backgroundColor: c.toLowerCase(), outline: selected ? `3px solid rgba(200,150,70,0.95)` : "none" }} />
           })}
         </Box>
 
@@ -531,7 +522,7 @@ export default function AllProducts() {
         </Box>
 
         <Divider sx={{ my: 2 }} />
-        <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }}>Clear All</Button>
+        <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
       </Paper>
 
       <Drawer anchor="left" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
@@ -560,7 +551,7 @@ export default function AllProducts() {
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
             {availableColors.map((c) => {
               const selected = colorFilters.includes(c);
-              return <Box key={`m-${c}`} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", outline: selected ? "2px solid #c99746" : "none", outlineOffset: 2, backgroundColor: c.toLowerCase() }} title={c} />;
+              return <Box key={`m-${c}`} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", backgroundColor: c.toLowerCase(), outline: selected ? `3px solid rgba(200,150,70,0.95)` : "none" }} />
             })}
           </Box>
 
@@ -571,7 +562,7 @@ export default function AllProducts() {
           </Box>
 
           <Divider sx={{ my: 2 }} />
-          <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }}>Clear All</Button>
+          <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
         </Box>
       </Drawer>
 
@@ -613,16 +604,19 @@ export default function AllProducts() {
         <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}>
           {category && <Chip label={`Category: ${category}`} onDelete={() => { setCategory(""); setPage(1); fetchAllProducts(); }} />}
           {searchName && <Chip label={`Search: ${searchName}`} onDelete={() => { setSearchName(""); setSearchInput(""); setPage(1); }} />}
-          {(priceRange?.[0] !== undefined && priceRange?.[1] !== undefined) && <Chip label={`Price: ${priceRange[0]} - ${priceRange[1]}`} onDelete={() => { setPriceRange([0, 1000]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); }} />}
+          {(priceRange?.[0] !== undefined && priceRange?.[1] !== undefined) && <Chip label={`Price: ${priceRange[0]} - ${priceRange[1]}`} onDelete={() => { setPriceRange([0, 1000]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }} />}
           {sizeFilters.map((s) => <Chip key={`size-${s}`} label={`Size: ${s}`} onDelete={() => toggleSize(s)} />)}
-          {colorFilters.map((c) => <Chip key={`color-${c}`} label={`Color: ${c}`} onDelete={() => toggleColor(c)} />)}        </Stack>        {loading ? (
+          {colorFilters.map((c) => <Chip key={`color-${c}`} label={`Color: ${c}`} onDelete={() => toggleColor(c)} />)}
+        </Stack>
+
+        {loading ? (
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
             {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
-            sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
-              <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
-              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
-              <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
-            <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
+              sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
+                <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
+                <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
+              <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
           </Box>
         ) : (
           <>
@@ -659,11 +653,10 @@ export default function AllProducts() {
                           flex: 1,
                           position: "relative",
                           overflow: "hidden",
-                          minHeight: { xs: 300, sm: 340, md: 380 },
-                          transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                          transition: "transform 0.18s ease, box-shadow 0.18s ease",
                           "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+                            transform: "translateY(-6px)",
+                            boxShadow: "0 12px 30px rgba(0,0,0,0.12)"
                           }
                         }}
                       >
@@ -723,7 +716,7 @@ export default function AllProducts() {
                               color="text.secondary"
                               sx={{
                                 display: "block",
-                                mb: 1.5,
+                                mb: 1.2,
                                 fontSize: { xs: "0.75rem", sm: "0.8rem", md: "0.85rem" },
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
@@ -747,13 +740,13 @@ export default function AllProducts() {
                                     fontSize: { xs: "0.8rem", md: "0.9rem" } 
                                   }}
                                 >
-                                  ${product.price}
+                                  ${Number(product.price).toFixed(2)}
                                 </Typography>
                                 <Typography 
                                   variant="h6" 
                                   color="secondary" 
                                   fontWeight={700} 
-                                  sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                                  sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
                                 >
                                   ${discountedPrice.toFixed(2)}
                                 </Typography>
@@ -763,9 +756,9 @@ export default function AllProducts() {
                                 variant="h6" 
                                 color="secondary" 
                                 fontWeight={700} 
-                                sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}
+                                sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
                               >
-                                ${product.price}
+                                ${Number(product.price).toFixed(2)}
                               </Typography>
                             )}
                           </Box>
@@ -787,7 +780,7 @@ export default function AllProducts() {
                                 fontWeight: 600
                               }}
                             >
-                              Add to Cart
+                              View / Add
                             </Button>
                           ) : (
                             <Typography 
