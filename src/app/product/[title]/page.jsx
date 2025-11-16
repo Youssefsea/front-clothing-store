@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
-import axiosInstance from "../axios";
+import axiosInstance from "../../axios";
 import {
   Box,
   Grid,
