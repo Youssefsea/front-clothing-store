@@ -177,6 +177,7 @@ export default function ProductPage({ params }) {
           borderRadius: 2,
           overflow: "hidden",
           boxShadow: 3,
+          bgcolor: "#fff"
         }}
       >
         <Box
@@ -699,26 +700,71 @@ export default function ProductPage({ params }) {
         <div className="container pd-related" style={{ marginTop: 32 }}>
           <h2 className="pd-related-title">Explore Related Products</h2>
           <div className="pd-related-grid" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {related.map((item) => (
-              <Link
-                key={item.id}
-                href={`/product/${encodeURIComponent(item.title)}`}
-                className="pd-related-card"
-                style={{
-                  width: 180,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  background: "#fff",
-                  boxShadow: "0 6px 18px rgba(30,30,30,0.06)",
-                }}
-              >
-                <ProductImage image_url={item.image_url} title={item.title} />
-                <div style={{ padding: 8 }}>
-                  <div className="title" title={item.title} style={{ fontWeight: 700 }}>{item.title}</div>
-                  <div className="price" style={{ marginTop: 6, color: "#b8732a", fontWeight: 700 }}>${item.price}</div>
-                </div>
-              </Link>
-            ))}
+            {related.map((item) => {
+              const itemDiscounted = item.discount && Number(item.discount) > 0;
+              const itemPriceNum = Number(item.price) || 0;
+              const itemDiscountedPrice = itemDiscounted ? (itemPriceNum * (100 - Number(item.discount))) / 100 : null;
+              return (
+                <Link
+                  key={item.id}
+                  href={`/product/${encodeURIComponent(item.title)}`}
+                  className="pd-related-card"
+                  style={{
+                    width: 180,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    background: "#fff",
+                    boxShadow: "0 8px 22px rgba(15,15,15,0.06)",
+                    textDecoration: "none",
+                    color: "inherit",
+                    transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {/* keep image consistent using the ProductImage component */}
+                  <div style={{ padding: 8, paddingBottom: 0 }}>
+                    <ProductImage image_url={item.image_url} title={item.title} />
+                  </div>
+
+                  <div style={{ padding: 10, paddingTop: 8, display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                    <div
+                      className="title"
+                      title={item.title}
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 14,
+                        lineHeight: "1.2",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        minHeight: 40,
+                      }}
+                    >
+                      {item.title}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        {itemDiscountedPrice ? (
+                          <>
+                            <span style={{ color: "#b8732a", fontWeight: 800, fontSize: 15 }}>${itemDiscountedPrice.toFixed(2)}</span>
+                            <span style={{ textDecoration: "line-through", color: "#888", fontSize: 12 }}>${itemPriceNum.toFixed(2)}</span>
+                          </>
+                        ) : (
+                          <span style={{ color: "#b8732a", fontWeight: 800, fontSize: 15 }}>${itemPriceNum.toFixed(2)}</span>
+                        )}
+                      </div>
+
+                      {itemDiscounted && (
+                        <Chip label={`${item.discount}%`} color="secondary" size="small" sx={{ height: 24 }} />
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
