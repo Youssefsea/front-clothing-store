@@ -149,10 +149,12 @@ export default function ProductPage({ params }) {
     .filter(Boolean);
 
   // Small product image component (clickable to open lightbox)
-  // added `size` prop to make compact thumbnails for related products
+  // added `size` and better image handling (lazy loading, onError fallback, consistent width/height)
   function ProductImage({ image_url, title, onOpen, size = "lg", cover = false }) {
     const imgs = (image_url || "").split(",").map((s) => s.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [failed, setFailed] = useState(false);
+
     useEffect(() => {
       if (imgs.length <= 1) return;
       const interval = setInterval(() => {
@@ -161,8 +163,16 @@ export default function ProductPage({ params }) {
       return () => clearInterval(interval);
     }, [imgs.length]);
 
-    const src = imgs[currentIndex] || "/placeholder.png";
+    let src = imgs[currentIndex] || "/placeholder.png";
+    try { src = encodeURI(src); } catch (e) { /* fallback to raw src */ }
+
     const heights = size === "sm" ? { xs: 110, md: 120 } : { xs: 220, md: 360 };
+    const objectFitValue = cover ? "cover" : "contain";
+
+    const handleImgError = (ev) => {
+      setFailed(true);
+      ev.currentTarget.src = "/placeholder.png";
+    };
 
     return (
       <Box
@@ -183,15 +193,18 @@ export default function ProductPage({ params }) {
       >
         <Box
           component="img"
-          src={src}
-          alt={`${title} image`}
+          src={failed ? "/placeholder.png" : src}
+          alt={title || "product image"}
+          loading="lazy"
+          onError={handleImgError}
           sx={{
             width: "100%",
             height: "100%",
-            objectFit: cover ? "cover" : "contain",
+            objectFit: objectFitValue,
             transition: "transform 0.35s ease, opacity 0.35s ease",
             "&:hover": { transform: onOpen ? "scale(1.03)" : "none" },
             backgroundColor: "#f7f7f7",
+            display: "block",
           }}
         />
       </Box>
