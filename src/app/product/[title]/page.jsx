@@ -148,8 +148,6 @@ export default function ProductPage({ params }) {
     .map((i) => i.trim())
     .filter(Boolean);
 
-  // Small product image component (clickable to open lightbox)
-  // added `size` and better image handling (lazy loading, onError fallback, consistent width/height)
   function ProductImage({ image_url, title, onOpen, size = "lg", cover = false }) {
     const imgs = (image_url || "").split(",").map((s) => s.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -676,6 +674,7 @@ export default function ProductPage({ params }) {
                 <ShoppingCartIcon fontSize="small" />
               </span>
               Add To Cart
+            
             </button>
 
             <Button
