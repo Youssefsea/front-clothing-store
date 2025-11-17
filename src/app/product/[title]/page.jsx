@@ -162,7 +162,7 @@ export default function ProductPage({ params }) {
     }, [imgs.length]);
 
     let src = imgs[currentIndex] || "/placeholder.png";
-    try { src = encodeURI(src); } catch (e) { /* fallback to raw src */ }
+    try { src = encodeURI(src); } catch (e) { }
 
     const heights = size === "sm" ? { xs: 110, md: 120 } : { xs: 220, md: 360 };
     const objectFitValue = cover ? "cover" : "contain";
