@@ -12,7 +12,7 @@ import {
   Alert,
   Divider,
 } from "@mui/material";
-import { CheckCircle, LocalShipping, Payment, Support } from "@mui/icons-material";
+import { CheckCircle, LocalShipping, Payment, Support, Person, Email, Phone } from "@mui/icons-material";
 import axiosInstance from "../axios";
 
 export default function OrderCompletedPage() {
@@ -71,11 +71,11 @@ export default function OrderCompletedPage() {
         if (images.length <= 1) return;
     
         const interval = setInterval(() => {
-          setFade(false); // أولًا نخفي الصورة الحالية
+          setFade(false); 
           setTimeout(() => {
             setCurrentIndex((prev) => (prev + 1) % images.length);
-            setFade(true); // ثم نظهر الصورة الجديدة
-          }, 300); // نفس مدة الـtransition
+            setFade(true); 
+          }, 300); 
         }, 3000);
     
         return () => clearInterval(interval);
@@ -167,7 +167,49 @@ export default function OrderCompletedPage() {
                   >
                     {order.status}
                   </Box>
-                </Stack>
+                </Stack>                {/* Customer Information */}
+                <Paper
+                  sx={{
+                    bgcolor: "#f5f5f5",
+                    p: 3,
+                    mb: 3,
+                    borderRadius: 2,
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={700} color="#333" mb={2}>
+                    Customer Information
+                  </Typography>
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
+                    <Box flex={1}>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Person sx={{ color: "#c99746", fontSize: 18 }} />
+                        <Typography fontWeight={600} color="#333">Name</Typography>
+                      </Stack>
+                      <Typography fontSize={14} color="#666" sx={{ ml: 3 }}>
+                        {order.customer_name || order.user_name || "غير متوفر"}
+                      </Typography>
+                    </Box>
+                    <Box flex={1}>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Email sx={{ color: "#c99746", fontSize: 18 }} />
+                        <Typography fontWeight={600} color="#333">Email</Typography>
+                      </Stack>
+                      <Typography fontSize={14} color="#666" sx={{ ml: 3 }}>
+                        {order.customer_email || order.user_email || "غير متوفر"}
+                      </Typography>
+                    </Box>
+                    <Box flex={1}>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                        <Phone sx={{ color: "#c99746", fontSize: 18 }} />
+                        <Typography fontWeight={600} color="#333">Phone</Typography>
+                      </Stack>
+                      <Typography fontSize={14} color="#666" sx={{ ml: 3 }}>
+                        {order.customer_phone || order.phone || "غير متوفر"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
 
                 <Paper
                   sx={{
@@ -226,6 +268,27 @@ export default function OrderCompletedPage() {
                   </Typography>
                   <Typography fontSize={14} color="#666">
                     Address: {order.address}
+                  </Typography>
+                </Stack>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Person sx={{ color: "#c99746" }} />
+                  <Typography fontWeight={600} fontSize={14}>
+                    Name: {order.customer_name}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Email sx={{ color: "#c99746" }} />
+                  <Typography fontWeight={600} fontSize={14}>
+                    Email: {order.customer_email}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Phone sx={{ color: "#c99746" }} />
+                  <Typography fontWeight={600} fontSize={14}>
+                    Phone: {order.customer_phone}
                   </Typography>
                 </Stack>
               </Paper>
