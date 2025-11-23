@@ -139,7 +139,8 @@ export default function ProductPage({ params }) {
       }
     } catch (err) {
       console.error(err);
-      window.location.href = "/login";
+      // window.location.href = "/login";
+      
     }
   }
 
