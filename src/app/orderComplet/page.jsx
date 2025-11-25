@@ -26,6 +26,7 @@ export default function OrderCompletedPage() {
       const res = await axiosInstance.get("/orders/orderForUser");
       if (res.data.orders && res.data.orders.length > 0) {
         setOrders(res.data.orders); 
+        console.log("Fetched orders:", res.data.orders);
       }
     } catch (e) {
       setError(" Failed to load orders");
