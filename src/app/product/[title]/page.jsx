@@ -139,7 +139,7 @@ export default function ProductPage({ params }) {
       }
     } catch (err) {
       console.error(err);
-      // window.location.href = "/login";
+      window.location.href = "/login";
       
     }
   }
@@ -210,7 +210,6 @@ export default function ProductPage({ params }) {
     );
   }
 
-  // Lightbox with thumbnails, autoplay, magnifier and mobile swipe
   function Lightbox({ open, onClose, startIndex = 0 }) {
     const [index, setIndex] = useState(startIndex);
     const autoplayRef = useRef(null);

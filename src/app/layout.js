@@ -160,7 +160,6 @@ async function Logout() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
               <MuiLink href="/" underline="none" sx={{ color: pathname === "/" ? muiTheme.palette.secondary.main : "#fff" }}>Home</MuiLink>
               <MuiLink href="/shop" underline="none" sx={{ color: pathname === "/shop" ? muiTheme.palette.secondary.main : "#fff" }}>Shop</MuiLink>
-              {/* <MuiLink href="" underline="none" sx={{ color: "#fff" }}>Contact with us</MuiLink> */}
 
               {isLogged && (
                 <>
