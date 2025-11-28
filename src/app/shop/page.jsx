@@ -172,8 +172,8 @@ export default function AllProducts() {
         return colorFilters.some((c) => colors.some((pc) => pc && pc.toLowerCase() === c.toLowerCase()));
       });
     }
-    if (sortBy === "priceAsc") list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    else if (sortBy === "priceDesc") list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    if (sortBy === "priceAsc") list.sort((a, b) => (Number(a.price-a.discount) || 0) - (Number(b.price-b.discount) || 0));
+    else if (sortBy === "priceDesc") list.sort((a, b) => (Number(b.price-b.discount) || 0) - (Number(a.price-a.discount) || 0));
     else if (sortBy === "titleAsc") list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     return list;
   }, [products, searchName, priceRange, sizeFilters, colorFilters, sortBy]);
@@ -465,7 +465,7 @@ export default function AllProducts() {
     );
   }
 
-  // Handler to open modal from card
+  
   const openLightboxFromProduct = (images, idx) => {
     setLbImages(images || []);
     setLbIndex(idx || 0);
