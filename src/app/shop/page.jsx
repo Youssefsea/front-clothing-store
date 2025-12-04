@@ -641,7 +641,8 @@ export default function AllProducts() {
                       md={3}
                       key={product.id}
                       sx={{ display: "flex", flexDirection: "column" }}
-                    >                      <Paper
+                    >
+                      <Paper
                         elevation={3}
                         sx={{
                           p: { xs: 1.5, sm: 2, md: 2 },
@@ -649,7 +650,7 @@ export default function AllProducts() {
                           display: "flex",
                           flexDirection: "column",
                           width: "100%",
-                          height: { xs: 320, sm: 380, md: 420 }, // Fixed height for consistency
+                          flex: 1,
                           position: "relative",
                           overflow: "hidden",
                           transition: "transform 0.18s ease, box-shadow 0.18s ease",
@@ -689,7 +690,9 @@ export default function AllProducts() {
                           <ProductImage
                             image_url={product.image_url}
                             title={product.title}
-                          />                          <Box sx={{ px: { xs: 0.5, sm: 0 }, flex: 1, display: "flex", flexDirection: "column" }}>
+                          />
+
+                          <Box sx={{ px: { xs: 0.5, sm: 0 } }}>
                             <Typography
                               variant="subtitle1"
                               fontWeight={600}
@@ -701,7 +704,7 @@ export default function AllProducts() {
                                 display: "-webkit-box",
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
-                                height: { xs: 44, sm: 46, md: 48 }, // Fixed height instead of minHeight
+                                minHeight: { xs: 44, sm: 46, md: 48 },
                                 lineHeight: { xs: 1.35, sm: 1.4 },
                               }}
                             >
@@ -712,52 +715,52 @@ export default function AllProducts() {
                               variant="caption"
                               color="text.secondary"
                               sx={{
-                                display: "-webkit-box",
+                                display: "block",
                                 mb: 1.2,
                                 fontSize: { xs: "0.75rem", sm: "0.8rem", md: "0.85rem" },
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
+                                display: "-webkit-box", 
                                 WebkitLineClamp: { xs: 2, sm: 2 },
                                 WebkitBoxOrient: "vertical",
-                                height: { xs: 32, sm: 34, md: 36 }, // Fixed height instead of minHeight
+                                minHeight: { xs: 28, sm: 30, md: 32 },
                                 lineHeight: 1.4,
-                                flex: 1, // Take remaining space
                               }}
                             >
                               {/* {product.description?.slice(0, 70)} */}
-                            </Typography>                            <Box sx={{ mt: "auto", mb: 1 }}>
-                              {product.discount > 0 ? (
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
-                                  <Typography 
-                                    variant="body2" 
-                                    color="text.secondary" 
-                                    sx={{ 
-                                      textDecoration: "line-through", 
-                                      fontSize: { xs: "0.8rem", md: "0.9rem" } 
-                                    }}
-                                  >
-                                    ${Number(product.price).toFixed(2)}
-                                  </Typography>
-                                  <Typography 
-                                    variant="h6" 
-                                    color="secondary" 
-                                    fontWeight={700} 
-                                    sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
-                                  >
-                                    ${discountedPrice.toFixed(2)}
-                                  </Typography>
-                                </Box>
-                              ) : (
+                            </Typography>
+
+                            {product.discount > 0 ? (
+                              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary" 
+                                  sx={{ 
+                                    textDecoration: "line-through", 
+                                    fontSize: { xs: "0.8rem", md: "0.9rem" } 
+                                  }}
+                                >
+                                  ${Number(product.price).toFixed(2)}
+                                </Typography>
                                 <Typography 
                                   variant="h6" 
                                   color="secondary" 
                                   fontWeight={700} 
                                   sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
                                 >
-                                  ${Number(product.price).toFixed(2)}
+                                  ${discountedPrice.toFixed(2)}
                                 </Typography>
-                              )}
-                            </Box>
+                              </Box>
+                            ) : (
+                              <Typography 
+                                variant="h6" 
+                                color="secondary" 
+                                fontWeight={700} 
+                                sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
+                              >
+                                ${Number(product.price).toFixed(2)}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
 

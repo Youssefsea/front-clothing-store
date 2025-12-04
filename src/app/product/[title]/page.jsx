@@ -17,17 +17,15 @@ import CloseIcon from "@mui/icons-material/Close";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import Link from "next/link";
+import { use } from "react";
 
-/**
- * ProductPage.jsx
- * - Lightbox modal with thumbnails, autoplay, magnifier, keyboard navigation
- * - Mobile swipe/drag gestures implemented for the lightbox (touch + basic drag UI)
- * - Exports a single React component (JSX) for Next.js pages
- */
+
 
 export default function ProductPage({ params }) {
-  const productTitle = decodeURIComponent((params && params.title) || "");
+  const { title } = use(params);
 
+  const productTitle = decodeURIComponent((title) || "");
+  console.log("   ddddddd", productTitle);
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [related, setRelated] = useState([]);
