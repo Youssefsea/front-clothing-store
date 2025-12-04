@@ -18,7 +18,6 @@ axiosInstance.interceptors.response.use(
         window.location.href = "/unauthorized";
         return Promise.reject(error);
       }
-      
       if (
         pathname !== "/" &&
         pathname !== "/login" &&
