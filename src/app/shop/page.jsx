@@ -863,11 +863,14 @@ export default function AllProducts() {
                   onChange={(_, val) => setPage(val)} 
                   color="primary" 
                   shape="rounded"
-                  size={{ xs: "small", sm: "medium" }}
+                  size="medium"
                   sx={{
                     "& .MuiPaginationItem-root": {
                       borderRadius: 2,
-                      fontWeight: 600
+                      fontWeight: 600,
+                      fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                      minWidth: { xs: 28, sm: 32 },
+                      height: { xs: 28, sm: 32 }
                     }
                   }}
                 />
