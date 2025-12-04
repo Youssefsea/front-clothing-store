@@ -182,7 +182,6 @@ export default function AllProducts() {
   const pages = Math.max(1, Math.ceil(total / perPage));
   const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
 
-  // Product image: make fixed height for consistent cards across desktop and mobile
   function ProductImage({ image_url, title, onOpen, cover = true }) {
     const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -472,14 +471,24 @@ export default function AllProducts() {
     setLightboxOpen(true);
     setLbAutoplay(true);
   };
-
   return (
-    <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
-      <Paper
-        elevation={1}
-        sx={{
-          width: { xs: "100%", md: 260 },
-          p: { xs: 2, md: 3 },
+    <Box sx={{ 
+      minHeight: "100vh", 
+      bgcolor: "background.default",
+      p: { xs: 2, sm: 3, md: 4 }
+    }}>
+      <Box sx={{ 
+        display: "flex", 
+        gap: 4, 
+        flexDirection: { xs: "column", md: "row" },
+        maxWidth: "1400px",
+        mx: "auto"
+      }}>
+        <Paper
+          elevation={1}
+          sx={{
+            width: { xs: "100%", md: 280 },
+            p: { xs: 2, md: 3 },
           position: { xs: "static", md: "sticky" },
           top: { md: 24 },
           alignSelf: "flex-start",
@@ -523,12 +532,15 @@ export default function AllProducts() {
 
         <Divider sx={{ my: 2 }} />
         <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
-      </Paper>
-
-      <Drawer anchor="left" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
-        <Box sx={{ width: 300, p: 2 }} role="presentation">
-          <Typography variant="h6" fontWeight={700} gutterBottom>Filter Options</Typography>
-          <Divider sx={{ mb: 2 }} />
+      </Paper>      <Drawer anchor="left" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
+        <Box sx={{ width: 320, p: 3, height: "100%", bgcolor: "background.paper" }} role="presentation">
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" fontWeight={700}>Filter Options</Typography>
+            <IconButton onClick={() => setFiltersOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+          <Divider sx={{ mb: 3 }} />
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
             <InputLabel>Category</InputLabel>
             <Select value={category} label="Category" onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
@@ -564,30 +576,59 @@ export default function AllProducts() {
           <Divider sx={{ my: 2 }} />
           <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
         </Box>
-      </Drawer>
-
-      <Box sx={{ flex: 1 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h4" fontWeight={800} sx={{ mb: 0.5 }}>Shop</Typography>
-          <Typography variant="body2" color="text.secondary">Home / Shop</Typography>
-        </Box>
-
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} sx={{ mb: 3, gap: 2 }}>
+      </Drawer>        <Box sx={{ flex: 1, px: { xs: 0, sm: 1, md: 2 } }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h4" fontWeight={800} sx={{ mb: 0.5 }}>Shop</Typography>
+            <Typography variant="body2" color="text.secondary">Home / Shop</Typography>
+          </Box>        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} sx={{ mb: 3, gap: 2, px: { xs: 1, sm: 0 } }}>
           <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%" }}>
-            <Button startIcon={<FilterAltIcon />} variant="outlined" onClick={() => setFiltersOpen(true)} sx={{ mr: 2 }}>Filters</Button>
+            <Button 
+              startIcon={<FilterAltIcon />} 
+              variant="outlined" 
+              onClick={() => setFiltersOpen(true)} 
+              sx={{ 
+                mr: 2,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600
+              }}
+            >
+              Filters
+            </Button>
           </Box>
           <form onSubmit={handleSearchSubmit} style={{ width: "100%", maxWidth: 560 }}>
             <Stack direction="row" spacing={1}>
-              <TextField fullWidth size="small" placeholder="Search products..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
-              <IconButton type="submit" color="primary" sx={{ bgcolor: "secondary.light" }}><SearchIcon /></IconButton>
+              <TextField 
+                fullWidth 
+                size="small" 
+                placeholder="Search products..." 
+                value={searchInput} 
+                onChange={(e) => setSearchInput(e.target.value)}
+                sx={{ 
+                  "& .MuiOutlinedInput-root": { 
+                    borderRadius: 2 
+                  } 
+                }}
+              />
+              <IconButton 
+                type="submit" 
+                color="primary" 
+                sx={{ 
+                  bgcolor: "secondary.light",
+                  borderRadius: 2,
+                  "&:hover": {
+                    bgcolor: "secondary.main"
+                  }
+                }}
+              >
+                <SearchIcon />
+              </IconButton>
             </Stack>
-          </form>
-
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }} sx={{ width: "100%", justifyContent: { xs: "stretch", md: "flex-end" } }}>
+          </form><Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }} sx={{ width: "100%", justifyContent: { xs: "stretch", md: "flex-end" } }}>
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: "center", sm: "left" } }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, filtered.length)} of {filtered.length} results
             </Typography>
-            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 },margin:"10 auto" }}>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 }, mx: "auto" }}>
               <InputLabel>Sort</InputLabel>
               <Select label="Sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <MenuItem value="default">Default Sorting</MenuItem>
@@ -599,9 +640,7 @@ export default function AllProducts() {
           </Stack>
 
         </Stack>
-        <Divider sx={{ mb: 3 }} />
-
-        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}>
+        <Divider sx={{ mb: 3 }} />        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1, px: { xs: 1, sm: 0 } }}>
           {category && <Chip label={`Category: ${category}`} onDelete={() => { setCategory(""); setPage(1); fetchAllProducts(); }} />}
           {searchName && <Chip label={`Search: ${searchName}`} onDelete={() => { setSearchName(""); setSearchInput(""); setPage(1); }} />}
           {(priceRange?.[0] !== undefined && priceRange?.[1] !== undefined) && <Chip label={`Price: ${priceRange[0]} - ${priceRange[1]}`} onDelete={() => { setPriceRange([0, 1000]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }} />}
@@ -610,9 +649,18 @@ export default function AllProducts() {
         </Stack>
 
         {loading ? (
-          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
-            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
-              sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box sx={{ 
+            display: "grid", 
+            gap: 2, 
+            gridTemplateColumns: { 
+              xs: "repeat(auto-fill, minmax(150px, 1fr))", 
+              sm: "repeat(auto-fill, minmax(180px, 1fr))", 
+              md: "repeat(auto-fill, minmax(220px, 1fr))" 
+            },
+            px: { xs: 1, sm: 2 },
+            py: 2
+          }}>
+            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx}              sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1, borderRadius: 2 }}>
                 <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
                 <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
                 <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
@@ -620,12 +668,14 @@ export default function AllProducts() {
           </Box>
         ) : (
           <>
-            <Box sx={{ px: { xs: 2, sm: 0 } }}>
+            <Box sx={{ px: { xs: 1, sm: 2, md: 0 }, py: 2 }}>
               <Grid
                 container
                 spacing={{ xs: 2, sm: 2, md: 3 }}
                 sx={{
                   alignItems: "stretch",
+                  mx: 0,
+                  width: "100%",
                 }}
               >
                 {visibleProducts.map((product) => {
@@ -800,14 +850,32 @@ export default function AllProducts() {
                     </Grid>
                   );
                 })}
-              </Grid>
-
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-                <Pagination count={pages} page={page} onChange={(_, val) => setPage(val)} color="primary" shape="rounded" />
+              </Grid>              <Box sx={{ 
+                display: "flex", 
+                justifyContent: "center", 
+                mt: 6, 
+                mb: 3,
+                px: { xs: 2, sm: 0 }
+              }}>
+                <Pagination 
+                  count={pages} 
+                  page={page} 
+                  onChange={(_, val) => setPage(val)} 
+                  color="primary" 
+                  shape="rounded"
+                  size={{ xs: "small", sm: "medium" }}
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      borderRadius: 2,
+                      fontWeight: 600
+                    }
+                  }}
+                />
               </Box>
             </Box>
           </>
         )}
+        </Box>
       </Box>
 
       <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
