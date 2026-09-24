@@ -81,12 +81,11 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <form onSubmit={runSearch} style={{ display: "flex", gap: 10, marginBottom: 22, flexWrap: "wrap", alignItems: "center" }}>
+      <form onSubmit={runSearch} className="admin-search">
         <select
           value={mode}
           onChange={(e) => { setMode(e.target.value); setQuery(""); }}
           aria-label="Search mode"
-          style={{ border: "1px solid var(--line)", background: "var(--surface)", borderRadius: "var(--radius)", padding: "10px 12px", fontFamily: "var(--display)" }}
         >
           <option value="all">All orders</option>
           <option value="email">By email</option>
@@ -98,7 +97,6 @@ export default function AdminOrders() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={mode === "email" ? "customer@email.com" : "e.g. 3"}
             aria-label={mode === "email" ? "Search orders by email" : "Search orders by user id"}
-            style={{ flex: 1, minWidth: 220, border: "1px solid var(--line)", background: "var(--surface)", borderRadius: "var(--radius)", padding: "10px 12px" }}
           />
         )}
         <button className="btn btn--primary btn--sm" type="submit" disabled={loading}>

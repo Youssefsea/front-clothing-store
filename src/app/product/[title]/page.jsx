@@ -87,15 +87,15 @@ export default function ProductPage({ params }) {
   if (!title) {
     return (
       <div className="nav-spacer">
-        <div className="container" style={{ paddingTop: 40 }}><ProductGridSkeleton count={1} /></div>
+        <div className="container page"><ProductGridSkeleton count={1} /></div>
       </div>
     );
   }
 
   return (
     <div className="nav-spacer">
-      <div className="container" style={{ padding: "36px 24px 90px" }}>
-        <div className="breadcrumb" style={{ marginBottom: 30 }}>
+      <div className="container page">
+        <div className="breadcrumb">
           <Link href="/">Home</Link>
           <span className="sep">/</span>
           <Link href="/shop">Shop</Link>

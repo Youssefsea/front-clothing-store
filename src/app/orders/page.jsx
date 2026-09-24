@@ -49,13 +49,13 @@ export default function OrdersPage() {
 
   return (
     <div className="nav-spacer">
-      <div className="container" style={{ padding: "48px 24px 90px" }}>
-        <div className="section-head" style={{ marginBottom: 24 }}>
+      <div className="container page">
+        <div className="page-head">
           <div>
             <p className="section-label">History</p>
             <h1 className="section-title">Your orders</h1>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="page-actions">
             <Link href="/account" className="btn btn--outline btn--dark-text btn--sm">Account</Link>
             <Link href="/shop" className="btn btn--primary btn--sm">Shop again</Link>
           </div>

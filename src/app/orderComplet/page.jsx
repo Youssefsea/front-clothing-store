@@ -42,7 +42,7 @@ function OrderCompletInner() {
 
   return (
     <div className="nav-spacer">
-      <div className="container" style={{ padding: "48px 24px 90px" }}>
+      <div className="container page">
         <div className="success-hero">
           <div className="mark" aria-hidden="true">✓</div>
           <h1>Thank you — your order is in.</h1>

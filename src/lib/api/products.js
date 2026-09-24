@@ -103,6 +103,34 @@ export function extractColors(products) {
   return colors;
 }
 
+export function extractSizes(products) {
+  const seen = new Set();
+  const sizes = [];
+  for (const p of products) {
+    for (const s of p.sizes || []) {
+      const key = s.toUpperCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        sizes.push(s);
+      }
+    }
+  }
+  return sizes;
+}
+
+export function extractTitles(products) {
+  const seen = new Set();
+  const titles = [];
+  for (const p of products) {
+    const t = (p.title || "").trim();
+    if (t && !seen.has(t)) {
+      seen.add(t);
+      titles.push(t);
+    }
+  }
+  return titles;
+}
+
 // Admin product management ------------------------------------------------
 
 export async function addProduct(payload) {

@@ -115,8 +115,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="nav-spacer">
-      <div className="container" style={{ padding: "48px 24px 90px" }}>
-        <div className="section-head" style={{ marginBottom: 20 }}>
+      <div className="container page">
+        <div className="page-head">
           <div>
             <p className="section-label">Final step</p>
             <h1 className="section-title">Checkout</h1>

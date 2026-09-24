@@ -294,12 +294,12 @@ function ShopPageInner() {
   return (
     <div className="shop-page">
       <div className="nav-spacer" />
-      <div className="container">
+      <div className="container page">
         <Reveal>
           <div className="shop-page__head">
             <div>
               <p className="section-label">Catalog</p>
-              <h1 className="section-title" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
+              <h1 className="section-title">
                 Shop
               </h1>
             </div>
@@ -312,7 +312,7 @@ function ShopPageInner() {
           </div>
         </Reveal>
 
-        <hr className="divider" style={{ margin: "28px 0" }} />
+        <hr className="divider" style={{ margin: "0 0 var(--space-9)" }} />
 
         <div className="shop-layout">
           <aside className="shop-filters" aria-label="Product filters">
@@ -320,7 +320,7 @@ function ShopPageInner() {
           </aside>
 
           <div className="shop-main">
-            <div className="meta-row" style={{ marginBottom: 20 }}>
+            <div className="meta-row" style={{ marginBottom: "var(--space-6)" }}>
               <span style={{ color: "var(--muted)", fontSize: "0.86rem" }}>
                 {loading ? "Updating…" : `${sorted.length} product${sorted.length === 1 ? "" : "s"}`}
               </span>
@@ -386,7 +386,7 @@ function ShopPageInner() {
           <h3>Filters</h3>
           <button className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label="Close filters">✕</button>
         </div>
-        <div className="drawer__body" style={{ padding: "20px 22px" }}>
+        <div className="drawer__body drawer__body--filters">
           <FilterPanel onAfterChange={() => setFiltersOpen(false)} />
         </div>
       </aside>

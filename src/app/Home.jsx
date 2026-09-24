@@ -213,10 +213,10 @@ export default function HomePage() {
               <Reveal delay={120}>
                 <div>
                   <p className="section-label">The idea</p>
-                  <h2 className="section-title" style={{ marginBottom: 20 }}>
+                  <h2 className="section-title">
                     Clothes that carry a point of view.
                   </h2>
-                  <p style={{ color: "var(--muted)", lineHeight: 1.8, maxWidth: "48ch", marginBottom: 24 }}>
+                  <p className="section-sub" style={{ marginTop: "var(--space-5)", marginBottom: "var(--space-7)" }}>
                     Every piece in the collection is treated like a canvas — a
                     silhouette to build around, a color to commit to, a fabric
                     that holds its shape. Less clutter. More intention.
@@ -260,15 +260,15 @@ export default function HomePage() {
                       "linear-gradient(0deg, rgba(6,6,6,0.72), transparent 55%)",
                     display: "flex",
                     alignItems: "flex-end",
-                    padding: 44,
+                    padding: "var(--space-8)",
                   }}
                 >
                   <div>
                     <p className="section-label" style={{ color: "var(--accent)" }}>Spotlight</p>
-                    <h2 style={{ color: "var(--bg)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch" }}>
+                    <h2 style={{ color: "var(--bg)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch", marginTop: "var(--space-2)" }}>
                       {products[3].title}
                     </h2>
-                    <span className="btn btn--light btn--sm" style={{ marginTop: 18 }}>
+                    <span className="btn btn--light btn--sm" style={{ marginTop: "var(--space-6)" }}>
                       View product →
                     </span>
                   </div>
@@ -286,10 +286,10 @@ export default function HomePage() {
             <h2 className="section-title" style={{ maxWidth: "20ch", margin: "0 auto" }}>
               Ready to refresh your rotation?
             </h2>
-            <p style={{ color: "rgba(245,243,239,0.7)", marginTop: 18, maxWidth: "44ch", lineHeight: 1.7 }}>
+            <p style={{ color: "rgba(245,243,239,0.7)", marginTop: "var(--space-4)", maxWidth: "44ch", lineHeight: 1.75 }}>
               New pieces drop throughout the season. Be first in line.
             </p>
-            <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", marginTop: "var(--space-7)", flexWrap: "wrap" }}>
               <Link href="/shop" className="btn btn--accent">
                 Shop the collection
               </Link>

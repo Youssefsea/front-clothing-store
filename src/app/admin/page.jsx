@@ -80,7 +80,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <h2 style={{ fontFamily: "var(--display)", fontSize: "1.1rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
+      <h2 className="form-section__title" style={{ marginBottom: "var(--space-6)" }}>
         Recent orders
       </h2>
 

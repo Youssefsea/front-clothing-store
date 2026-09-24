@@ -46,18 +46,16 @@ export default function CartPage() {
 
   return (
     <div className="nav-spacer">
-      <div className="container" style={{ padding: "48px 24px 90px" }}>
-        <div className="breadcrumb" style={{ marginBottom: 26 }}>
+      <div className="container page">
+        <div className="breadcrumb">
           <Link href="/">Home</Link>
           <span className="sep">/</span>
           <span className="current">Your bag</span>
         </div>
 
-        <div className="section-head" style={{ marginBottom: 20 }}>
-          <div>
-            <p className="section-label">Almost there</p>
-            <h1 className="section-title">Your bag</h1>
-          </div>
+        <div className="page-head">
+          <p className="section-label">Almost there</p>
+          <h1 className="section-title">Your bag</h1>
         </div>
 
         {loading && items.length === 0 ? (
