@@ -99,11 +99,7 @@ const theme = createTheme({
   },
 });
 
-export default function Providers({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Providers({ children }) {
   return (
     <VantaThemeProvider>
       <LocaleProvider>
@@ -113,21 +109,16 @@ export default function Providers({
           <AuthProvider>
             <CartProvider>
               <UiProvider>
-                {/* ================================
-                    GLOBAL APPLICATION SHELL
-                    Navbar
-                    Main content
-                    Footer
-                   ================================= */}
                 <div className="app-shell">
                   <Navbar />
 
-                  <main className="app-main">{children}</main>
+                  <main className="app-main">
+                    {children}
+                  </main>
 
                   <Footer />
                 </div>
 
-                {/* Global overlays / portals */}
                 <CartDrawer />
                 <SearchOverlay />
                 <Toast />
