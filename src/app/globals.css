@@ -3625,3 +3625,17 @@ html[lang="ar"] .p-card__badge,
 html[lang="ar"] .badge {
   letter-spacing: 0;
 }
+
+.app-shell {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.app-main {
+  flex: 1 0 auto;
+  width: 100%;
+  min-width: 0;
+}
