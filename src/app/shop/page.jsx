@@ -1,816 +1,403 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useRef } from "react";
-import Link from "next/link";
-import axiosInstance from "../axios";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  Suspense,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  IconButton,
-  Chip,
-  Slider,
-  Checkbox,
-  FormControlLabel,
-  Divider,
-  Stack,
-  Drawer,
-  Pagination,
-  Modal,
-  IconButton as MuiIconButton,
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import ShoppingCartOutlined from "@mui/icons-material/ShoppingCartOutlined";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import CloseIcon from "@mui/icons-material/Close";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+  fetchProducts,
+  fetchProductByTitle,
+  fetchProductsByCategory,
+  fetchProductsByColor,
+  fetchProductsInRange,
+  extractCategories,
+  extractColors,
+} from "@/lib/api/products";
+import { ApiError } from "@/lib/api/client";
+import ProductCard from "@/components/ProductCard";
+import ProductGridSkeleton from "@/components/ProductGridSkeleton";
+import EmptyState from "@/components/EmptyState";
+import Reveal from "@/components/Reveal";
 
-export default function AllProducts() {
+const SORTS = [
+  { value: "default", label: "Sort" },
+  { value: "priceAsc", label: "Price: Low to High" },
+  { value: "priceDesc", label: "Price: High to Low" },
+  { value: "title", label: "Name: A → Z" },
+];
+
+function readParams(params) {
+  return {
+    category: params.get("category") || "",
+    q: params.get("q") || "",
+    color: params.get("color") || "",
+    min: params.get("min") ? Number(params.get("min")) : null,
+    max: params.get("max") ? Number(params.get("max")) : null,
+  };
+}
+
+function ShopPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const initial = useMemo(
+    () => readParams(new URLSearchParams(searchParams.toString())),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [searchName, setSearchName] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 1000]);
-  const [sizeFilters, setSizeFilters] = useState([]);
-  const [colorFilters, setColorFilters] = useState([]);
-  const [page, setPage] = useState(1);
-  const perPage = 12;
-  const [sortBy, setSortBy] = useState("default");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [q, setQ] = useState(initial.q);
+  const [category, setCategory] = useState(initial.category);
+  const [colors, setColors] = useState(initial.color ? [initial.color] : []);
+  const [price, setPrice] = useState(() => [initial.min ?? 0, initial.max ?? 10000]);
+  const [sizes, setSizes] = useState([]);
+  const [sort, setSort] = useState("default");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [tempMinPrice, setTempMinPrice] = useState("");
-  const [tempMaxPrice, setTempMaxPrice] = useState("");
 
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lbIndex, setLbIndex] = useState(0);
-  const [lbImages, setLbImages] = useState([]);
-  const [lbAutoplay, setLbAutoplay] = useState(true);
-  const [lbHover, setLbHover] = useState(false);
-  const [translateX, setTranslateX] = useState(0);
-  const touchStartRef = useRef({ x: 0, time: 0 });
-  const draggingRef = useRef(false);
-
-  const categories = useMemo(() => ["", "Men", "Women", "Shirt", "Hoodie", "Accessories"], []);
-  const availableColors = ["Black", "Grey", "Green", "Red", "Orange", "Blue", "Pink", "White"];
-  const availableSizes = ['XS',"S", "M", "L", "XL", "XXL", "XXXL"];
-
-  async function fetchAllProducts() {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get("/products");
-      const all = response.data.allProducts || [];
-      setProducts(all);
-      const prices = all.map((p) => Number(p.price) || 0);
-      setPriceRange([Math.min(...prices, 0), Math.max(...prices, 1000)]);
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchAllProducts();
-  }, []);
-
-  async function fetchFiltered() {
-    try {
-      setLoading(true);
-      let list = [];
-      const isDefaultPrice = priceRange[0] === 0 && priceRange[1] === 1000;
-      const hasColors = colorFilters.length > 0;
-
-      if (category && isDefaultPrice && !hasColors) {
-        const res = await axiosInstance.post("/products/byCategory", { category_name: category });
-        list = res.data.products || [];
-      } else if (!category && !isDefaultPrice && !hasColors) {
-        const res = await axiosInstance.post("/products/inRange", { minPrice: priceRange[0], maxPrice: priceRange[1] });
-        list = res.data.products || [];
-      } else if (!category && isDefaultPrice && colorFilters.length === 1) {
-        const res = await axiosInstance.post("/products/byColor", { color: colorFilters[0] });
-        list = res.data.products || [];
-      } else if (category) {
-        const res = await axiosInstance.post("/products/byCategory", { category_name: category });
-        list = res.data.products || [];
-      } else {
-        const response = await axiosInstance.get("/products");
-        list = response.data.allProducts || [];
-      }
-
-      setProducts(list);
-      const prices = list.map((p) => Number(p.price) || 0);
-      if (isDefaultPrice) setPriceRange([Math.min(...prices, 0), Math.max(...prices, 1000)]);
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchFiltered();
-    setPage(1);
-  }, [category, priceRange[0], priceRange[1], colorFilters]);
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setSearchName(searchInput.trim());
-    setPage(1);
-  };
-
-  const handlePriceApply = (e) => {
-    e.preventDefault();
-    const min = tempMinPrice ? Number(tempMinPrice) : priceRange[0];
-    const max = tempMaxPrice ? Number(tempMaxPrice) : priceRange[1];
-    setPriceRange([min, max]);
-    setPage(1);
-  };
-
-  const handleSliderChange = (_, newValue) => {
-    setPriceRange(newValue);
-    setPage(1);
-  };
-
-  const toggleSize = (s) => {
-    setSizeFilters((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
-    setPage(1);
-  };
-  const toggleColor = (c) => {
-    setColorFilters((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
-    setPage(1);
-  };
-
-  const filtered = useMemo(() => {
-    let list = [...products];
-    if (searchName) list = list.filter((p) => (p.title || "").toLowerCase().includes(searchName.toLowerCase()));
-    list = list.filter((p) => {
-      const price = Number(p.price) || 0;
-      return price >= (priceRange[0] ?? 0) && price <= (priceRange[1] ?? 1000000);
-    });
-    if (sizeFilters.length > 0) {
-      list = list.filter((p) => {
-        if (!p.sizes) return false;
-        const pSizes = p.sizes.split(",").map((s) => s.trim());
-        return sizeFilters.some((s) => pSizes.includes(s));
-      });
-    }
-    if (colorFilters.length > 0) {
-      list = list.filter((p) => {
-        const colors = [];
-        if (p.color) colors.push(p.color);
-        if (p.colors) p.colors.split(",").map((c) => c.trim()).forEach((c) => colors.push(c));
-        return colorFilters.some((c) => colors.some((pc) => pc && pc.toLowerCase() === c.toLowerCase()));
-      });
-    }
-    if (sortBy === "priceAsc") list.sort((a, b) => (Number(a.price-a.discount) || 0) - (Number(b.price-b.discount) || 0));
-    else if (sortBy === "priceDesc") list.sort((a, b) => (Number(b.price-b.discount) || 0) - (Number(a.price-a.discount) || 0));
-    else if (sortBy === "titleAsc") list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-    return list;
-  }, [products, searchName, priceRange, sizeFilters, colorFilters, sortBy]);
-
-  const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / perPage));
-  const visibleProducts = filtered.slice((page - 1) * perPage, page * perPage);
-
-  // Product image: make fixed height for consistent cards across desktop and mobile
-  function ProductImage({ image_url, title, onOpen, cover = true }) {
-    const images = (image_url || "").split(",").map((img) => img.trim()).filter(Boolean);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [fade, setFade] = useState(true);
-    const [failed, setFailed] = useState(false);
-
-    useEffect(() => {
-      if (images.length <= 1) return;
-      const interval = setInterval(() => {
-        setFade(false);
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % images.length);
-          setFade(true);
-        }, 300);
-      }, 3000);
-      return () => clearInterval(interval);
-    }, [images.length]);
-
-    const placeholder = "/placeholder.png";
-    let imgSrc = images[currentIndex] || placeholder;
-    try { imgSrc = encodeURI(imgSrc); } catch (e) {}
-
-    const handleImgError = (ev) => {
-      setFailed(true);
-      ev.currentTarget.src = placeholder;
-      console.error("Image load failed:", imgSrc);
-    };
-
-    return (
-      <Box
-        onClick={() => {
-          if (onOpen) {
-            onOpen(images, currentIndex);
-          }
-        }}
-        sx={{
-          position: "relative",
-          width: "100%",
-          height: { xs: 160, sm: 180, md: 200 }, // fixed heights keep desktop tidy
-          overflow: "hidden",
-          borderRadius: 2,
-          bgcolor: failed ? "#f0f0f0" : "#f7f7f7",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Box
-          component="img"
-          src={imgSrc}
-          alt={`${title} image`}
-          onError={handleImgError}
-          sx={{
-            width: "100%",
-            height: "100%",
-            objectFit: cover ? "cover" : "contain",
-            transition: "opacity 0.35s ease-in-out, transform 0.35s ease",
-            opacity: fade ? 1 : 0,
-            "&:hover": { transform: "scale(1.02)" },
-          }}
-        />
-      </Box>
-    );
-  }
-
-  function Lightbox({ open, images, startIndex, onClose }) {
-    const [index, setIndex] = useState(startIndex || 0);
-    const autoplayRef = useRef(null);
-
-    useEffect(() => {
-      setIndex(startIndex || 0);
-      setTranslateX(0);
-    }, [startIndex, open]);
-
-    useEffect(() => {
-      if (!open) return;
-      if (!lbAutoplay) return;
-      if (!images || images.length <= 1) return;
-      if (lbHover) return;
-
-      autoplayRef.current = window.setInterval(() => {
-        setIndex((prev) => (prev + 1) % images.length);
-      }, 3000);
-
-      return () => {
-        if (autoplayRef.current) {
-          clearInterval(autoplayRef.current);
-          autoplayRef.current = null;
-        }
+  // ---- URL sync
+  const syncUrl = useCallback(
+    (next) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      const patch = {
+        category: next.category ?? category,
+        q: next.q ?? q,
+        color: next.color ?? (colors.length === 1 ? colors[0] : ""),
+        min: next.min ?? price[0],
+        max: next.max ?? price[1],
       };
-    }, [open, lbAutoplay, lbHover, images]);
+      Object.entries(patch).forEach(([k, v]) => {
+        if (v === "" || v === null || v === undefined) sp.delete(k);
+        else sp.set(k, String(v));
+      });
+      const str = sp.toString();
+      router.replace(str ? `/shop?${str}` : "/shop", { scroll: false });
+    },
+    [router, searchParams, category, q, colors, price]
+  );
 
-    useEffect(() => {
-      function onKey(e) {
-        if (!open) return;
-        if (e.key === "Escape") onClose();
-        if (e.key === "ArrowRight") setIndex((i) => (i + 1) % images.length);
-        if (e.key === "ArrowLeft") setIndex((i) => (i - 1 + images.length) % images.length);
+  // ---- Data fetch using real backend filter endpoints
+  const fetchData = useCallback(
+    async (opts = {}) => {
+      const current = {
+        q: opts.q !== undefined ? opts.q : q,
+        category: opts.category !== undefined ? opts.category : category,
+        colors: opts.colors !== undefined ? opts.colors : colors,
+        price: opts.price !== undefined ? opts.price : price,
+      };
+
+      setLoading(true);
+      setError("");
+      try {
+        let base;
+        const hasCategory = !!current.category;
+        const hasColor = current.colors.length > 0;
+        const hasRange =
+          current.price[0] > 0 || current.price[1] < 10000;
+
+        // The most specific active filter drives a real backend query.
+        if (current.q) {
+          base = await fetchProductByTitle(current.q);
+        } else if (hasCategory) {
+          base = await fetchProductsByCategory(current.category);
+        } else if (hasColor && current.colors.length === 1) {
+          base = await fetchProductsByColor(current.colors[0]);
+        } else if (hasRange) {
+          base = await fetchProductsInRange(current.price[0], current.price[1]);
+        } else {
+          base = await fetchProducts();
+        }
+
+        // Remaining dimensions are intersected client-side from the anchor result.
+        let list = base.filter((p) => p.is_active !== false);
+
+        if (current.q) {
+          const needle = current.q.toLowerCase();
+          list = list.filter((p) => p.title.toLowerCase().includes(needle));
+        }
+        if (hasCategory) {
+          list = list.filter((p) => p.category_name === current.category);
+        }
+        if (current.colors.length > 0) {
+          list = list.filter((p) =>
+            current.colors.some((c) =>
+              p.colors.some((pc) => pc.toLowerCase() === c.toLowerCase())
+            )
+          );
+        }
+        if (sizes.length > 0) {
+          list = list.filter((p) =>
+            sizes.some((s) => p.sizes.includes(s))
+          );
+        }
+        if (hasRange) {
+          list = list.filter(
+            (p) => p.price >= current.price[0] && p.price <= current.price[1]
+          );
+        }
+
+        setProducts(list);
+        syncUrl(current);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Could not load products.");
+        setProducts([]);
+      } finally {
+        setLoading(false);
       }
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
-    }, [open, onClose, images]);
+    },
+    [q, category, colors, price, sizes, syncUrl]
+  );
 
-    const goPrev = () => setIndex((i) => (i - 1 + images.length) % images.length);
-    const goNext = () => setIndex((i) => (i + 1) % images.length);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchData();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, category, colors, sizes, price[0], price[1]]);
 
-    // touch handlers for swipe
-    const onTouchStart = (e) => {
-      const t = e.touches && e.touches[0];
-      if (!t) return;
-      touchStartRef.current = { x: t.clientX, time: Date.now() };
-      draggingRef.current = true;
-      setTranslateX(0);
-      setLbAutoplay(false);
-    };
+  // ---- All-options category/color lists come from real data
+  const allCategories = useMemo(
+    () => extractCategories(products),
+    [products]
+  );
+  const allColors = useMemo(() => extractColors(products), [products]);
 
-    const onTouchMove = (e) => {
-      if (!draggingRef.current) return;
-      const t = e.touches && e.touches[0];
-      if (!t) return;
-      const dx = t.clientX - touchStartRef.current.x;
-      setTranslateX(dx);
-      if (Math.abs(dx) > 10) e.preventDefault();
-    };
+  const sorted = useMemo(() => {
+    const list = [...products];
+    if (sort === "priceAsc") list.sort((a, b) => a.finalPrice - b.finalPrice);
+    else if (sort === "priceDesc") list.sort((a, b) => b.finalPrice - a.finalPrice);
+    else if (sort === "title") list.sort((a, b) => a.title.localeCompare(b.title));
+    return list;
+  }, [products, sort]);
 
-    const onTouchEnd = (e) => {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      const t = (e.changedTouches && e.changedTouches[0]) || {};
-      const dx = (t.clientX || 0) - touchStartRef.current.x;
-      const dt = Date.now() - touchStartRef.current.time;
-      const velocity = dx / Math.max(dt, 1);
-      const threshold = 60;
-      const velocityThreshold = 0.3;
-
-      if (dx <= -threshold || velocity < -velocityThreshold) {
-        setTranslateX(-200);
-        setTimeout(() => {
-          setTranslateX(0);
-          goNext();
-        }, 180);
-      } else if (dx >= threshold || velocity > velocityThreshold) {
-        setTranslateX(200);
-        setTimeout(() => {
-          setTranslateX(0);
-          goPrev();
-        }, 180);
-      } else {
-        setTranslateX(0);
-      }
-
-      setTimeout(() => setLbAutoplay(true), 600);
-    };
-
-    const onMouseMoveMagnifier = (e) => {
-      setLbHover(true);
-    };
-    const onMouseLeaveMagnifier = () => setLbHover(false);
-
-    if (!images || images.length === 0) return null;
-
-    return (
-      <Modal open={open} onClose={onClose} closeAfterTransition BackdropProps={{ timeout: 300 }}>
-        <Box
-          sx={{
-            position: "fixed",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            p: 2,
-            bgcolor: "rgba(10,10,10,0.6)",
-            zIndex: 1500,
-          }}
-        >
-          <Paper
-            sx={{
-              width: { xs: "96%", md: "80%", lg: "72%" },
-              maxWidth: 1200,
-              bgcolor: "background.paper",
-              borderRadius: 2,
-              p: 2,
-              position: "relative",
-            }}
-            elevation={24}
-          >
-            <MuiIconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8, zIndex: 10 }}>
-              <CloseIcon />
-            </MuiIconButton>
-
-            <MuiIconButton
-              onClick={() => { setLbAutoplay(false); goPrev(); }}
-              sx={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
-            >
-              <ArrowBackIosNewIcon />
-            </MuiIconButton>
-
-            <MuiIconButton
-              onClick={() => { setLbAutoplay(false); goNext(); }}
-              sx={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", zIndex: 10, display: { xs: "none", md: "flex" } }}
-            >
-              <ArrowForwardIosIcon />
-            </MuiIconButton>
-
-            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" } }}>
-              <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                <Box
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  onMouseMove={onMouseMoveMagnifier}
-                  onMouseLeave={onMouseLeaveMagnifier}
-                  sx={{
-                    width: "100%",
-                    maxHeight: { xs: 360, md: 600 },
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    borderRadius: 1,
-                    bgcolor: "#fafafa",
-                    position: "relative",
-                    touchAction: "pan-y",
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={images[index]}
-                    alt={`img-${index}`}
-                    sx={{
-                      maxWidth: "100%",
-                      maxHeight: { xs: 320, md: 560 },
-                      objectFit: "contain",
-                      transition: "transform 0.25s ease, opacity 0.25s ease",
-                      transform: `translateX(${translateX}px)`,
-                      cursor: "zoom-out",
-                    }}
-                    onClick={() => setLbAutoplay((s) => !s)}
-                    draggable={false}
-                  />
-                </Box>
-              </Box>
-
-              <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{/* title omitted to keep compact */}</Typography>
-                  <Chip label={lbAutoplay ? "Auto" : "Paused"} size="small" onClick={() => setLbAutoplay((s) => !s)} sx={{ cursor: "pointer" }} />
-                </Stack>
-
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
-                  {images.map((img, i) => (
-                    <Box
-                      key={i}
-                      onClick={() => setIndex(i)}
-                      sx={{
-                        width: 66,
-                        height: 66,
-                        borderRadius: 1,
-                        overflow: "hidden",
-                        border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)",
-                        borderColor: i === index ? "primary.main" : "divider",
-                        cursor: "pointer",
-                        "& img": { width: "100%", height: "100%", objectFit: "cover" },
-                      }}
-                    >
-                      <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
-                    </Box>
-                  ))}
-                </Box>
-
-                <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                  <Button fullWidth variant="outlined" onClick={goPrev}>Prev</Button>
-                  <Button fullWidth variant="contained" onClick={goNext}>Next</Button>
-                </Stack>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-      </Modal>
+  const toggleColor = (c) => {
+    setColors((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
     );
-  }
-
-  
-  const openLightboxFromProduct = (images, idx) => {
-    setLbImages(images || []);
-    setLbIndex(idx || 0);
-    setLightboxOpen(true);
-    setLbAutoplay(true);
   };
+  const toggleSize = (s) => {
+    setSizes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  };
+
+  const resetAll = () => {
+    setQ("");
+    setCategory("");
+    setColors([]);
+    setSizes([]);
+    setSort("default");
+    setPrice([0, 10000]);
+  };
+
+  const activeFilterCount =
+    (category ? 1 : 0) +
+    colors.length +
+    sizes.length +
+    (price[0] > 0 || price[1] < 10000 ? 1 : 0) +
+    (q ? 1 : 0);
+
+  const FilterPanel = ({ onAfterChange }) => (
+    <div className="filters">
+      <div className="field">
+        <label htmlFor="shop-search">Search</label>
+        <input
+          id="shop-search"
+          type="search"
+          placeholder="Find a piece…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="shop-cat">Category</label>
+        <select
+          id="shop-cat"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">All categories</option>
+          {allCategories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Price range</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            type="number"
+            placeholder="Min"
+            min={0}
+            value={price[0] === 0 ? "" : price[0]}
+            onChange={(e) => setPrice((p) => [Number(e.target.value) || 0, p[1]])}
+            style={{ flex: 1 }}
+          />
+          <input
+            type="number"
+            placeholder="Max"
+            min={0}
+            value={price[1] >= 10000 ? "" : price[1]}
+            onChange={(e) => setPrice((p) => [p[0], Number(e.target.value) || 10000])}
+            style={{ flex: 1 }}
+          />
+        </div>
+      </div>
+
+      {allColors.length > 0 && (
+        <div className="field">
+          <label>Color</label>
+          <div className="chips" role="group" aria-label="Filter by color">
+            {allColors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`chip ${colors.includes(c) ? "chip--active" : ""}`}
+                onClick={() => toggleColor(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="field">
+        <label>Size</label>
+        <div className="chips" role="group" aria-label="Filter by size">
+          {["XS", "S", "M", "L", "XL", "XXL", "XXXL"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`chip ${sizes.includes(s) ? "chip--active" : ""}`}
+              onClick={() => toggleSize(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button type="button" className="btn btn--outline btn--dark-text btn--sm btn--block" onClick={() => { resetAll(); onAfterChange?.(); }}>
+        Reset filters
+      </button>
+    </div>
+  );
 
   return (
-    <Box sx={{ display: "flex", gap: 4, flexDirection: { xs: "column", md: "row" } }}>
-      <Paper
-        elevation={1}
-        sx={{
-          width: { xs: "100%", md: 260 },
-          p: { xs: 2, md: 3 },
-          position: { xs: "static", md: "sticky" },
-          top: { md: 24 },
-          alignSelf: "flex-start",
-          height: "fit-content",
-          display: { xs: "none", md: "block" },
-        }}
-      >
-        <Typography variant="h6" fontWeight={700} gutterBottom>Filter Options</Typography>
-        <Divider sx={{ mb: 2 }} />
-        <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-          <InputLabel>Category</InputLabel>
-          <Select value={category} label="Category" onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
-            {categories.map((c, idx) => <MenuItem key={idx} value={c}>{c === "" ? "All Categories" : c}</MenuItem>)}
-          </Select>
-        </FormControl>
+    <div className="shop-page">
+      <div className="nav-spacer" />
+      <div className="container">
+        <Reveal>
+          <div className="shop-page__head">
+            <div>
+              <p className="section-label">Catalog</p>
+              <h1 className="section-title" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
+                Shop
+              </h1>
+            </div>
+            <button
+              className="btn btn--outline btn--dark-text btn--sm shop-filter-toggle"
+              onClick={() => setFiltersOpen(true)}
+            >
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
+          </div>
+        </Reveal>
 
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Price</Typography>
-          <Slider value={priceRange} onChange={handleSliderChange} valueLabelDisplay="auto" min={0} max={2000} step={1} />
-          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-            <TextField size="small" placeholder="Min" value={tempMinPrice} onChange={(e) => setTempMinPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
-            <TextField size="small" placeholder="Max" value={tempMaxPrice} onChange={(e) => setTempMaxPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
-          </Stack>
-          <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={handlePriceApply}>Apply</Button>
-        </Box>
+        <hr className="divider" style={{ margin: "28px 0" }} />
 
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Color</Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-          {availableColors.map((c) => {
-            const selected = colorFilters.includes(c);
-            return <Box key={c} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", backgroundColor: c.toLowerCase(), outline: selected ? `3px solid rgba(200,150,70,0.95)` : "none" }} />
-          })}
-        </Box>
+        <div className="shop-layout">
+          <aside className="shop-filters" aria-label="Product filters">
+            <FilterPanel />
+          </aside>
 
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Size</Typography>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-          {availableSizes.map((s) => <FormControlLabel key={s} control={<Checkbox checked={sizeFilters.includes(s)} onChange={() => toggleSize(s)} size="small" />} label={s} />)}
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-        <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
-      </Paper>
-
-      <Drawer anchor="left" open={filtersOpen} onClose={() => setFiltersOpen(false)}>
-        <Box sx={{ width: 300, p: 2 }} role="presentation">
-          <Typography variant="h6" fontWeight={700} gutterBottom>Filter Options</Typography>
-          <Divider sx={{ mb: 2 }} />
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Category</InputLabel>
-            <Select value={category} label="Category" onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
-              {categories.map((c, idx) => <MenuItem key={idx} value={c}>{c === "" ? "All Categories" : c}</MenuItem>)}
-            </Select>
-          </FormControl>
-
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Price</Typography>
-            <Slider value={priceRange} onChange={handleSliderChange} valueLabelDisplay="auto" min={0} max={2000} step={1} />
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-              <TextField size="small" placeholder="Min" value={tempMinPrice} onChange={(e) => setTempMinPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
-              <TextField size="small" placeholder="Max" value={tempMaxPrice} onChange={(e) => setTempMaxPrice(e.target.value)} sx={{ width: 1 / 2 }} type="number" />
-            </Stack>
-            <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={handlePriceApply}>Apply</Button>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Color</Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-            {availableColors.map((c) => {
-              const selected = colorFilters.includes(c);
-              return <Box key={`m-${c}`} onClick={() => toggleColor(c)} sx={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #e7e2db", cursor: "pointer", backgroundColor: c.toLowerCase(), outline: selected ? `3px solid rgba(200,150,70,0.95)` : "none" }} />
-            })}
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Size</Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-            {availableSizes.map((s) => <FormControlLabel key={`m-${s}`} control={<Checkbox checked={sizeFilters.includes(s)} onChange={() => toggleSize(s)} size="small" />} label={s} />)}
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-          <Button variant="text" color="primary" onClick={() => { setCategory(""); setSearchInput(""); setSearchName(""); setPriceRange([0, 1000]); setSizeFilters([]); setColorFilters([]); setTempMinPrice(""); setTempMaxPrice(""); }}>Reset filters</Button>
-        </Box>
-      </Drawer>
-
-      <Box sx={{ flex: 1 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h4" fontWeight={800} sx={{ mb: 0.5 }}>Shop</Typography>
-          <Typography variant="body2" color="text.secondary">Home / Shop</Typography>
-        </Box>
-
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} sx={{ mb: 3, gap: 2 }}>
-          <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%" }}>
-            <Button startIcon={<FilterAltIcon />} variant="outlined" onClick={() => setFiltersOpen(true)} sx={{ mr: 2 }}>Filters</Button>
-          </Box>
-          <form onSubmit={handleSearchSubmit} style={{ width: "100%", maxWidth: 560 }}>
-            <Stack direction="row" spacing={1}>
-              <TextField fullWidth size="small" placeholder="Search products..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
-              <IconButton type="submit" color="primary" sx={{ bgcolor: "secondary.light" }}><SearchIcon /></IconButton>
-            </Stack>
-          </form>
-
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }} sx={{ width: "100%", justifyContent: { xs: "stretch", md: "flex-end" } }}>
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: "center", sm: "left" } }}>
-              Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, filtered.length)} of {filtered.length} results
-            </Typography>
-            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 170 },margin:"10 auto" }}>
-              <InputLabel>Sort</InputLabel>
-              <Select label="Sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <MenuItem value="default">Default Sorting</MenuItem>
-                <MenuItem value="priceAsc">Price: Low to High</MenuItem>
-                <MenuItem value="priceDesc">Price: High to Low</MenuItem>
-                <MenuItem value="titleAsc">Name: A → Z</MenuItem>
-              </Select>
-            </FormControl>
-          </Stack>
-
-        </Stack>
-        <Divider sx={{ mb: 3 }} />
-
-        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}>
-          {category && <Chip label={`Category: ${category}`} onDelete={() => { setCategory(""); setPage(1); fetchAllProducts(); }} />}
-          {searchName && <Chip label={`Search: ${searchName}`} onDelete={() => { setSearchName(""); setSearchInput(""); setPage(1); }} />}
-          {(priceRange?.[0] !== undefined && priceRange?.[1] !== undefined) && <Chip label={`Price: ${priceRange[0]} - ${priceRange[1]}`} onDelete={() => { setPriceRange([0, 1000]); setTempMinPrice(""); setTempMaxPrice(""); setPage(1); fetchAllProducts(); }} />}
-          {sizeFilters.map((s) => <Chip key={`size-${s}`} label={`Size: ${s}`} onDelete={() => toggleSize(s)} />)}
-          {colorFilters.map((c) => <Chip key={`color-${c}`} label={`Color: ${c}`} onDelete={() => toggleColor(c)} />)}
-        </Stack>
-
-        {loading ? (
-          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(auto-fill, minmax(150px, 1fr))", sm: "repeat(auto-fill, minmax(180px, 1fr))", md: "repeat(auto-fill, minmax(220px, 1fr))" } }}>
-            {Array.from({ length: 8 }).map((_, idx) => <Paper key={idx} 
-              sx={{ p: 2, height: { xs: 280, md: 320 }, display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ height: { xs: 140, md: 160 }, bgcolor: "#f2f2f2", borderRadius: 1 }} />
-                <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1 }} />
-                <Box sx={{ height: 14, bgcolor: "#eaeaea", borderRadius: 1, width: "60%", mt: 1 }} />
-              <Box sx={{ mt: "auto", height: 36, bgcolor: "#eaeaea", borderRadius: 1 }} /></Paper>)}
-          </Box>
-        ) : (
-          <>
-            <Box sx={{ px: { xs: 2, sm: 0 } }}>
-              <Grid
-                container
-                spacing={{ xs: 2, sm: 2, md: 3 }}
-                sx={{
-                  alignItems: "stretch",
+          <div className="shop-main">
+            <div className="meta-row" style={{ marginBottom: 20 }}>
+              <span style={{ color: "var(--muted)", fontSize: "0.86rem" }}>
+                {loading ? "Updating…" : `${sorted.length} product${sorted.length === 1 ? "" : "s"}`}
+              </span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                aria-label="Sort products"
+                style={{
+                  border: "1px solid var(--line)",
+                  background: "var(--surface)",
+                  borderRadius: "var(--radius)",
+                  padding: "10px 12px",
+                  fontSize: "0.82rem",
+                  fontFamily: "var(--display)",
                 }}
               >
-                {visibleProducts.map((product) => {
-                  const discountedPrice =
-                    product.discount > 0
-                      ? (Number(product.price) * (100 - Number(product.discount))) / 100
-                      : null;
-                  return (
-                    <Grid
-                      item
-                      xs={6}
-                      sm={4}
-                      md={3}
-                      key={product.id}
-                      sx={{ display: "flex", flexDirection: "column" }}
-                    >
-                      <Paper
-                        elevation={3}
-                        sx={{
-                          p: { xs: 1.5, sm: 2, md: 2 },
-                          borderRadius: { xs: 2, md: 3 },
-                          display: "flex",
-                          flexDirection: "column",
-                          width: "100%",
-                          flex: 1,
-                          position: "relative",
-                          overflow: "hidden",
-                          transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                          "&:hover": {
-                            transform: "translateY(-6px)",
-                            boxShadow: "0 12px 30px rgba(0,0,0,0.12)"
-                          }
-                        }}
-                      >
-                        {product.discount > 0 && (
-                          <Chip
-                            label={`${product.discount}% off`}
-                            color="secondary"
-                            size="small"
-                            sx={{
-                              position: "absolute",
-                              top: 8,
-                              left: 8,
-                              zIndex: 2,
-                              fontSize: { xs: "0.7rem", sm: "0.75rem" }
-                            }}
-                          />
-                        )}
-                        
-                        <Box
-                          component={Link}
-                          href={`/product/${encodeURIComponent(product.title)}`}
-                          sx={{
-                            textDecoration: "none",
-                            color: "inherit",
-                            display: "flex",
-                            flexDirection: "column",
-                            flexGrow: 1,
-                            gap: { xs: 1, sm: 1.2 }
-                          }}
-                        >
-                          <ProductImage
-                            image_url={product.image_url}
-                            title={product.title}
-                          />
+                {SORTS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
 
-                          <Box sx={{ px: { xs: 0.5, sm: 0 } }}>
-                            <Typography
-                              variant="subtitle1"
-                              fontWeight={600}
-                              sx={{
-                                mb: 0.5,
-                                fontSize: { xs: "0.9rem", sm: "0.95rem", md: "1rem" },
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                minHeight: { xs: 44, sm: 46, md: 48 },
-                                lineHeight: { xs: 1.35, sm: 1.4 },
-                              }}
-                            >
-                              {product.title}
-                            </Typography>
+            {loading ? (
+              <ProductGridSkeleton count={6} />
+            ) : error ? (
+              <EmptyState
+                icon="!"
+                title="Could not load products"
+                body={error}
+                action={
+                  <button className="btn btn--primary btn--sm" onClick={() => fetchData()}>
+                    Try again
+                  </button>
+                }
+              />
+            ) : sorted.length === 0 ? (
+              <EmptyState
+                icon="⌕"
+                title="No pieces match"
+                body="Try clearing a filter or two, or search for something else."
+                action={
+                  <button className="btn btn--primary btn--sm" onClick={resetAll}>
+                    Clear all filters
+                  </button>
+                }
+              />
+            ) : (
+              <div className="p-grid">
+                {sorted.map((p, i) => (
+                  <Reveal key={p.id} delay={(i % 4) * 60}>
+                    <ProductCard product={p} index={i} />
+                  </Reveal>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                display: "block",
-                                mb: 1.2,
-                                fontSize: { xs: "0.75rem", sm: "0.8rem", md: "0.85rem" },
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                display: "-webkit-box", 
-                                WebkitLineClamp: { xs: 2, sm: 2 },
-                                WebkitBoxOrient: "vertical",
-                                minHeight: { xs: 28, sm: 30, md: 32 },
-                                lineHeight: 1.4,
-                              }}
-                            >
-                              {/* {product.description?.slice(0, 70)} */}
-                            </Typography>
+      <div className={`overlay ${filtersOpen ? "open" : ""}`} onClick={() => setFiltersOpen(false)} aria-hidden="true" />
+      <aside className={`drawer drawer--left ${filtersOpen ? "open" : ""}`} aria-hidden={!filtersOpen}>
+        <div className="drawer__head">
+          <h3>Filters</h3>
+          <button className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label="Close filters">✕</button>
+        </div>
+        <div className="drawer__body" style={{ padding: "20px 22px" }}>
+          <FilterPanel onAfterChange={() => setFiltersOpen(false)} />
+        </div>
+      </aside>
+    </div>
+  );
+}
 
-                            {product.discount > 0 ? (
-                              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
-                                <Typography 
-                                  variant="body2" 
-                                  color="text.secondary" 
-                                  sx={{ 
-                                    textDecoration: "line-through", 
-                                    fontSize: { xs: "0.8rem", md: "0.9rem" } 
-                                  }}
-                                >
-                                  ${Number(product.price).toFixed(2)}
-                                </Typography>
-                                <Typography 
-                                  variant="h6" 
-                                  color="secondary" 
-                                  fontWeight={700} 
-                                  sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
-                                >
-                                  ${discountedPrice.toFixed(2)}
-                                </Typography>
-                              </Box>
-                            ) : (
-                              <Typography 
-                                variant="h6" 
-                                color="secondary" 
-                                fontWeight={700} 
-                                sx={{ fontSize: { xs: "1rem", md: "1.1rem" } }}
-                              >
-                                ${Number(product.price).toFixed(2)}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ mt: "auto", pt: 1.5, px: { xs: 0.5, sm: 0 } }}>
-                          {product.stock > 0 ? (
-                            <Button
-                              href={`/product/${encodeURIComponent(product.title)}`}
-                              variant="contained"
-                              startIcon={<ShoppingCartOutlined />}
-                              size="small"
-                              fullWidth
-                              sx={{
-                                borderRadius: 2,
-                                textTransform: "none",
-                                py: { xs: 1, sm: 1.2 },
-                                fontSize: { xs: "0.8rem", sm: "0.85rem" },
-                                fontWeight: 600
-                              }}
-                            >
-                              View / Add
-                            </Button>
-                          ) : (
-                            <Typography 
-                              color="error" 
-                              fontWeight={700} 
-                              align="center"
-                              sx={{ 
-                                fontSize: { xs: "0.85rem", md: "1rem" },
-                                py: 1
-                              }}
-                            >
-                              Out of Stock
-                            </Typography>
-                          )}
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-                <Pagination count={pages} page={page} onChange={(_, val) => setPage(val)} color="primary" shape="rounded" />
-              </Box>
-            </Box>
-          </>
-        )}
-      </Box>
-
-      <Lightbox open={lightboxOpen} images={lbImages} startIndex={lbIndex} onClose={() => setLightboxOpen(false)} />
-    </Box>
+export default function ShopPage() {
+  return (
+    <Suspense>
+      <ShopPageInner />
+    </Suspense>
   );
 }

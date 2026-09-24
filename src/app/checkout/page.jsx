@@ -1,253 +1,276 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Divider,
-  CircularProgress,
-  Alert,
-} from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
-import axiosInstance from "../axios";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useUi } from "@/context/UiContext";
+import { confirmOrder } from "@/lib/api/orders";
+import { formatPrice } from "@/lib/format";
+import { ApiError } from "@/lib/api/client";
+import Loader from "@/components/Loader";
+import EmptyState from "@/components/EmptyState";
+import Reveal from "@/components/Reveal";
+import ProductImage from "@/components/ProductImage";
+
+const METHODS = [
+  { value: "cod", label: "Cash on delivery", hint: "Pay when your order arrives." },
+  { value: "bank_transfer", label: "Bank transfer", hint: "We confirm your order once the transfer is verified." },
+  { value: "card", label: "Card payment", hint: "A secure card payment is processed on our end." },
+];
 
 export default function CheckoutPage() {
-  const [cartItems, setCartItems] = useState([]);
-  const [selectedMap, setSelectedMap] = useState({});
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { items, totals, loading } = useCart();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { notify } = useUi();
+
+  const [address, setAddress] = useState("");
+  const [method, setMethod] = useState("bank_transfer");
+  const [screenshot, setScreenshot] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [fileError, setFileError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const [billing, setBilling] = useState({ address: "" });
-
-  const [payment, setPayment] = useState({
-    method: "vodafone_cash",
-  });
-  const [paymentScreenshot, setPaymentScreenshot] = useState(null);
-
-  const fetchCart = async () => {
-    setLoading(true);
-    try {
-      const res = await axiosInstance.get("/cart");
-      const items = res.data.items || [];
-      setCartItems(items);
-      const map = {};
-      for (const item of items) map[item.cart_item_id] = true;
-      setSelectedMap(map);
-    } catch (e) {
-      setCartItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fileRef = useRef(null);
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/login?next=/checkout");
+    }
+  }, [authLoading, isAuthenticated, router]);
 
-  const itemsCount = useMemo(
-    () => cartItems.reduce((acc, i) => acc + i.quantity, 0),
-    [cartItems]
-  );
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
-  const subTotal = useMemo(
-    () => cartItems.reduce((acc, i) => acc + i.final_price * i.quantity, 0),
-    [cartItems]
-  );
+  if (authLoading) {
+    return <div className="nav-spacer"><Loader label="Preparing checkout" /></div>;
+  }
 
-  const total = subTotal; 
-
-  const toggleItem = () => {};
-
-  const handleBillingChange = (field) => (e) => {
-    setBilling((b) => ({ ...b, [field]: e.target.value }));
+  const handleFile = (file) => {
+    setFileError("");
+    if (!file) return;
+    const okType = file.type.startsWith("image/");
+    const okSize = file.size <= 8 * 1024 * 1024;
+    if (!okType) {
+      setFileError("Please upload an image file (PNG or JPG).");
+      return;
+    }
+    if (!okSize) {
+      setFileError("That file is over 8 MB — please use a smaller screenshot.");
+      return;
+    }
+    setScreenshot(file);
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return URL.createObjectURL(file);
+    });
   };
 
-  const handlePaymentChange = (field) => (e) => {
-    setPayment((p) => ({ ...p, [field]: e.target.value }));
-  };
+  const submit = async (e) => {
+    e.preventDefault();
+    let bad = false;
+    if (!address.trim() || address.trim().length < 8) {
+      setAddressError("Enter a full delivery address (at least 8 characters).");
+      bad = true;
+    } else {
+      setAddressError("");
+    }
+    if (!screenshot) {
+      setFileError("Upload a payment screenshot so we can confirm the order.");
+      bad = true;
+    } else {
+      setFileError("");
+    }
+    if (bad) return;
 
-  const submitOrder = async () => {
-    setError("");
-    setSuccess("");
-
-    if (!payment.method) return setError("اختر طريقة الدفع");
-    if (!billing.address || billing.address.trim().length < 10)
-      return setError("ادخل العنوان كاملًا");
-    if (cartItems.length === 0) return setError("السلة فارغة");
-    if (!paymentScreenshot) return setError("ارفع صورة إثبات الدفع");
-
-    const address = billing.address.trim();
-
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-
-      const formData = new FormData();
-      formData.append("payment_method", payment.method);
-      formData.append("address", address);
-      formData.append("payment_screenshot", paymentScreenshot);
-      
-      const res = await axiosInstance.post("/orders/confirm", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const data = await confirmOrder({
+        paymentMethod: method,
+        address: address.trim(),
+        screenshot,
       });
-
-      setSuccess("تم تأكيد الدفع وإنشاء الطلب بنجاح");
-      window.dispatchEvent(new Event("cartUpdated"));
-window.location.href = "/orderComplet";
-    } catch (e) {
-      setError(
-        e?.response?.data?.details || "حدث خطأ أثناء تأكيد الدفع، حاول مرة أخرى"
-      );
+      notify(data?.message || "Order placed");
+      const orderId = data?.order_id || data?.orderId || "";
+      const total = data?.total ?? totals.subtotal;
+      router.push(`/orderComplet?order=${encodeURIComponent(orderId)}&total=${total}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        notify(err.status === 401 ? "Your session expired — sign in again." : err.message);
+      } else {
+        notify("We couldn't place the order. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const shipping = totals.subtotal > 0 && totals.subtotal < 100 ? 6.5 : 0;
+  const grandTotal = totals.subtotal + shipping;
 
   return (
-    <Box>
-      <Box sx={{ bgcolor: "#f7f7f7", py: 4, mb: 4 }}>
-        <Container maxWidth="lg">
-          <Typography variant="h5" fontWeight={800} color="#333" mb={1}>
-            Checkout
-          </Typography>
-          <Typography fontSize={14} color="#777">
-            Home / Shopping Cart / Checkout
-          </Typography>
-        </Container>
-      </Box>
+    <div className="nav-spacer">
+      <div className="container" style={{ padding: "48px 24px 90px" }}>
+        <div className="section-head" style={{ marginBottom: 20 }}>
+          <div>
+            <p className="section-label">Final step</p>
+            <h1 className="section-title">Checkout</h1>
+          </div>
+        </div>
 
-      <Container maxWidth="lg" sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 4 }}>
-        {/* Billing form */}
-        <Box flex={3}>
-          <Paper variant="outlined" sx={{ p: 3 }}>
-            <Typography fontWeight={700} mb={2}>Billing Details</Typography>
+        {loading && items.length === 0 ? (
+          <Loader label="Checking your order" />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon="◎"
+            title="Your bag is empty"
+            body="Add a few pieces first, then come back to check out."
+            action={
+              <Link href="/shop" className="btn btn--primary btn--sm">Shop the collection</Link>
+            }
+          />
+        ) : (
+          <form className="checkout-layout" onSubmit={submit} noValidate>
+            <div>
+              <Reveal>
+                <div className="checkout-panel">
+                  <h3><span className="n">1</span> Delivery address</h3>
+                  <div className="field">
+                    <label htmlFor="address">Address</label>
+                    <textarea
+                      id="address"
+                      placeholder="Street, city, postal code, country"
+                      value={address}
+                      onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
+                      className={addressError ? "has-error" : ""}
+                    />
+                    {addressError && <span className="field__error">{addressError}</span>}
+                  </div>
+                </div>
+              </Reveal>
 
-            <TextField fullWidth label="Address" value={billing.address} onChange={handleBillingChange("address")} required sx={{ mb: 2 }} />
+              <Reveal delay={80}>
+                <div className="checkout-panel">
+                  <h3><span className="n">2</span> Payment method</h3>
+                  <div className="methods">
+                    {METHODS.map((m) => (
+                      <label
+                        key={m.value}
+                        className={`method ${method === m.value ? "method--active" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value={m.value}
+                          checked={method === m.value}
+                          onChange={() => setMethod(m.value)}
+                        />
+                        <span style={{ flex: 1 }}>
+                          <div className="method__label">{m.label}</div>
+                          <div className="method__hint">{m.hint}</div>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
 
-
-            <Divider sx={{ my: 3 }} />
-
-            <Typography fontWeight={700} mb={1}>Payment</Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2}>
-              <TextField select fullWidth label="Payment Method" value={payment.method} onChange={handlePaymentChange("method")} required>
-                <MenuItem value="vodafone_cash">Vodafone Cash</MenuItem>
-                <MenuItem value="instapay">InstaPay</MenuItem>
-              </TextField>
-            </Stack>
-
-            {payment.method && (
-              <Box sx={{ mb: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
-                <Typography fontWeight={600} mb={1}>
-                  {payment.method === "vodafone_cash" ? "Vodafone Cash Number:" : "InstaPay Email:"}
-                </Typography>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography 
-                    sx={{ 
-                      fontFamily: "monospace", 
-                      bgcolor: "white", 
-                      p: 1, 
-                      borderRadius: 1, 
-                      border: "1px solid #ddd",
-                      flex: 1 
-                    }}
+              <Reveal delay={160}>
+                <div className="checkout-panel">
+                  <h3><span className="n">3</span> Payment screenshot</h3>
+                  <div
+                    className={`file-drop ${screenshot ? "has-file" : ""}`}
+                    onClick={() => fileRef.current?.click()}
                   >
-                    {payment.method === "vodafone_cash" ? "01026212621" : "mohamedGamal@gmail.com"}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      const text = payment.method === "vodafone_cash" ? "01026212621" : "mohamedGamal@gmail.com";
-                      navigator.clipboard.writeText(text);
-                      setSuccess("تم النسخ!");
-                    }}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Copy
-                  </Button>
-                </Stack>
-              </Box>
-            )}
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFile(e.target.files?.[0])}
+                    />
+                    <div className="file-drop__title">
+                      {screenshot ? "Screenshot ready" : "Upload your payment screenshot"}
+                    </div>
+                    <div className="file-drop__sub">
+                      PNG or JPG, up to 8 MB — attach the proof of payment for your order.
+                    </div>
+                  </div>
+                  {fileError && <span className="field__error">{fileError}</span>}
 
-            <Stack spacing={1} mb={2}>
-              <Typography fontWeight={600}>Payment Screenshot</Typography>
-              <input
-                type="file"
-                accept="image/png, image/jpeg, image/jpg"
-                onChange={(e) => setPaymentScreenshot(e.target.files?.[0] || null)}
-              />
-            </Stack>
+                  {preview && (
+                    <div className="drop-zone--preview">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={preview} alt="Payment screenshot preview" />
+                      <button
+                        type="button"
+                        className="cart-line__remove"
+                        onClick={() => { setScreenshot(null); setPreview(""); }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Reveal>
+            </div>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>
-            )}
+            <aside className="summary">
+              <h3 style={{ fontFamily: "var(--display)", fontSize: "1.05rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                Your order
+              </h3>
 
-            {cartItems.length > 0 && (
-              <Button
-                variant="contained"
-                sx={{ bgcolor: "#4f2a0e", textTransform: "none", py: 1.5 }}
-                disabled={submitting}
-                onClick={submitOrder}
-              >
-                {submitting ? "Processing..." : "Continue to Payment"}
-              </Button>
-            )}
-          </Paper>
-        </Box>
+              <div style={{ margin: "14px 0" }}>
+                {items.slice(0, 4).map((item) => (
+                  <div key={item.cart_item_id} className="order-line">
+                    <ProductImage imageUrl={item.image} alt={item.title} className="order-line__img" style={{ width: 52, height: 62 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div className="order-line__title">{item.title}</div>
+                      <div className="order-line__meta">{item.size} · {item.color} · ×{item.quantity}</div>
+                    </div>
+                    <div className="order-line__price" style={{ fontFamily: "var(--display)", fontSize: "0.9rem" }}>
+                      {formatPrice((item.final_price || 0) * item.quantity)}
+                    </div>
+                  </div>
+                ))}
+                {items.length > 4 && (
+                  <p className="order-line__meta" style={{ padding: "6px 0" }}>+ {items.length - 4} more item{items.length - 4 === 1 ? "" : "s"}</p>
+                )}
+              </div>
 
-        {/* Order summary */}
-        <Box flex={1}>
-          <Paper variant="outlined" sx={{ p: 3, position: { xs: "static", md: "sticky" }, top: 24 }}>
-            <Typography fontWeight={700} mb={2}>Order Summary</Typography>
+              <div className="summary__rows">
+                <div className="summary__row">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(totals.subtotal)}</span>
+                </div>
+                <div className="summary__row">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
+                </div>
+                <div className="summary__row summary__row--total">
+                  <span>Total</span>
+                  <span>{formatPrice(grandTotal)}</span>
+                </div>
+              </div>
 
-            <Stack spacing={1} mb={2}>
-              {cartItems.map((item) => (
-                <Stack key={item.cart_item_id} direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography>{`${item.title} x${item.quantity}`}</Typography>
-                  <Typography>${(item.final_price * item.quantity).toFixed(2)}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-
-            <Divider sx={{ my: 1.5 }} />
-
-            <Stack spacing={1} mb={1}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography>Items</Typography>
-                <Typography>{itemsCount}</Typography>
-              </Stack>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography>Sub Total</Typography>
-                <Typography>${subTotal.toFixed(2)}</Typography>
-              </Stack>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography>Shipping</Typography>
-                <Typography>$0.00</Typography>
-              </Stack>
-            </Stack>
-
-            <Typography fontWeight={700}>Total: ${total.toFixed(2)}</Typography>
-          </Paper>
-        </Box>
-      </Container>
-    </Box>
+              <button className="btn btn--primary btn--block" disabled={submitting || loading}>
+                {submitting ? "Placing order…" : `Place order · ${formatPrice(grandTotal)}`}
+              </button>
+              <Link href="/cart" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
+                Back to bag
+              </Link>
+              <p className="summary__note">
+                By placing an order you confirm that your payment screenshot is
+                genuine. Our team reviews it before shipping.
+              </p>
+            </aside>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
-

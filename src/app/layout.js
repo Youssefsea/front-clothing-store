@@ -1,52 +1,33 @@
-"use client";
-import React from "react";
+import { Archivo, Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
-import {
-  CssBaseline,
-  ThemeProvider,
-  createTheme,
-  Box,
-} from "@mui/material";
-import { AuthProvider } from "@/context/AuthContext";
-import { CartProvider } from "@/context/CartContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Providers from "@/components/Providers";
 
-const theme = createTheme({
-  palette: {
-    primary: { main: "#3a2c1a" },
-    secondary: { main: "#c99746" },
-    background: { default: "#faf7f2", paper: "#ffffff" },
-    text: { primary: "#2b1e10", secondary: "#6d645d" },
-  },
-  typography: {
-    fontFamily: "'Poppins', sans-serif",
-    button: { textTransform: "none", fontWeight: 600 },
-  },
+const display = Archivo({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
+
+const body = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+export const metadata = {
+  title: "VANTA — Modern essentials",
+  description:
+    "A focused collection of modern essentials. Sharp cuts, honest materials and pieces built to live in your rotation.",
+};
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <AuthProvider>
-            <CartProvider>
-              <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-                <Navbar theme={theme} />
-                <Box component="main" sx={{ flexGrow: 1 }}>
-                  {children}
-                </Box>
-                <Footer theme={theme} />
-              </Box>
-            </CartProvider>
-          </AuthProvider>
-          <SpeedInsights />
-        </ThemeProvider>
+        <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
 }
-

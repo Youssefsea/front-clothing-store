@@ -1,858 +1,305 @@
 "use client";
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Stack,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
-  IconButton,
-  TextField,
-  InputAdornment,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Rating,
-  Avatar,
-  AppBar,
-  Toolbar,
-  Badge,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-} from "@mui/material";
-import {
-  Search,
-  FavoriteBorder,
-  ShoppingCartOutlined,
-  LocalShipping,
-  Payment,
-  Support,
-  ExpandMore,
-  Star,
-  ArrowForward,
-  Instagram,
-  Facebook,
-  Twitter,
-  Pinterest,
-  YouTube,
-  Menu,
-  Person,
-  Close,
-  KeyboardArrowDown,
-  Add,
-  Remove,
-  ChevronLeft,
-  ChevronRight,
-} from "@mui/icons-material";
+
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import axiosInstance from "./axios";
+import { fetchProducts, extractCategories } from "@/lib/api/products";
+import { splitImages } from "@/lib/format";
+import ProductCard from "@/components/ProductCard";
+import ProductGridSkeleton from "@/components/ProductGridSkeleton";
+import Reveal from "@/components/Reveal";
+import { ApiError } from "@/lib/api/client";
 
 export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const heroImages = [
-    "https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg", // Hoodie model
-    "https://images.pexels.com/photos/2584269/pexels-photo-2584269.jpeg", // Fashion model
-    "https://images.pexels.com/photos/5325870/pexels-photo-5325870.jpeg", // Dress model
-    "https://images.pexels.com/photos/2983464/pexels-photo-2983464.jpeg", // Casual wear
-    "https://images.pexels.com/photos/7679722/pexels-photo-7679722.jpeg", // Street style
-    "https://images.pexels.com/photos/2983467/pexels-photo-2983467.jpeg", // Fashion model
-  ];
-  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get("/products");
-      setProducts(res.data.allProducts?.slice(0, 8) || []);
-    } catch (e) {
-      console.error("Error fetching products:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchProducts();
+    let mounted = true;
+    (async () => {
+      try {
+        const all = await fetchProducts();
+        if (!mounted) return;
+        setProducts(all.filter((p) => p.is_active));
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof ApiError ? err.message : "Could not load the collection.");
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveHeroIndex((prev) => (prev + 1) % heroImages.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [heroImages.length]);
+  const heroProduct = products[0];
+  const heroImage = heroProduct ? splitImages(heroProduct.image_url)[0] : null;
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const categories = useMemo(() => extractCategories(products), [products]);
+
+  const categoryTile = (cat) => {
+    const p = products.find((x) => x.category_name === cat);
+    return p;
   };
 
-  function ProductImage({ image_url, title }) {
-    const images = image_url.split(",").map((img) => img.trim());
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [fade, setFade] = useState(true);
-  
-    useEffect(() => {
-      if (images.length <= 1) return;
-  
-      const interval = setInterval(() => {
-        setFade(false); // أولًا نخفي الصورة الحالية
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % images.length);
-          setFade(true); // ثم نظهر الصورة الجديدة
-        }, 300); // نفس مدة الـtransition
-      }, 3000);
-  
-      return () => clearInterval(interval);
-    }, [images.length]);
-  
-    return (
-      <Box
-        sx={{
-          height: { xs: 200, md: 240 },
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          mb: { xs: 2, md: 2.5 },
-          mt: { xs: 1, md: 1.5 },
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: 2,
-        }}
-      >
-        <Box
-          component="img"
-          src={images[currentIndex]}
-          alt={`${title} image`}
-          sx={{
-          height: "100%",
-          width: "100%",
-          objectFit: "contain",
-          transition: "opacity 0.4s ease-in-out, transform 0.3s ease",
-          opacity: fade ? 1 : 0,
-          "&:hover": { transform: "scale(1.05)" },
-          }}
-        />
-      </Box>
-    );
-  }
+  const featured = products.slice(0, 8);
 
   return (
-    <Box>
-      <Box
-        sx={{
-          position: "relative",
-          width: "100vw",
-          height: { xs: "100vh", md: "100vh" },
-          overflow: "hidden",
-          left: "50%",
-          right: "50%",
-          marginLeft: "-50vw",
-          marginRight: "-50vw",
-          marginTop: "-40px",
-          paddingTop: "40px",
-        }}
-      >
-        {heroImages.map((src, idx) => (
-          <Box
-            key={src}
-            component="img"
-            src={src}
-            alt={`Hero model ${idx + 1}`}
-            sx={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              opacity: activeHeroIndex === idx ? 1 : 0,
-              transform: activeHeroIndex === idx ? "scale(1)" : "scale(1.1)",
-              transition: "opacity 1000ms ease, transform 1000ms ease",
-            }}
-          />
-        ))}
-
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(45deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%)",
-          }}
-        />
-
-        <Container maxWidth="lg" sx={{ position: "relative", height: "100%", display: "flex", alignItems: "center" }}>
-          <Stack alignItems="center" spacing={4} sx={{ width: "100%", textAlign: "center" }}>
-            <Chip
-              label="New Collection "
-              icon={<Star />}
-              sx={{ 
-                bgcolor: "rgba(255,255,255,0.9)", 
-                color: "#111", 
-                px: 2, 
-                py: 1, 
-                fontWeight: 700,
-                backdropFilter: "blur(10px)",
-                animation: "fadeInUp 0.8s ease",
-              }}
-            />
-            <Typography
-              variant="h1"
-              fontWeight={900}
-              sx={{ 
-                color: "white", 
-                lineHeight: 1.1, 
-                letterSpacing: "-2px",
-                textShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                animation: "fadeInUp 0.8s ease 0.2s both",
-                fontSize: { xs: "2.5rem", sm: "3.5rem", md: "4rem", lg: "4.5rem" },
-              }}
-            >
-              GEAR UP EVERY SEASON,<br />EVERY WORKOUT!
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{ 
-                color: "rgba(255,255,255,0.9)", 
-                fontWeight: 400,
-                maxWidth: 600,
-                animation: "fadeInUp 0.8s ease 0.4s both",
-                fontSize: { xs: "1rem", sm: "1.2rem", md: "1.5rem" },
-                px: { xs: 2, sm: 0 },
-              }}
-            >
-              Discover our latest collection of premium fashion and athletic wear
-            </Typography>
-
-            <Stack 
-              direction="row" 
-              spacing={0} 
-              sx={{ 
-                animation: "fadeInUp 0.8s ease 0.6s both",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-              }}
-            >
-              <Button
-                variant="contained"
-                size="large"
-                className="shop-now-button shop-now-shimmer"
-                sx={{
-                  bgcolor: "#111",
-                  color: "#fff",
-                  px: { xs: 4, sm: 6, md: 8 },
-                  py: { xs: 2, sm: 2.5, md: 3 },
-                  borderRadius: 999,
-                  fontWeight: 700,
-                  fontSize: { xs: 16, sm: 18, md: 20 },
-                  minWidth: { xs: 200, sm: 220, md: 240 },
-                  position: "relative",
-                  overflow: "hidden",
-                  textTransform: "none",
-                  letterSpacing: "0.5px",
-                  boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
-                  "&:hover": { 
-                    bgcolor: "#000",
-                    transform: "translateY(-4px) scale(1.05)",
-                    boxShadow: "0 15px 40px rgba(0,0,0,0.4)",
-                    "&::before": {
-                      transform: "translateX(100%)",
-                    }
-                  },
-                  "&:active": {
-                    transform: "translateY(-2px) scale(1.02)",
-                    boxShadow: "0 8px 25px rgba(0,0,0,0.3)",
-                  },
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: "-100%",
-                    width: "100%",
-                    height: "100%",
-                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-                    transition: "transform 0.6s ease",
-                  },
-                  "&::after": {
-                    content: '""',
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    width: 0,
-                    height: 0,
-                    borderRadius: "50%",
-                    background: "rgba(255,255,255,0.3)",
-                    transform: "translate(-50%, -50%)",
-                    transition: "width 0.6s ease, height 0.6s ease",
-                  },
-                  "&:hover::after": {
-                    width: "300px",
-                    height: "300px",
-                  },
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-                href="/shop"
-              >
-                <Box sx={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  Shop Now
-                  <ArrowForward sx={{ fontSize: { xs: 18, sm: 20, md: 22 } }} />
-                </Box>
-              </Button>
-            </Stack>
-          </Stack>
-        </Container>
-
-        <IconButton
-          onClick={() => setActiveHeroIndex((p) => (p - 1 + heroImages.length) % heroImages.length)}
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: { xs: 10, sm: 20 },
-            transform: "translateY(-50%)",
-            bgcolor: "rgba(255,255,255,0.9)",
-            backdropFilter: "blur(10px)",
-            display: { xs: "none", sm: "flex" },
-            "&:hover": { 
-              bgcolor: "white",
-              transform: "translateY(-50%) scale(1.1)",
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ChevronLeft />
-        </IconButton>
-        <IconButton
-          onClick={() => setActiveHeroIndex((p) => (p + 1) % heroImages.length)}
-          sx={{
-            position: "absolute",
-            top: "50%",
-            right: { xs: 10, sm: 20 },
-            transform: "translateY(-50%)",
-            bgcolor: "rgba(255,255,255,0.9)",
-            backdropFilter: "blur(10px)",
-            display: { xs: "none", sm: "flex" },
-            "&:hover": { 
-              bgcolor: "white",
-              transform: "translateY(-50%) scale(1.1)",
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ChevronRight />
-        </IconButton>
-
-        <Stack 
-          direction="row" 
-          spacing={1} 
-          sx={{ 
-            position: "absolute", 
-            bottom: { xs: 20, sm: 40 }, 
-            left: 0, 
-            right: 0, 
-            mx: "auto", 
-            justifyContent: "center" 
-          }}
-        >
-          {heroImages.map((_, i) => (
-            <Box
-              key={i}
-              onClick={() => setActiveHeroIndex(i)}
-              sx={{
-                width: i === activeHeroIndex ? 24 : 8,
-                height: 8,
-                borderRadius: 999,
-                bgcolor: i === activeHeroIndex ? "white" : "rgba(255,255,255,0.5)",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.8)",
-                },
-              }}
-            />
-          ))}
-        </Stack>
-      </Box>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
-        <Typography 
-          variant="h3" 
-          fontWeight={800} 
-          textAlign="center" 
-          mb={{ xs: 4, md: 6 }} 
-          color="#111"
-          sx={{ fontSize: { xs: "1.8rem", sm: "2.2rem", md: "3rem" } }}
-        >
-          Why Choose Us?
-        </Typography>
-        <Grid container spacing={{ xs: 2, md: 4 }}>
-          <Grid item xs={12} md={4}>
-            <Card
-              sx={{
-                textAlign: "center",
-                p: { xs: 3, md: 4 },
-                borderRadius: 3,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
-                border: "1px solid #f0f0f0",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-8px)",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: { xs: 80, md: 100 },
-                  height: { xs: 80, md: 100 },
-                  bgcolor: "#111",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: { xs: 2, md: 3 },
-                  boxShadow: "0 8px 25px rgba(17, 17, 17, 0.3)",
-                }}
-              >
-                <LocalShipping sx={{ fontSize: { xs: 40, md: 50 }, color: "white" }} />
-              </Box>
-              <Typography 
-                variant="h5" 
-                fontWeight={700} 
-                mb={2} 
-                color="#111"
-                sx={{ fontSize: { xs: "1.2rem", md: "1.5rem" } }}
-              >
-                Free Shipping
-              </Typography>
-              <Typography color="#666" fontSize={{ xs: 14, md: 16 }}>
-                Free shipping on all orders over $100
-              </Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card
-              sx={{
-                textAlign: "center",
-                p: { xs: 3, md: 4 },
-                borderRadius: 3,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
-                border: "1px solid #f0f0f0",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-8px)",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: { xs: 80, md: 100 },
-                  height: { xs: 80, md: 100 },
-                  bgcolor: "#111",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: { xs: 2, md: 3 },
-                  boxShadow: "0 8px 25px rgba(17, 17, 17, 0.3)",
-                }}
-              >
-                <Payment sx={{ fontSize: { xs: 40, md: 50 }, color: "white" }} />
-              </Box>
-              <Typography 
-                variant="h5" 
-                fontWeight={700} 
-                mb={2} 
-                color="#111"
-                sx={{ fontSize: { xs: "1.2rem", md: "1.5rem" } }}
-              >
-                Secure Payment
-              </Typography>
-              <Typography color="#666" fontSize={{ xs: 14, md: 16 }}>
-                Safe and secure payment options
-              </Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card
-              sx={{
-                textAlign: "center",
-                p: { xs: 3, md: 4 },
-                borderRadius: 3,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
-                border: "1px solid #f0f0f0",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "translateY(-8px)",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: { xs: 80, md: 100 },
-                  height: { xs: 80, md: 100 },
-                  bgcolor: "#111",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: { xs: 2, md: 3 },
-                  boxShadow: "0 8px 25px rgba(17, 17, 17, 0.3)",
-                }}
-              >
-                <Support sx={{ fontSize: { xs: 40, md: 50 }, color: "white" }} />
-              </Box>
-              <Typography 
-                variant="h5" 
-                fontWeight={700} 
-                mb={2} 
-                color="#111"
-                sx={{ fontSize: { xs: "1.2rem", md: "1.5rem" } }}
-              >
-                24/7 Support
-              </Typography>
-              <Typography color="#666" fontSize={{ xs: 14, md: 16 }}>
-                We provide service all day
-              </Typography>
-            </Card>
-          </Grid>
-        </Grid>
-      </Container>
-
-      <Box sx={{ bgcolor: "#f8f9fa", py: { xs: 4, md: 8 } }}>
-        <Container maxWidth="lg">
-          <Typography 
-            variant="h3" 
-            fontWeight={800} 
-            textAlign="center" 
-            mb={{ xs: 4, md: 6 }} 
-            color="#111"
-            sx={{ fontSize: { xs: "1.8rem", sm: "2.2rem", md: "3rem" } }}
-          >
-            Shop by Category
-          </Typography>
-          <Grid container spacing={{ xs: 2, md: 4 }}>
-            <Grid item xs={12} md={4}>
-              <Card 
-                sx={{ 
-                  height: { xs: 400, md: 500 }, 
-                  position: "relative", 
-                  overflow: "hidden",
-                  borderRadius: 3,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                  }
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image="https://images.pexels.com/photos/2584269/pexels-photo-2584269.jpeg"
-                  alt="Women's Fashion"
-                  sx={{ objectFit: "cover" }}
-                />
-                <CardContent sx={{ 
-                  position: "absolute", 
-                  bottom: 0, 
-                  left: 0, 
-                  right: 0, 
-                  bgcolor: "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(10px)",
-                  p: 3
-                }}>
-                  <Typography variant="h4" fontWeight={800} mb={2} color="#111">
-                    For Women's
-                  </Typography>
-                  <Typography variant="body1" color="#666" mb={2} fontWeight={600}>
-                <br />
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {["Dresses", "Tops", "Jeans", "Jackets & Coats", "Shoes", "Bags", "Accessories"].map((item) => (
-                      <Typography key={item} fontSize={14} color="#666">
-                        • {item}
-                      </Typography>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Card 
-                sx={{ 
-                  height: { xs: 400, md: 500 }, 
-                  position: "relative", 
-                  overflow: "hidden",
-                  borderRadius: 3,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                  }
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image="https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg"
-                  alt="Men's Fashion"
-                  sx={{ objectFit: "cover" }}
-                />
-                <CardContent sx={{ 
-                  position: "absolute", 
-                  bottom: 0, 
-                  left: 0, 
-                  right: 0, 
-                  bgcolor: "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(10px)",
-                  p: 3
-                }}>
-                  <Typography variant="h4" fontWeight={800} mb={2} color="#111">
-                    For Men's
-                  </Typography>
-                  <Typography variant="body1" color="#666" mb={2} fontWeight={600}>
-                    <br />
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {["Shirts", "T-Shirts", "Jeans", "Jackets & Coats", "Shoes", "Watches"].map((item) => (
-                      <Typography key={item} fontSize={14} color="#666">
-                        • {item}
-                      </Typography>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Card 
-                sx={{ 
-                  height: { xs: 400, md: 500 }, 
-                  position: "relative", 
-                  overflow: "hidden",
-                  borderRadius: 3,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                  }
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image="https://th.bing.com/th/id/OIP.RpoFGVgWwnMtPSgwCDe2KQHaE7?w=282&h=187&c=7&r=0&o=7&cb=12&dpr=2&pid=1.7&rm=3"
-                  alt="Accessories"
-                  sx={{ objectFit: "cover" }}
-                />
-                <CardContent sx={{ 
-                  position: "absolute", 
-                  bottom: 0, 
-                  left: 0, 
-                  right: 0, 
-                  bgcolor: "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(10px)",
-                  p: 3
-                }}>
-                  <Typography variant="h4" fontWeight={800} mb={2} color="#111">
-                    Accessories
-                  </Typography>
-                  <Typography variant="body1" color="#666" mb={2} fontWeight={600}>
-                    <br />
-                  </Typography>
-                  <Stack spacing={0.5}>
-                    {["Bags", "Hats", "Jewelry", "Watches", "Belts"].map((item) => (
-                      <Typography key={item} fontSize={14} color="#666">
-                        • {item}
-                      </Typography>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
-        <Box sx={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
-          mb: { xs: 4, md: 6 },
-          flexDirection: { xs: "column", sm: "row" },
-          gap: { xs: 2, sm: 0 }
-        }}>
-          <Typography 
-            variant="h4" 
-            fontWeight={800} 
-            color="#111"
-            sx={{ fontSize: { xs: "1.5rem", sm: "2rem", md: "2.5rem" } }}
-          >
-            Our Top Seller Products
-          </Typography>
-          {/* <Stack direction="row" spacing={1}>
-            {["All", "Women", "Men", "Accessories"].map((category) => (
-              <Button
-                key={category}
-                variant={category === "All" ? "contained" : "outlined"}
-                size="small"
-                sx={{
-                  bgcolor: category === "All" ? "#111" : "transparent",
-                  color: category === "All" ? "white" : "#111",
-                  borderColor: "#111",
-                  fontWeight: 600,
-                  px: 3,
-                  py: 1,
-                  borderRadius: 2,
-                  "&:hover": {
-                    bgcolor: category === "All" ? "#000" : "#f5f5f5",
-                    borderColor: "#111",
-                  },
-                }}
-              >
-                {category}
-              </Button>
-            ))}
-          </Stack> */}
-        </Box>
-
-        <Grid container spacing={{ xs: 2, md: 3 }}>
-          {loading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
-                <Card sx={{ p: 2, height: { xs: 350, md: 400 }, borderRadius: 3 }}>
-                  <Box sx={{ height: 250, bgcolor: "#f5f5f5", borderRadius: 2, mb: 2 }} />
-                  <Box sx={{ height: 20, bgcolor: "#e0e0e0", borderRadius: 1, mb: 1 }} />
-                  <Box sx={{ height: 16, bgcolor: "#e0e0e0", borderRadius: 1, width: "60%" }} />
-                </Card>
-              </Grid>
-            ))
+    <div>
+      {/* ============ HERO ============ */}
+      <section className="hero">
+        <div className="hero__img">
+          {heroImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={heroImage} alt="Latest collection" />
           ) : (
-            products.slice(0, 4).map((product) => {
-              const discountedPrice = product.discount > 0 
-                ? (Number(product.price) * (100 - Number(product.discount))) / 100 
-                : null;
-              
-              return (
-                <Grid item xs={12} sm={6} md={3} key={product.id}>
-                  <Card
-                    sx={{
-                      p: 2,
-                      height: { xs: 350, md: 400 },
-                      display: "flex",
-                      flexDirection: "column",
-                      position: "relative",
-                      borderRadius: 3,
-                      boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
-                      border: "1px solid #f0f0f0",
-                      transition: "all 0.3s ease",
-                      "&:hover": { 
-                        transform: "translateY(-8px)",
-                        boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-                      },
-                    }}
-                  >
-                    {product.discount > 0 && (
-                      <Chip
-                        label={`${product.discount}% off`}
-                        size="small"
-                        sx={{
-                          position: "absolute",
-                          top: 12,
-                          left: 12,
-                          bgcolor: "#3a2c1a",
-                          color: "white",
-                          fontWeight: 600,
-                          zIndex: 2,
-                        }}
-                      />
-                    )}
-                    
-                    {/* <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
-                      <IconButton size="small" sx={{ color: "#3a2c1a" }}>
-                        <FavoriteBorder />
-                      </IconButton>
-                      <IconButton size="small" sx={{ color: "#3a2c1a" }}>
-                        <ShoppingCartOutlined />
-                      </IconButton>
-                    </Stack> */}
-                    
-                    <Box
-                      component={Link}
-                      href={`/product/${encodeURIComponent(product.title)}`}
-                      sx={{ textDecoration: "none", color: "inherit", flexGrow: 1 }}
-                    >
-                      <Box
-                        sx={{
-                          height: { xs: 200, md: 250 },
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          mb: 2,
-                          position: "relative",
-                          overflow: "hidden",
-                          borderRadius: 2,
-                        }}
-                      >
-                   <ProductImage image_url={product.image_url} title={product.title} />
-
-                      </Box>
-                      
-                      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                        <Rating value={4.9} precision={0.1} size="small" readOnly />
-                        <Typography variant="caption" sx={{ ml: 1, fontWeight: 600 }}>
-                          4.9
-                        </Typography>
-                      </Box>
-                      
-                      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }} noWrap>
-                        {product.title}
-                      </Typography>
-                      
-                      {discountedPrice ? (
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Typography variant="h6" color="#3a2c1a" fontWeight={700}>
-                            ${discountedPrice.toFixed(2)}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ textDecoration: "line-through" }}>
-                            ${product.price}
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Typography variant="h6" color="#3a2c1a" fontWeight={700}>
-                          ${product.price}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Card>
-                </Grid>
-              );
-            })
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background:
+                  "radial-gradient(120% 90% at 75% 10%, #2c2a26 0%, #0b0b0b 55%)",
+              }}
+            />
           )}
-        </Grid>
-      </Container>
+        </div>
+        <div className="hero__veil" />
+        <div className="hero__inner">
+          <p className="hero__eyebrow hero__stagger hero__stagger--1">New season</p>
+          <h1 className="hero__title hero__stagger hero__stagger--2">
+            Reinvent the <em>everyday.</em>
+          </h1>
+          <p className="hero__sub hero__stagger hero__stagger--3">
+            A focused collection of modern essentials — sharp cuts, honest
+            materials and pieces built to live in your rotation.
+          </p>
+          <div className="hero__cta hero__stagger hero__stagger--4">
+            <Link href="/shop" className="btn btn--light">
+              Shop collection <span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/signup" className="btn btn--outline btn--light-text">
+              Create account
+            </Link>
+          </div>
+        </div>
+      </section>
 
+      {/* ============ MARQUEE ============ */}
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee__track">
+          {[0, 1].map((copy) => (
+            <span key={copy} style={{ display: "inline-flex", gap: 48 }}>
+              <span>New season</span>
+              <span>Free shipping over $100</span>
+              <span>Fresh drops</span>
+              <span>Modern essentials</span>
+            </span>
+          ))}
+        </div>
+      </div>
 
-    </Box>
+      {/* ============ FEATURED ============ */}
+      <section className="section" id="featured">
+        <div className="container">
+          <Reveal>
+            <div className="section-head">
+              <div>
+                <p className="section-label">The drop</p>
+                <h2 className="section-title">Featured pieces</h2>
+              </div>
+              <Link href="/shop" className="u-link" style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                View all products →
+              </Link>
+            </div>
+          </Reveal>
+
+          {loading ? (
+            <div className="container">
+              <ProductGridSkeleton count={4} />
+            </div>
+          ) : error ? (
+            <div className="empty-state">
+              <div className="mark" aria-hidden="true">!</div>
+              <h3>Collection unavailable</h3>
+              <p>{error}</p>
+              <button className="btn btn--primary btn--sm" onClick={() => window.location.reload()}>
+                Try again
+              </button>
+            </div>
+          ) : featured.length === 0 ? (
+            <div className="empty-state">
+              <div className="mark" aria-hidden="true">◎</div>
+              <h3>The collection is empty</h3>
+              <p>Products will appear here as soon as they are added.</p>
+            </div>
+          ) : (
+            <div className="p-grid">
+              {featured.slice(0, 4).map((p, i) => (
+                <Reveal key={p.id} delay={i * 70}>
+                  <ProductCard product={p} index={i} />
+                </Reveal>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ============ CATEGORIES ============ */}
+      {categories.length > 0 && (
+        <section className="section section--alt">
+          <div className="container">
+            <Reveal>
+              <div className="section-head">
+                <div>
+                  <p className="section-label" style={{ color: "var(--accent)" }}>
+                    Discover
+                  </p>
+                  <h2 className="section-title">Shop by category</h2>
+                </div>
+              </div>
+            </Reveal>
+            <div className="cat-grid">
+              {categories.slice(0, 4).map((cat, i) => {
+                const p = categoryTile(cat);
+                const img = p ? splitImages(p.image_url)[0] : null;
+                return (
+                  <Reveal key={cat} delay={i * 70}>
+                    <Link href={`/shop?category=${encodeURIComponent(cat)}`} className="cat-tile">
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={img} alt={cat} />
+                      ) : (
+                        <div style={{ position: "absolute", inset: 0 }} />
+                      )}
+                      <span className="cat-tile__label">
+                        <span className="name" style={{ fontFamily: "var(--display)" }}>
+                          {cat}
+                        </span>
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </span>
+                    </Link>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ EDITORIAL ============ */}
+      {products.length >= 3 && (
+        <section className="section">
+          <div className="container">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 60,
+                alignItems: "center",
+              }}
+              className="editorial"
+            >
+              <Reveal>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+                  <img
+                    src={splitImages(products[1].image_url)[0]}
+                    alt={products[1].title}
+                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "var(--radius)" }}
+                  />
+                </div>
+              </Reveal>
+              <Reveal delay={120}>
+                <div>
+                  <p className="section-label">The idea</p>
+                  <h2 className="section-title" style={{ marginBottom: 20 }}>
+                    Clothes that carry a point of view.
+                  </h2>
+                  <p style={{ color: "var(--muted)", lineHeight: 1.8, maxWidth: "48ch", marginBottom: 24 }}>
+                    Every piece in the collection is treated like a canvas — a
+                    silhouette to build around, a color to commit to, a fabric
+                    that holds its shape. Less clutter. More intention.
+                  </p>
+                  <Link href="/shop" className="btn btn--primary">
+                    Explore the range <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ FULL WIDTH SPOTLIGHT ============ */}
+      {products[3] && (
+        <section className="section section--tight" style={{ paddingTop: 0 }}>
+          <div className="container">
+            <Reveal>
+              <Link
+                href={`/product/${encodeURIComponent(products[3].title)}`}
+                style={{ position: "relative", display: "block", overflow: "hidden", borderRadius: "var(--radius)" }}
+                className="spotlight"
+              >
+                <img
+                  src={splitImages(products[3].image_url)[0]}
+                  alt={products[3].title}
+                  style={{
+                    width: "100%",
+                    height: "min(72vh, 620px)",
+                    objectFit: "cover",
+                    objectPosition: "center 30%",
+                  }}
+                />
+                <div
+                  className="spotlight__veil"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(0deg, rgba(6,6,6,0.72), transparent 55%)",
+                    display: "flex",
+                    alignItems: "flex-end",
+                    padding: 44,
+                  }}
+                >
+                  <div>
+                    <p className="section-label" style={{ color: "var(--accent)" }}>Spotlight</p>
+                    <h2 style={{ color: "var(--bg)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch" }}>
+                      {products[3].title}
+                    </h2>
+                    <span className="btn btn--light btn--sm" style={{ marginTop: 18 }}>
+                      View product →
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      {/* ============ FINAL CTA ============ */}
+      <section className="section section--alt">
+        <div className="container" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Reveal>
+            <h2 className="section-title" style={{ maxWidth: "20ch", margin: "0 auto" }}>
+              Ready to refresh your rotation?
+            </h2>
+            <p style={{ color: "rgba(245,243,239,0.7)", marginTop: 18, maxWidth: "44ch", lineHeight: 1.7 }}>
+              New pieces drop throughout the season. Be first in line.
+            </p>
+            <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
+              <Link href="/shop" className="btn btn--accent">
+                Shop the collection
+              </Link>
+              <Link href="/signup" className="btn btn--outline btn--light-text">
+                Join VANTA
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    </div>
   );
 }

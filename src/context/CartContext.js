@@ -1,124 +1,148 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import apiClient from "@/lib/api";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { useAuth } from "./AuthContext";
+import {
+  getCart,
+  getCartCount,
+  addToCart as apiAdd,
+  updateCartItem as apiUpdate,
+  removeCartItem as apiRemove,
+} from "@/lib/api/cart";
+import { ApiError } from "@/lib/api/client";
 
-const CartContext = createContext();
+const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   const [items, setItems] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [mutating, setMutating] = useState({});
   const [error, setError] = useState(null);
 
-  // Fetch cart on mount
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await apiClient.get("/cart");
-      setItems(res.data.items || []);
-    } catch (err) {
-      // If 401, user is not logged in (this is okay)
-      if (err.status !== 401) {
-        setError(err.data?.error || "Failed to load cart");
-      }
+  const refresh = useCallback(async () => {
+    if (!isAuthenticated) {
       setItems([]);
+      setCount(0);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [cartItems, cartCount] = await Promise.all([
+        getCart(),
+        getCartCount(),
+      ]);
+      setItems(cartItems);
+      setCount(cartCount);
+    } catch (err) {
+      // Backend is authoritative: on failure keep last known state but surface.
+      setError(err instanceof ApiError ? err.message : "Could not load cart");
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
-  const addToCart = async (productId, quantity = 1, size, color) => {
-    try {
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const addToCart = useCallback(
+    async (productId, quantity = 1, size = "", color = "") => {
       setError(null);
-      const res = await apiClient.post("/cart/add", {
-        product_id: productId,
-        quantity,
-        size,
-        color,
-      });
-      await fetchCart();
-      return res.data;
-    } catch (err) {
-      const msg = err.data?.error || err.data?.message || "Failed to add to cart";
-      setError(msg);
-      throw err;
-    }
-  };
+      await apiAdd({ product_id: productId, quantity, size, color });
+      await refresh();
+    },
+    [refresh]
+  );
 
-  const updateCart = async (productId, delta, size, color) => {
-    try {
+  const updateQuantity = useCallback(
+    async (cartItemId, delta) => {
+      const item = items.find((i) => i.cart_item_id === cartItemId);
+      if (!item) return;
+      setMutating((m) => ({ ...m, [cartItemId]: true }));
+      const previous = items;
+      // Optimistic visual update — backend stays authoritative.
+      setItems((list) =>
+        list.map((i) =>
+          i.cart_item_id === cartItemId
+            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
+            : i
+        )
+      );
+      try {
+        await apiUpdate({
+          product_id: item.product_id,
+          delta,
+          size: item.size,
+          color: item.color,
+        });
+        await refresh();
+      } catch (err) {
+        setItems(previous);
+        setError(err instanceof ApiError ? err.message : "Update failed");
+      } finally {
+        setMutating((m) => ({ ...m, [cartItemId]: false }));
+      }
+    },
+    [items, refresh]
+  );
+
+  const removeFromCart = useCallback(
+    async (cartItemId) => {
+      const previous = items;
       setError(null);
-      const res = await apiClient.post("/cart/update", {
-        product_id: productId,
-        delta,
-        size,
-        color,
-      });
-      await fetchCart();
-      return res.data;
-    } catch (err) {
-      const msg = err.data?.error || err.data?.message || "Failed to update cart";
-      setError(msg);
-      throw err;
-    }
-  };
+      setMutating((m) => ({ ...m, [cartItemId]: true }));
+      setItems((list) => list.filter((i) => i.cart_item_id !== cartItemId));
+      try {
+        await apiRemove(cartItemId);
+        await refresh();
+      } catch (err) {
+        setItems(previous);
+        setError(err instanceof ApiError ? err.message : "Remove failed");
+        throw err;
+      } finally {
+        setMutating((m) => ({ ...m, [cartItemId]: false }));
+      }
+    },
+    [items, refresh]
+  );
 
-  const removeFromCart = async (cartItemId) => {
-    try {
-      setError(null);
-      const res = await apiClient.post("/cart/remove", { cart_item_id: cartItemId });
-      await fetchCart();
-      return res.data;
-    } catch (err) {
-      const msg = err.data?.error || err.data?.message || "Failed to remove from cart";
-      setError(msg);
-      throw err;
-    }
-  };
-
-  const clearCart = async () => {
-    try {
-      setError(null);
-      const res = await apiClient.post("/cart/clear");
-      setItems([]);
-      return res.data;
-    } catch (err) {
-      const msg = err.data?.error || err.data?.message || "Failed to clear cart";
-      setError(msg);
-      throw err;
-    }
-  };
-
-  const getCartSummary = () => {
-    const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-    const subtotal = items.reduce((acc, item) => acc + (item.final_price || 0) * item.quantity, 0);
-    return { totalItems, subtotal, itemCount: items.length };
-  };
+  const totals = useMemo(() => {
+    const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+    const subtotal = items.reduce(
+      (sum, i) => sum + (i.final_price || 0) * i.quantity,
+      0
+    );
+    return { totalItems, subtotal, itemLines: items.length };
+  }, [items]);
 
   const value = {
     items,
+    count,
     loading,
+    mutating,
     error,
+    refresh,
     addToCart,
-    updateCart,
+    updateQuantity,
     removeFromCart,
-    clearCart,
-    fetchCart,
-    getCartSummary,
+    totals,
+    ...totals,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within CartProvider");
-  }
-  return context;
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within CartProvider");
+  return ctx;
 }

@@ -1,0 +1,136 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getMyOrders } from "@/lib/api/orders";
+import { formatPrice, formatDate, statusLabel, statusTone } from "@/lib/format";
+import { useAuth } from "@/context/AuthContext";
+import Loader from "@/components/Loader";
+import EmptyState from "@/components/EmptyState";
+import Reveal from "@/components/Reveal";
+import ProductImage from "@/components/ProductImage";
+
+export default function OrdersPage() {
+  const router = useRouter();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/login?next=/orders");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getMyOrders();
+        if (mounted) setOrders(list);
+      } catch (err) {
+        if (mounted) setError(err?.message || "Could not load your orders.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, isAuthenticated]);
+
+  if (authLoading) {
+    return <div className="nav-spacer"><Loader label="Checking your account" /></div>;
+  }
+
+  return (
+    <div className="nav-spacer">
+      <div className="container" style={{ padding: "48px 24px 90px" }}>
+        <div className="section-head" style={{ marginBottom: 24 }}>
+          <div>
+            <p className="section-label">History</p>
+            <h1 className="section-title">Your orders</h1>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Link href="/account" className="btn btn--outline btn--dark-text btn--sm">Account</Link>
+            <Link href="/shop" className="btn btn--primary btn--sm">Shop again</Link>
+          </div>
+        </div>
+
+        {loading ? (
+          <Loader label="Loading orders" />
+        ) : error ? (
+          <EmptyState
+            icon="!"
+            title="Orders unavailable"
+            body={error}
+            action={
+              <button className="btn btn--primary btn--sm" onClick={() => window.location.reload()}>
+                Try again
+              </button>
+            }
+          />
+        ) : orders.length === 0 ? (
+          <EmptyState
+            icon="◎"
+            title="No orders yet"
+            body="When you place your first order, it will show up here with live status updates."
+            action={
+              <Link href="/shop" className="btn btn--primary btn--sm">Start shopping</Link>
+            }
+          />
+        ) : (
+          <div>
+            {orders.map((order) => (
+              <Reveal key={order.id}>
+                <article className="order-card">
+                  <div className="order-card__head">
+                    <div>
+                      <div className="order-card__id">Order #{order.id}</div>
+                      <div className="order-card__date">{formatDate(order.created_at)}</div>
+                    </div>
+                    <span className={`badge badge--${statusTone(order.status)}`}>
+                      {statusLabel(order.status)}
+                    </span>
+                  </div>
+
+                  <div className="order-card__items">
+                    {order.items.map((it, i) => (
+                      <div className="order-line" key={i}>
+                        <ProductImage imageUrl={it.image_url} alt={it.title} className="order-line__img" style={{ width: 52, height: 62 }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div className="order-line__title">{it.title}</div>
+                          <div className="order-line__meta">
+                            {it.size && <span>{it.size}</span>}
+                            {it.size && <span> · </span>}
+                            {it.color && <span>{it.color}</span>}
+                            {it.size && <span> · </span>}
+                            <span>×{it.quantity}</span>
+                          </div>
+                        </div>
+                        <span className="order-line__price">{formatPrice(it.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="order-card__foot">
+                    <span style={{ color: "var(--muted)" }}>
+                      {order.address ? order.address.slice(0, 48) + (order.address.length > 48 ? "…" : "") : ""}
+                    </span>
+                    <span style={{ fontFamily: "var(--display)", fontWeight: 600 }}>
+                      Total {formatPrice(order.total)}
+                    </span>
+                  </div>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

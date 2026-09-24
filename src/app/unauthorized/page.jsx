@@ -1,59 +1,28 @@
 "use client";
 
-import React from 'react';
-import { Box, Container, Typography, Button, Paper } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import LockIcon from '@mui/icons-material/Lock';
-import HomeIcon from '@mui/icons-material/Home';
+import React from "react";
+import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
+import Reveal from "@/components/Reveal";
 
 export default function UnauthorizedPage() {
-  const router = useRouter();
-
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      bgcolor: '#f5f7fb'
-    }}>
-      <Container maxWidth="sm">
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <LockIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
-          
-          <Typography variant="h4" gutterBottom color="error">
-            غير مصرح لك بالوصول
-          </Typography>
-          
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-            هذه الصفحة مخصصة للمديرين فقط
-          </Typography>
-          
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            تحتاج إلى صلاحيات مدير للوصول إلى لوحة التحكم الإدارية.
-            إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع المدير.
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-            <Button 
-              variant="contained" 
-              startIcon={<HomeIcon />}
-              onClick={() => router.push('/')}
-              sx={{ px: 3 }}
-            >
-              العودة للصفحة الرئيسية
-            </Button>
-            
-            <Button 
-              variant="outlined" 
-              onClick={() => router.push('/login')}
-              sx={{ px: 3 }}
-            >
-              تسجيل الدخول
-            </Button>
-          </Box>
-        </Paper>
-      </Container>
-    </Box>
+    <div className="nav-spacer">
+      <div className="container" style={{ padding: "48px 24px 90px" }}>
+        <Reveal>
+          <EmptyState
+            icon="!"
+            title="Access denied"
+            body="You don't have permission to view this area. If you think this is a mistake, sign in with an authorized account or head back home."
+            action={
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+                <Link href="/login" className="btn btn--primary btn--sm">Sign in</Link>
+                <Link href="/" className="btn btn--outline btn--dark-text btn--sm">Go home</Link>
+              </div>
+            }
+          />
+        </Reveal>
+      </div>
+    </div>
   );
 }

@@ -1,811 +1,251 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
-import axiosInstance from "../../axios";
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Modal,
-  IconButton,
-  Stack,
-  Chip,
-} from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import CloseIcon from "@mui/icons-material/Close";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { use } from "react";
+import { useRouter } from "next/navigation";
+import { fetchProductByTitle } from "@/lib/api/products";
+import { splitImages, formatPrice } from "@/lib/format";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useUi } from "@/context/UiContext";
+import ProductGridSkeleton from "@/components/ProductGridSkeleton";
+import EmptyState from "@/components/EmptyState";
+import Reveal from "@/components/Reveal";
 
-
+function decodeTitle(param) {
+  try {
+    return decodeURIComponent(param || "");
+  } catch {
+    return param || "";
+  }
+}
 
 export default function ProductPage({ params }) {
-  const { title } = use(params);
+  const router = useRouter();
+  const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const { notify } = useUi();
 
-  const productTitle = decodeURIComponent((title) || "");
-  console.log("   ddddddd", productTitle);
+  const [title, setTitle] = useState("");
   const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState(1);
-  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectColor, setSelectColor] = useState("");
-  const [msg, setMsg] = useState("");
-
-  // Lightbox & gallery states
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lbIndex, setLbIndex] = useState(0);
-  const [lbAutoplay, setLbAutoplay] = useState(true);
-  const [lbHover, setLbHover] = useState(false);
-  const [zoom, setZoom] = useState({ x: 50, y: 50, visible: false });
-
-  // Touch / drag states for mobile swipe
-  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
-  const [translateX, setTranslateX] = useState(0);
-  const draggingRef = useRef(false);
+  const [notFound, setNotFound] = useState(false);
+  const [images, setImages] = useState([]);
+  const [active, setActive] = useState(0);
+  const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
+  const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    async function fetchProduct() {
+    let mounted = true;
+    // Next may hand pages either a resolved object or a promise.
+    Promise.resolve(params).then((p) => {
+      if (mounted) setTitle(decodeTitle(p?.title));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
+
+  useEffect(() => {
+    if (!title) return;
+    let mounted = true;
+    setLoading(true);
+    setNotFound(false);
+    (async () => {
       try {
-        setLoading(true);
-        const res = await axiosInstance.post("/products/byName", { title: productTitle });
-        if (res.data.product?.length) {
-          const p = res.data.product[0];
-          setProduct(p);
-          const relatedRes = await axiosInstance.post("/products/byCategory", {
-            category_name: p.category_name,
-          });
-          const relatedFiltered = (relatedRes.data.products || [])
-            .filter((r) => r.id !== p.id)
-            .slice(0, 8);
-          setRelated(relatedFiltered);
+        const found = await fetchProductByTitle(title);
+        if (!mounted) return;
+        if (found.length === 0) {
+          setNotFound(true);
+          return;
         }
-      } catch (err) {
-        console.error(err);
+        const p = found[0];
+        setProduct(p);
+        const imgs = splitImages(p.image_url);
+        setImages(imgs);
+        setActive(0);
+        setSize(p.sizes?.[0] || "");
+        setColor(p.colors?.[0] || "");
+      } catch {
+        if (mounted) setNotFound(true);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
-    }
-    fetchProduct();
-  }, [productTitle]);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [title]);
 
-  if (loading)
+  const out = product ? product.stock <= 0 : false;
+  const discounted = product ? product.discount > 0 : false;
+
+  if (!title) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
-        <CircularProgress color="secondary" />
-      </Box>
-    );
-
-  if (!product)
-    return (
-      <Typography align="center" sx={{ py: 10, color: "error.main", fontSize: 24 }}>
-        Product not found 😢
-      </Typography>
-    );
-
-  const discountedPrice = product.discount
-    ? (product.price * (100 - product.discount)) / 100
-    : null;
-  const availableSizes = product.sizes ? product.sizes.split(",").map((s) => s.trim()) : [];
-  const availableColors = product.colors ? product.colors.split(",").map((c) => c.trim()) : [];
-
-  const handleQuantityChange = (newQuantity) => {
-    if (newQuantity < 1) {
-      setQuantity(1);
-      return;
-    }
-    if (newQuantity > product.stock) {
-      setMsg(`Only ${product.stock} items available in stock`);
-      return;
-    }
-    setMsg("");
-    setQuantity(newQuantity);
-  };
-
-  async function addToCart() {
-    if (!selectedSize || !selectColor) {
-      setMsg("Please select size and color");
-      return;
-    }
-    if (quantity > product.stock) return;
-    try {
-      await axiosInstance.post("/cart/add", {
-        product_id: product.id,
-        quantity: quantity,
-        size: selectedSize,
-        color: selectColor,
-      });
-      setMsg("");
-      setSelectedSize("");
-      setSelectColor("");
-      setQuantity(1);
-      setTimeout(() => setMsg("Product added to cart successfully!"), 50);
-      setTimeout(() => setMsg(""), 2000);
-
-      window.dispatchEvent(new Event("cartUpdated"));
-      const cartIcon = document.querySelector(".cart-icon");
-      if (cartIcon) {
-        cartIcon.classList.add("cart-bounce");
-        setTimeout(() => cartIcon.classList.remove("cart-bounce"), 800);
-      }
-      const cartBadge = document.querySelector(".cart-badge");
-      if (cartBadge) {
-        cartBadge.classList.add("cart-badge-pulse");
-        setTimeout(() => cartBadge.classList.remove("cart-badge-pulse"), 800);
-      }
-    } catch (err) {
-      console.error(err);
-      window.location.href = "/login";
-      
-    }
-  }
-
-  const images = (product.image_url || "")
-    .split(",")
-    .map((i) => i.trim())
-    .filter(Boolean);
-
-  function ProductImage({ image_url, title, onOpen, size = "lg", cover = false }) {
-    const imgs = (image_url || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [failed, setFailed] = useState(false);
-
-    useEffect(() => {
-      if (imgs.length <= 1) return;
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % imgs.length);
-      }, 3000);
-      return () => clearInterval(interval);
-    }, [imgs.length]);
-
-    let src = imgs[currentIndex] || "/placeholder.png";
-    try { src = encodeURI(src); } catch (e) { }
-
-    const heights = size === "sm" ? { xs: 110, md: 120 } : { xs: 220, md: 360 };
-    const objectFitValue = cover ? "cover" : "contain";
-
-    const handleImgError = (ev) => {
-      setFailed(true);
-      ev.currentTarget.src = "/placeholder.png";
-    };
-
-    return (
-      <Box
-        onClick={() => onOpen && onOpen(currentIndex)}
-        sx={{
-          height: heights,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          mb: 1,
-          position: "relative",
-          cursor: onOpen ? "zoom-in" : "default",
-          borderRadius: 2,
-          overflow: "hidden",
-          boxShadow: 0,
-          bgcolor: "#fff",
-        }}
-      >
-        <Box
-          component="img"
-          src={failed ? "/placeholder.png" : src}
-          alt={title || "product image"}
-          loading="lazy"
-          onError={handleImgError}
-          sx={{
-            width: "100%",
-            height: "100%",
-            objectFit: objectFitValue,
-            transition: "transform 0.35s ease, opacity 0.35s ease",
-            "&:hover": { transform: onOpen ? "scale(1.03)" : "none" },
-            backgroundColor: "#f7f7f7",
-            display: "block",
-          }}
-        />
-      </Box>
-    );
-  }
-
-  function Lightbox({ open, onClose, startIndex = 0 }) {
-    const [index, setIndex] = useState(startIndex);
-    const autoplayRef = useRef(null);
-
-    useEffect(() => {
-      setIndex(startIndex);
-      setTranslateX(0);
-    }, [startIndex, open]);
-
-    useEffect(() => {
-      if (!open) return;
-      if (!lbAutoplay) return;
-      if (images.length <= 1) return;
-      if (lbHover) return;
-
-      autoplayRef.current = window.setInterval(() => {
-        setIndex((prev) => (prev + 1) % images.length);
-      }, 3000);
-
-      return () => {
-        if (autoplayRef.current) {
-          clearInterval(autoplayRef.current);
-          autoplayRef.current = null;
-        }
-      };
-    }, [open, lbAutoplay, lbHover]);
-
-    useEffect(() => {
-      function onKey(e) {
-        if (!open) return;
-        if (e.key === "Escape") onClose();
-        if (e.key === "ArrowRight") setIndex((i) => (i + 1) % images.length);
-        if (e.key === "ArrowLeft") setIndex((i) => (i - 1 + images.length) % images.length);
-      }
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
-    }, [open, onClose]);
-
-    const goPrev = () => {
-      setIndex((i) => (i - 1 + images.length) % images.length);
-    };
-    const goNext = () => {
-      setIndex((i) => (i + 1) % images.length);
-    };
-
-    // Touch / swipe handlers for mobile
-    const onTouchStart = (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
-      draggingRef.current = true;
-      setTranslateX(0);
-      // pause autoplay while touching
-      setLbAutoplay(false);
-    };
-
-    const onTouchMove = (e) => {
-      if (!draggingRef.current) return;
-      if (!e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      const dx = t.clientX - touchStartRef.current.x;
-      const dy = t.clientY - touchStartRef.current.y;
-
-      // if vertical movement is greater, don't treat as horizontal swipe (let page scroll)
-      if (Math.abs(dy) > Math.abs(dx)) {
-        // allow scroll
-        return;
-      }
-
-      // prevent page scroll on horizontal dragging
-      e.preventDefault();
-      setTranslateX(dx);
-    };
-
-    const onTouchEnd = (e) => {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      const endTime = Date.now();
-      const { x: startX } = touchStartRef.current;
-      const touch = (e.changedTouches && e.changedTouches[0]) || {};
-      const dx = (touch.clientX || 0) - startX;
-      const dt = endTime - touchStartRef.current.time;
-      const velocity = dx / Math.max(dt, 1); // px per ms
-
-      const threshold = 60; // px needed to trigger swipe
-      const velocityThreshold = 0.3; // quick flick
-
-      if (dx <= -threshold || velocity < -velocityThreshold) {
-        // swipe left => next
-        setTranslateX(-200); // animate off-screen
-        setTimeout(() => {
-          setTranslateX(0);
-          goNext();
-        }, 180);
-      } else if (dx >= threshold || velocity > velocityThreshold) {
-        // swipe right => prev
-        setTranslateX(200);
-        setTimeout(() => {
-          setTranslateX(0);
-          goPrev();
-        }, 180);
-      } else {
-        // not enough: snap back
-        setTranslateX(0);
-      }
-
-      // resume autoplay after short delay
-      setTimeout(() => setLbAutoplay(true), 600);
-    };
-
-    // mouse drag support (desktop)
-    const mouseDrag = useRef({ active: false, startX: 0 });
-    const onMouseDown = (e) => {
-      mouseDrag.current = { active: true, startX: e.clientX };
-      setLbAutoplay(false);
-    };
-    const onMouseMove = (e) => {
-      if (!mouseDrag.current.active) return;
-      const dx = e.clientX - mouseDrag.current.startX;
-      setTranslateX(dx);
-    };
-    const onMouseUp = (e) => {
-      if (!mouseDrag.current.active) return;
-      mouseDrag.current.active = false;
-      const dx = e.clientX - mouseDrag.current.startX;
-      const threshold = 80;
-      if (dx <= -threshold) goNext();
-      else if (dx >= threshold) goPrev();
-      setTranslateX(0);
-      setTimeout(() => setLbAutoplay(true), 600);
-    };
-
-    // Magnifier: compute background position when hovering
-    const onMouseMoveMagnifier = (e) => {
-      const el = e.currentTarget;
-      const rect = el.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setZoom({ x, y, visible: true });
-    };
-    const onMouseLeaveMagnifier = () => setZoom({ ...zoom, visible: false });
-
-    return (
-      <Modal
-        open={open}
-        onClose={onClose}
-        closeAfterTransition
-        BackdropProps={{ timeout: 300 }}
-      >
-        <Box
-          onMouseEnter={() => setLbHover(true)}
-          onMouseLeave={() => setLbHover(false)}
-          sx={{
-            outline: "none",
-            position: "fixed",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            p: 2,
-            bgcolor: "rgba(10,10,10,0.6)",
-            zIndex: 1500,
-          }}
-        >
-          <Box
-            sx={{
-              width: { xs: "95%", md: "80%", lg: "70%" },
-              maxWidth: 1200,
-              bgcolor: "background.paper",
-              borderRadius: 2,
-              p: 2,
-              boxShadow: 24,
-              position: "relative",
-            }}
-            onMouseUp={onMouseUp}
-            onMouseMove={onMouseMove}
-          >
-            <IconButton
-              onClick={onClose}
-              aria-label="close"
-              sx={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}
-            >
-              <CloseIcon />
-            </IconButton>
-
-            <IconButton
-              onClick={() => {
-                setLbAutoplay(false);
-                goPrev();
-              }}
-              sx={{
-                position: "absolute",
-                left: -10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 10,
-                bgcolor: "rgba(255,255,255,0.8)",
-                "&:hover": { bgcolor: "rgba(255,255,255,1)" },
-                display: { xs: "none", md: "flex" },
-              }}
-            >
-              <ArrowBackIosNewIcon />
-            </IconButton>
-
-            <IconButton
-              onClick={() => {
-                setLbAutoplay(false);
-                goNext();
-              }}
-              sx={{
-                position: "absolute",
-                right: -10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 10,
-                bgcolor: "rgba(255,255,255,0.8)",
-                "&:hover": { bgcolor: "rgba(255,255,255,1)" },
-                display: { xs: "none", md: "flex" },
-              }}
-            >
-              <ArrowForwardIosIcon />
-            </IconButton>
-
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                flexDirection: { xs: "column", md: "row" },
-                alignItems: "center",
-              }}
-            >
-              <Box sx={{ flex: 1, display: "flex", justifyContent: "center", position: "relative" }}>
-                <Box
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  onMouseDown={onMouseDown}
-                  onMouseLeave={() => {
-                    mouseDrag.current.active = false;
-                    setTranslateX(0);
-                  }}
-                  sx={{
-                    width: "100%",
-                    maxHeight: { xs: 360, md: 600 },
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    borderRadius: 1,
-                    bgcolor: "#fafafa",
-                    position: "relative",
-                    touchAction: "pan-y", // allow vertical scroll but help horizontal capture
-                    userSelect: "none",
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={images[index]}
-                    alt={`Zoom ${index}`}
-                    onMouseMove={onMouseMoveMagnifier}
-                    onMouseLeave={onMouseLeaveMagnifier}
-                    sx={{
-                      maxWidth: "100%",
-                      maxHeight: { xs: 320, md: 560 },
-                      objectFit: "contain",
-                      transition: "transform 0.25s ease, opacity 0.25s ease",
-                      cursor: "zoom-out",
-                      transform: `translateX(${translateX}px)`,
-                    }}
-                    onClick={() => {
-                      // toggle autoplay on click
-                      setLbAutoplay((s) => !s);
-                    }}
-                    draggable={false}
-                  />
-
-                  {/* Magnifier (desktop) */}
-                  {zoom.visible && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        right: 12,
-                        top: 12,
-                        width: { xs: 0, md: 220 },
-                        height: { xs: 0, md: 220 },
-                        borderRadius: 1,
-                        border: "2px solid rgba(0,0,0,0.08)",
-                        overflow: "hidden",
-                        boxShadow: 2,
-                        backgroundImage: `url(${images[index]})`,
-                        backgroundRepeat: "no-repeat",
-                        backgroundSize: "200% auto",
-                        backgroundPosition: `${zoom.x}% ${zoom.y}%`,
-                        display: { xs: "none", md: "block" },
-                      }}
-                    />
-                  )}
-                </Box>
-              </Box>
-
-              <Box sx={{ width: { xs: "100%", md: 220 }, mt: { xs: 1, md: 0 } }}>
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", maxHeight: 420, overflowY: "auto" }}>
-                  {images.map((img, i) => (
-                    <Box
-                      key={i}
-                      onClick={() => setIndex(i)}
-                      sx={{
-                        width: 66,
-                        height: 66,
-                        borderRadius: 1,
-                        overflow: "hidden",
-                        border: i === index ? "2px solid" : "1px solid rgba(0,0,0,0.08)",
-                        borderColor: i === index ? "primary.main" : "divider",
-                        cursor: "pointer",
-                        "& img": { width: "100%", height: "100%", objectFit: "cover" },
-                      }}
-                    >
-                      <Box component="img" src={img} alt={`thumb-${i}`} draggable={false} />
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Modal>
+      <div className="nav-spacer">
+        <div className="container" style={{ paddingTop: 40 }}><ProductGridSkeleton count={1} /></div>
+      </div>
     );
   }
 
   return (
-    <Box style={{ paddingBottom: 40, paddingTop: 20, paddingLeft: 20, paddingRight: 20 }}>
-      <div className="container pd-breadcrumbs">
-        <div className="pd-page-title">Product Details</div>
-        <div className="pd-breadcrumbs-trail">
+    <div className="nav-spacer">
+      <div className="container" style={{ padding: "36px 24px 90px" }}>
+        <div className="breadcrumb" style={{ marginBottom: 30 }}>
           <Link href="/">Home</Link>
-          <span> / </span>
-          <Link href="/">Shop</Link>
-          <span> / </span>
-          <span>{product.category_name || "Category"}</span>
-          <span> / </span>
-          <span className="current">Product Details</span>
-        </div>
-      </div>
-
-      <div className="pd-wrapper container" style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div className="pd-gallery" style={{ flex: "1 1 420px", minWidth: 300 }}>
-          <div className="pd-main-image">
-            <ProductImage
-              image_url={product.image_url}
-              title={product.title}
-              onOpen={(idx) => {
-                setLbIndex(idx);
-                setLightboxOpen(true);
-                setLbAutoplay(true);
-              }}
-              size="lg"
-              cover={false}
-            />
-          </div>
+          <span className="sep">/</span>
+          <Link href="/shop">Shop</Link>
+          <span className="sep">/</span>
+          <span className="current">{notFound ? "Not found" : loading ? "Loading…" : product?.title}</span>
         </div>
 
-        <div className="pd-info" style={{ flex: "1 1 360px", minWidth: 300 }}>
-          <h1 className="pd-title">{product.title}</h1>
-
-          <div className="pd-price-row" style={{ marginBottom: 12 }}>
-            {discountedPrice ? (
-              <>
-                <span className="pd-price" style={{ fontWeight: 700, color: "#b8732a", fontSize: 20 }}>${discountedPrice.toFixed(2)}</span>
-                <span className="pd-price-old" style={{ marginLeft: 8, textDecoration: "line-through", color: "#888" }}>${Number(product.price).toFixed(2)}</span>
-              </>
-            ) : (
-              <span className="pd-price" style={{ fontWeight: 700, color: "#b8732a", fontSize: 20 }}>${Number(product.price).toFixed(2)}</span>
-            )}
-          </div>
-
-          <p className="pd-desc">{product.description}</p>
-
-          {availableColors.length > 0 && (
-            <div className="pd-option">
-              <span className="pd-option-label">Color</span>
-              <div className="pd-color-swatches" style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                {availableColors.map((color) => (
-                  <button
-                    key={color}
-                    aria-label={`color ${color}`}
-                    className={`pd-swatch ${selectColor === color ? "active" : ""}`}
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 999,
-                      border: selectColor === color ? "3px solid #b8732a" : "2px solid #eee",
-                      backgroundColor: color.toLowerCase(),
-                      cursor: "pointer",
-                    }}
-                    onClick={() => setSelectColor(color)}
-                  />
-                ))}
+        {loading ? (
+          <ProductGridSkeleton count={1} />
+        ) : notFound || !product ? (
+          <EmptyState
+            icon="?"
+            title="Product not found"
+            body="This piece may have sold out or been removed."
+            action={
+              <Link href="/shop" className="btn btn--primary btn--sm">Back to shop</Link>
+            }
+          />
+        ) : (
+          <div className="pdp">
+            {/* Gallery */}
+            <div className="pdp__gallery">
+              {images.length > 1 && (
+                <div className="pdp__thumbs">
+                  {images.map((src, i) => (
+                    <button
+                      key={src + i}
+                      className={`pdp__thumb ${i === active ? "active" : ""}`}
+                      onClick={() => setActive(i)}
+                      aria-label={`View image ${i + 1}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius)" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="pdp__main">
+                {images[active] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={images[active]} src={images[active]} alt={product.title} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontFamily: "var(--display)", letterSpacing: "0.2em", textTransform: "uppercase" }}>
+                    {product.title.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {availableSizes.length > 0 && (
-            <div className="pd-option" style={{ marginTop: 12 }}>
-              <span className="pd-option-label">Size</span>
-              <div className="pd-size-options" style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                {availableSizes.map((size) => (
+            {/* Details */}
+            <div>
+              <Reveal>
+                <p className="p-card__cat" style={{ marginBottom: 10 }}>{product.category_name}</p>
+                <h1 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)", maxWidth: "20ch" }}>
+                  {product.title}
+                </h1>
+
+                <div className="pdp__price">
+                  <span className="now">{formatPrice(product.finalPrice)}</span>
+                  {discounted && <span className="was">{formatPrice(product.price)}</span>}
+                  {discounted && <span className="off">-{Math.round(product.discount)}%</span>}
+                </div>
+
+                {out ? (
+                  <p className="pdp__stock p-card__stock--out" style={{ fontSize: "0.9rem", marginTop: 6 }}>Out of stock</p>
+                ) : product.stock <= 5 ? (
+                  <p className="pdp__stock p-card__stock--low" style={{ fontSize: "0.9rem", marginTop: 6 }}>Only {product.stock} left</p>
+                ) : null}
+
+                <p className="pdp__desc">{product.description}</p>
+
+                {product.colors.length > 0 && (
+                  <div>
+                    <div className="pdp__swatch-label">Color — <span style={{ color: "var(--ink)" }}>{color}</span></div>
+                    <div className="pdp__swatches">
+                      {product.colors.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className={`swatch ${color === c ? "swatch--active" : ""}`}
+                          onClick={() => setColor(c)}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.sizes.length > 0 && (
+                  <div>
+                    <div className="pdp__swatch-label">Size — <span style={{ color: "var(--ink)" }}>{size || "Pick"}</span></div>
+                    <div className="pdp__swatches">
+                      {product.sizes.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className={`swatch ${size === s ? "swatch--active" : ""}`}
+                          onClick={() => setSize(s)}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pdp__qty">
+                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" disabled={qty <= 1}>−</button>
+                  <span>{qty}</span>
+                  <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} aria-label="Increase quantity" disabled={qty >= product.stock}>+</button>
+                </div>
+
+                <div className="pdp__cta">
                   <button
-                    key={size}
-                    className={`pd-size ${selectedSize === size ? "active" : ""}`}
-                    onClick={() => setSelectedSize(size)}
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: selectedSize === size ? "2px solid #b8732a" : "1px solid #ddd",
-                      background: selectedSize === size ? "#fff8f3" : "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="pd-qty-row" style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="pd-option-label">Qty</span>
-            <div className="pd-qty" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button onClick={() => handleQuantityChange(quantity - 1)} style={{ width: 32, height: 32 }}>-</button>
-              <span className={`value ${quantity > product.stock ? "error" : ""}`}>{quantity}</span>
-              <button onClick={() => handleQuantityChange(quantity + 1)} style={{ width: 32, height: 32 }}>+</button>
-            </div>
-            {product.stock <= 3 && product.stock > 0 && (
-              <span className="pd-low-stock" style={{ color: "#d32f2f" }}>Only {product.stock} left</span>
-            )}
-          </div>
-
-          {msg && (
-            <div style={{ marginTop: 12 }}>
-              <Alert severity={msg.startsWith("Product added") ? "success" : "error"}>{msg}</Alert>
-            </div>
-          )}
-
-          <div className="pd-actions" style={{ marginTop: 16 }}>
-            <button
-              className="btn-primary"
-              onClick={addToCart}
-              disabled={!selectedSize || !selectColor || quantity > product.stock}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: "#3e2723",
-                color: "#fff",
-                padding: "10px 16px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              <span className="btn-icon" aria-hidden>
-                <ShoppingCartIcon fontSize="small" />
-              </span>
-              Add To Cart
-            
-            </button>
-
-            <Button
-              variant="text"
-              sx={{ ml: 2, textTransform: "none" }}
-              onClick={() => {
-                setLbIndex(0);
-                setLightboxOpen(true);
-              }}
-            >
-              View Gallery
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {related.length > 0 && (
-        <div className="container pd-related" style={{ marginTop: 32 }}>
-          <h2 className="pd-related-title" style={{ marginBottom: 12 }}>Explore Related Products</h2>
-
-          {/* responsive grid for related products: nicer on desktop and mobile */}
-          <div
-            className="pd-related-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              gap: 16,
-              alignItems: "stretch",
-            }}
-          >
-            {related.map((item) => {
-              const itemDiscounted = item.discount && Number(item.discount) > 0;
-              const itemPriceNum = Number(item.price) || 0;
-              const itemDiscountedPrice = itemDiscounted ? (itemPriceNum * (100 - Number(item.discount))) / 100 : null;
-
-              return (
-                <Link
-                  key={item.id}
-                  href={`/product/${encodeURIComponent(item.title)}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <Box
-                    className="pd-related-card"
-                    sx={{
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      background: "#fff",
-                      boxShadow: "0 8px 20px rgba(15,15,15,0.06)",
-                      display: "flex",
-                      flexDirection: "column",
-                      height: "100%",
-                      transition: "transform 0.14s ease, box-shadow 0.14s ease",
-                      "&:hover": {
-                        transform: "translateY(-6px)",
-                        boxShadow: "0 18px 40px rgba(12,12,12,0.10)"
+                    className="btn btn--primary btn--block"
+                    disabled={adding || out || !isAuthenticated}
+                    onClick={async () => {
+                      setAdding(true);
+                      try {
+                        await addToCart(product.id, qty, size, color);
+                        notify("Added to your bag");
+                      } catch (err) {
+                        if (err?.status === 401 || err?.status === 403) {
+                          router.push(`/login?next=/product/${encodeURIComponent(title)}`);
+                        } else {
+                          notify(err?.message || "Could not add to bag");
+                        }
+                      } finally {
+                        setAdding(false);
                       }
                     }}
                   >
-                    <Box sx={{ p: 8 / 2, pBottom: 0 }}>
-                      {/* compact image so cards are consistent on desktop */}
-                      <ProductImage image_url={item.image_url} title={item.title} size="sm" cover={true} />
-                    </Box>
+                    {adding ? "Adding…" : isAuthenticated ? "Add to bag" : "Sign in to add to bag"}
+                  </button>
+                  <Link href="/cart" className="btn btn--outline btn--dark-text btn--block">View your bag</Link>
+                </div>
 
-                    <Box sx={{ p: 1.2, pt: 0.8, display: "flex", flexDirection: "column", gap: 0.6, flex: 1 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 13,
-                          lineHeight: 1.2,
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          minHeight: 36,
-                        }}
-                        title={item.title}
-                      >
-                        {item.title}
-                      </Typography>
-
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "auto" }}>
-                        <Box>
-                          {itemDiscountedPrice ? (
-                            <Box sx={{ display: "flex", flexDirection: "column" }}>
-                              <Typography sx={{ color: "#b8732a", fontWeight: 800, fontSize: 14 }}>
-                                ${itemDiscountedPrice.toFixed(2)}
-                              </Typography>
-                              <Typography sx={{ textDecoration: "line-through", color: "#888", fontSize: 12 }}>
-                                ${itemPriceNum.toFixed(2)}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography sx={{ color: "#b8732a", fontWeight: 800, fontSize: 14 }}>
-                              ${itemPriceNum.toFixed(2)}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {itemDiscounted && (
-                          <Chip label={`${item.discount}%`} color="secondary" size="small" sx={{ height: 26 }} />
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
-                </Link>
-              );
-            })}
+                <div className="pdp__meta">
+                  <div><b>SKU</b> — <span>#{product.id}</span></div>
+                  <div><b>Available sizes</b> — <span className="pdp__sizes">{product.sizes.map((s) => <span key={s} style={{ marginRight: 8 }}>{s}</span>)}</span></div>
+                  <div><b>Colors</b> — <span>{product.colors.join(", ") || "—"}</span></div>
+                  <div><b>Stock</b> — <span style={{ color: out ? "var(--err)" : "var(--ok)" }}>{out ? "Sold out" : `${product.stock} in stock`}</span></div>
+                  <p className="pdp__note">Free shipping over $100. This piece is part of the current collection drop.</p>
+                </div>
+              </Reveal>
+            </div>
           </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 28 }}>
-        <div className="pd-tab-list">
-          <button className="pd-tab-btn active">Description</button>
-        </div>
-        <div className="pd-tab-panel" style={{ marginTop: 12 }}>
-          {product.description && <p className="pd-desc" style={{ marginBottom: 12 }}>{product.description}</p>}
-          <ul className="pd-bullets">
-            {availableColors.length > 0 && <li>Available colors: {availableColors.join(", ")}</li>}
-            {availableSizes.length > 0 && <li>Available sizes: {availableSizes.join(", ")}</li>}
-            <li>Category: {product.category_name || "-"}</li>
-            <li>SKU: {product.id}</li>
-            <li>Stock: {product.stock}</li>
-          </ul>
-        </div>
+        )}
       </div>
-
-      <Lightbox
-        open={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        startIndex={lbIndex}
-      />
-    </Box>
+    </div>
   );
 }

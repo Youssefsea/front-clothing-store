@@ -1,45 +1,31 @@
-// Input validation utilities
-export const validateEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+// Input validation utilities matching backend rules.
+export const validateEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "");
 
-export const validatePassword = (password) => {
-  // At least 6 characters, can be more restrictive based on requirements
-  return password && password.length >= 6;
-};
+export const validatePassword = (password) =>
+  typeof password === "string" && password.length >= 6 && password.length <= 50;
 
-export const validatePhone = (phone) => {
-  // Basic phone validation - at least 10 digits
-  const phoneRegex = /^\d{10,}$/;
-  return phoneRegex.test(phone?.replace(/\D/g, ""));
-};
+export const validateName = (name) =>
+  typeof name === "string" && name.trim().length >= 3 && name.trim().length <= 100;
 
-export const validateForm = (form, rules) => {
+export const validatePhone = (phone) =>
+  /^[0-9]{10,15}$/.test((phone || "").replace(/\D/g, ""));
+
+export const validateOtp = (otp) => /^[0-9]{6}$/.test(otp || "");
+
+export const validateSignup = (form) => {
   const errors = {};
-
-  Object.keys(rules).forEach((field) => {
-    const rule = rules[field];
-    const value = form[field];
-
-    if (rule.required && !value) {
-      errors[field] = `${rule.label || field} is required`;
-    } else if (rule.type === "email" && value && !validateEmail(value)) {
-      errors[field] = "Invalid email address";
-    } else if (rule.type === "password" && value && !validatePassword(value)) {
-      errors[field] = `${rule.label || field} must be at least 6 characters`;
-    } else if (rule.type === "phone" && value && !validatePhone(value)) {
-      errors[field] = "Invalid phone number";
-    } else if (rule.minLength && value && value.length < rule.minLength) {
-      errors[field] = `${rule.label || field} must be at least ${rule.minLength} characters`;
-    } else if (rule.maxLength && value && value.length > rule.maxLength) {
-      errors[field] = `${rule.label || field} must be at most ${rule.maxLength} characters`;
-    }
-  });
-
+  if (!validateName(form.name)) {
+    errors.name = "Name must be between 3 and 100 characters.";
+  }
+  if (!validateEmail(form.email)) {
+    errors.email = "Enter a valid email address.";
+  }
+  if (!validatePassword(form.password)) {
+    errors.password = "Password must be between 6 and 50 characters.";
+  }
+  if (!validatePhone(form.phone)) {
+    errors.phone = "Phone must be 10–15 digits.";
+  }
   return errors;
-};
-
-export const isFormValid = (errors) => {
-  return Object.keys(errors).length === 0;
 };

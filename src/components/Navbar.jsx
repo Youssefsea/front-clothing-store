@@ -1,235 +1,171 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Link as MuiLink,
-  IconButton,
-  Badge,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Button,
-  useMediaQuery,
-  useTheme,
-  Fade,
-  Slide,
-  CircularProgress,
-} from "@mui/material";
-import { Menu, ShoppingBag, Close, Logout as LogoutIcon } from "@mui/icons-material";
+import { useUi } from "@/context/UiContext";
+import { initials } from "@/lib/format";
 
-function Navbar({ theme: muiTheme }) {
+export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, logout, loading: authLoading } = useAuth();
-  const { items: cartItems } = useCart();
+  const { user, isAuthenticated, isAdmin, loading: authLoading, logout } = useAuth();
+  const { count } = useCart();
+  const { openCart, openSearch, notify } = useUi();
+
+  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const cartCount = cartItems.reduce((acc, item) => acc + (item.quantity || 0), 0);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 28);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const navLinks = [
-    { href: "/", label: "Home" },
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  const transparent = pathname === "/" && !scrolled;
+
+  const links = [
     { href: "/shop", label: "Shop" },
     ...(isAuthenticated ? [{ href: "/orders", label: "Orders" }] : []),
   ];
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      setMobileOpen(false);
-      router.push("/login");
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
-  };
-
-  const handleNavigation = (href) => {
-    router.push(href);
-    setMobileOpen(false);
+    await logout();
+    notify("Signed out");
+    router.push("/");
   };
 
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: muiTheme.palette.primary.main, boxShadow: 1 }}>
-        <Toolbar>
-          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "bold",
-                fontSize: { xs: "1.2rem", md: "1.5rem" },
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              Fashion Store
-            </Typography>
+      <header className={`navbar ${transparent ? "navbar--transparent" : "navbar--solid"}`}>
+        <div className="navbar__inner">
+          <Link href="/" className="navbar__brand" aria-label="VANTA home">
+            VANTA
           </Link>
 
-          {isMobile ? (
-            <>
-              <Box sx={{ marginLeft: "auto", display: "flex", gap: 1 }}>
-                <Link href="/cart" style={{ textDecoration: "none" }}>
-                  <IconButton color="inherit" size="small">
-                    <Badge badgeContent={cartCount} color="secondary">
-                      <ShoppingBag sx={{ fontSize: "1.5rem" }} />
-                    </Badge>
-                  </IconButton>
-                </Link>
-                <IconButton color="inherit" onClick={() => setMobileOpen(true)}>
-                  <Menu />
-                </IconButton>
-              </Box>
-
-              <Drawer
-                anchor="right"
-                open={mobileOpen}
-                onClose={() => setMobileOpen(false)}
+          <nav className="navbar__links" aria-label="Primary">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav-link ${
+                  pathname === l.href || pathname.startsWith(l.href + "/") ? "active" : ""
+                }`}
               >
-                <Box sx={{ width: 250, p: 2 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Typography variant="h6">Menu</Typography>
-                    <IconButton size="small" onClick={() => setMobileOpen(false)}>
-                      <Close />
-                    </IconButton>
-                  </Box>
-                  <Divider sx={{ mb: 2 }} />
-                  <List>
-                    {navLinks.map((link) => (
-                      <ListItem
-                        key={link.href}
-                        button
-                        onClick={() => handleNavigation(link.href)}
-                        selected={pathname === link.href}
-                      >
-                        <ListItemText primary={link.label} />
-                      </ListItem>
-                    ))}
-                  </List>
-                  <Divider sx={{ my: 2 }} />
-                  {isAuthenticated ? (
-                    <Box>
-                      <Typography variant="body2" sx={{ mb: 1, color: "text.secondary" }}>
-                        {user?.email || "Logged in"}
-                      </Typography>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        color="error"
-                        size="small"
-                        startIcon={<LogoutIcon />}
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </Button>
-                    </Box>
-                  ) : (
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleNavigation("/login")}
-                      >
-                        Login
-                      </Button>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="secondary"
-                        size="small"
-                        onClick={() => handleNavigation("/signup")}
-                      >
-                        Sign Up
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              </Drawer>
+                {l.label}
+              </Link>
+            ))}
+            <button className="nav-link nav-link--btn" onClick={openSearch}>
+              Search
+            </button>
+          </nav>
+
+          <div className="navbar__actions">
+            <button className="icon-btn navbar__search" onClick={openSearch} aria-label="Search">
+              ⌕
+            </button>
+
+            <button className="navbar__cart" onClick={openCart} aria-label={`Open bag, ${count} items`}>
+              <span className="navbar__cart-icon">◎</span>
+              <span className={`navbar__cart-count ${count > 0 ? "cart-badge-pulse" : ""}`}>
+                {count}
+              </span>
+            </button>
+
+            {authLoading ? null : isAuthenticated ? (
+              <>
+                {isAdmin && (
+                  <Link href="/admin" className="nav-link">
+                    Admin
+                  </Link>
+                )}
+                <Link
+                  href="/account"
+                  className="navbar__avatar"
+                  aria-label="Account"
+                  title={user?.name || user?.email || "Account"}
+                >
+                  {initials(user?.name || user?.email)}
+                </Link>
+              </>
+            ) : (
+              <Link href="/login" className="btn btn--outline btn--dark-text btn--sm navbar__signin">
+                Sign in
+              </Link>
+            )}
+
+            <button
+              className="icon-btn navbar__burger"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true">
+        <div className="nav-menu__links">
+          <Link href="/" className="nav-menu__link">Home</Link>
+          <Link href="/shop" className="nav-menu__link">Shop</Link>
+          <button
+            className="nav-menu__link nav-menu__link--btn"
+            onClick={() => { setMobileOpen(false); openSearch(); }}
+          >
+            Search
+          </button>
+          {isAuthenticated && (
+            <Link href="/orders" className="nav-menu__link">My Orders</Link>
+          )}
+          {isAuthenticated && (
+            <Link href="/account" className="nav-menu__link">Account</Link>
+          )}
+          {isAdmin && (
+            <Link href="/admin" className="nav-menu__link">Admin</Link>
+          )}
+        </div>
+        <div className="nav-menu__foot">
+          {isAuthenticated ? (
+            <>
+              <span className="nav-menu__user">{user?.name || user?.email}</span>
+              <button className="btn btn--outline btn--dark-text btn--block" onClick={handleLogout}>
+                Sign out
+              </button>
             </>
           ) : (
             <>
-              <Box sx={{ marginLeft: "auto", display: "flex", gap: 3, alignItems: "center" }}>
-                {navLinks.map((link) => (
-                  <MuiLink
-                    key={link.href}
-                    component={Link}
-                    href={link.href}
-                    sx={{
-                      color: "white",
-                      textDecoration: "none",
-                      fontWeight: pathname === link.href ? "bold" : "normal",
-                      borderBottom: pathname === link.href ? "2px solid" : "none",
-                      borderColor: "secondary.main",
-                      transition: "all 0.3s",
-                      "&:hover": { color: "secondary.main" },
-                    }}
-                  >
-                    {link.label}
-                  </MuiLink>
-                ))}
-
-                <Link href="/cart" style={{ textDecoration: "none" }}>
-                  <IconButton color="inherit">
-                    <Badge badgeContent={cartCount} color="secondary">
-                      <ShoppingBag />
-                    </Badge>
-                  </IconButton>
-                </Link>
-
-                {authLoading ? (
-                  <CircularProgress size={24} sx={{ color: "white" }} />
-                ) : isAuthenticated ? (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="body2" sx={{ color: "white" }}>
-                      {user?.email?.split("@")[0] || "User"}
-                    </Typography>
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={handleLogout}
-                      startIcon={<LogoutIcon />}
-                    >
-                      Logout
-                    </Button>
-                  </Box>
-                ) : (
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={() => handleNavigation("/login")}
-                    >
-                      Login
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      size="small"
-                      onClick={() => handleNavigation("/signup")}
-                    >
-                      Sign Up
-                    </Button>
-                  </Box>
-                )}
-              </Box>
+              <Link href="/login" className="btn btn--primary btn--block" onClick={() => setMobileOpen(false)}>
+                Sign in
+              </Link>
+              <Link href="/signup" className="btn btn--outline btn--dark-text btn--block" onClick={() => setMobileOpen(false)}>
+                Create account
+              </Link>
             </>
           )}
-        </Toolbar>
-      </AppBar>
+          <button
+            className="btn btn--accent btn--block"
+            onClick={() => { setMobileOpen(false); openCart(); }}
+          >
+            Bag ({count})
+          </button>
+        </div>
+      </div>
     </>
   );
 }
-
-export default Navbar;
