@@ -8,24 +8,25 @@ import { validateName, validateEmail, validatePassword, validatePhone, validateO
 import { ApiError, isApiError } from "@/lib/api/client";
 import { fetchProducts } from "@/lib/api/products";
 import { splitImages } from "@/lib/format";
+import { useLocale } from "@/context/LocaleContext";
 import OTPInput from "@/components/OTPInput";
 import Reveal from "@/components/Reveal";
 
 const OTP_TTL_SECONDS = 60;
 
-function userFacingError(err, fallback) {
+function userFacingError(err, fallback, t) {
   if (isApiError(err) && err.details?.length) {
     return err.details.join(" ");
   }
   if (isApiError(err)) {
-    if (err.status === 429) return "Too many attempts. Please wait a moment, then try again.";
-    if (err.status === 409) return "This account already exists. Try signing in instead.";
+    if (err.status === 429) return t("auth.tooMany");
+    if (err.status === 409) return t("auth.accountExists");
     return err.message;
   }
   return fallback;
 }
 
-function AuthArt() {
+function AuthArt({ t }) {
   const [img, setImg] = useState("");
   useEffect(() => {
     let mounted = true;
@@ -51,23 +52,23 @@ function AuthArt() {
       )}
       <div className="auth-shell__quote">
         <p style={{ fontSize: "1.05rem", lineHeight: 1.7, fontStyle: "italic", color: "rgba(245,243,239,0.9)" }}>
-          Join the list. Early access to drops, member pricing and pieces built
-          to stay in rotation.
+          {t("auth.quoteSignup")}
         </p>
         <p style={{ marginTop: 16, fontFamily: "var(--display)", letterSpacing: "0.3em", textTransform: "uppercase", fontSize: "0.74rem", color: "var(--accent)" }}>
-          VANTA membership
+          {t("auth.quoteSignupTag")}
         </p>
       </div>
     </div>
   );
 }
 
-const STEPS = ["Details", "Verify", "You're in"];
-
 function SignupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const next = searchParams.get("next") || "/";
+
+  const STEPS = [t("auth.stepDetails"), t("auth.stepVerify"), t("auth.stepDone")];
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", otp: "" });
@@ -77,7 +78,6 @@ function SignupInner() {
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [otpSent, setOtpSent] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
@@ -105,10 +105,10 @@ function SignupInner() {
 
   const validateStep1 = () => {
     const er = {};
-    if (!validateName(form.name)) er.name = "Name must be between 3 and 100 characters.";
-    if (!validateEmail(form.email)) er.email = "Enter a valid email address.";
-    if (!validatePassword(form.password)) er.password = "Password must be 6–50 characters.";
-    if (!validatePhone(form.phone)) er.phone = "Phone must be 10–15 digits.";
+    if (!validateName(form.name)) er.name = t("auth.nameError");
+    if (!validateEmail(form.email)) er.email = t("auth.emailInvalid");
+    if (!validatePassword(form.password)) er.password = t("auth.passwordError");
+    if (!validatePhone(form.phone)) er.phone = t("auth.phoneError");
     return er;
   };
 
@@ -125,7 +125,7 @@ function SignupInner() {
       setStep(2);
       startCountdown();
     } catch (err) {
-      setServerError(userFacingError(err, "Could not send the code. Please try again."));
+      setServerError(userFacingError(err, t("auth.sendFail"), t));
     } finally {
       setSending(false);
     }
@@ -133,7 +133,7 @@ function SignupInner() {
 
   const submitSignup = async () => {
     if (!validateOtp(form.otp)) {
-      setErrors((er) => ({ ...er, otp: "Enter the 6-digit code." }));
+      setErrors((er) => ({ ...er, otp: t("auth.otpInvalid") }));
       return;
     }
     setSubmitting(true);
@@ -148,7 +148,7 @@ function SignupInner() {
       });
       setStep(3);
     } catch (err) {
-      setServerError(userFacingError(err, "Signup failed. Please try again."));
+      setServerError(userFacingError(err, t("auth.signupFail"), t));
       setErrors((er) => ({ ...er, otp: "" }));
     } finally {
       setSubmitting(false);
@@ -214,26 +214,25 @@ function SignupInner() {
 
               {step === 3 ? (
                 <div>
-                  <p className="section-label">Done</p>
+                  <p className="section-label">{t("auth.done")}</p>
                   <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 12 }}>
-                    You&apos;re in.
+                    {t("auth.youreIn")}
                   </h1>
                   <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 28 }}>
-                    Your VANTA account is ready. Sign in to start filling
-                    your bag.
+                    {t("auth.accountReady")}
                   </p>
                   <button className="btn btn--primary btn--block" onClick={goLogin}>
-                    Go to sign in
+                    {t("auth.goSignin")}
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="section-label">New here</p>
+                  <p className="section-label">{t("auth.newHere")}</p>
                   <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
-                    Create your account
+                    {t("nav.createAccount")}
                   </h1>
                   <p style={{ color: "var(--muted)", marginBottom: 30, lineHeight: 1.7 }}>
-                    Tell us who you are, verify your email, and you&apos;re in.
+                    {t("auth.tellUs")}
                   </p>
 
                   {serverError && (
@@ -256,12 +255,12 @@ function SignupInner() {
                   {step === 1 ? (
                     <div>
                       <div className="field">
-                        <label htmlFor="signup-name">Full name</label>
+                        <label htmlFor="signup-name">{t("auth.name")}</label>
                         <input id="signup-name" name="name" type="text" autoComplete="name" placeholder="Jordan Smith" value={form.name} onChange={onChange} className={errors.name ? "has-error" : ""} />
                         {errors.name && <span className="field__error">{errors.name}</span>}
                       </div>
                       <div className="field">
-                        <label htmlFor="signup-email">Email</label>
+                        <label htmlFor="signup-email">{t("auth.email")}</label>
                         <input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={onChange} className={errors.email ? "has-error" : ""} />
                         {errors.email && <span className="field__error">{errors.email}</span>}
                       </div>
@@ -271,7 +270,7 @@ function SignupInner() {
                         {errors.phone && <span className="field__error">{errors.phone}</span>}
                       </div>
                       <div className="field">
-                        <label htmlFor="signup-password">Password</label>
+                        <label htmlFor="signup-password">{t("auth.password")}</label>
                         <div className="field__box">
                           <input
                             id="signup-password"
@@ -296,23 +295,22 @@ function SignupInner() {
                               color: "var(--muted)",
                               fontFamily: "var(--display)",
                             }}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                           >
-                            {showPassword ? "Hide" : "Show"}
+                            {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                           </button>
                         </div>
                         {errors.password && <span className="field__error">{errors.password}</span>}
                       </div>
 
                       <button className="btn btn--primary btn--block" onClick={requestOtp} disabled={sending}>
-                        {sending ? "Sending code…" : "Send verification code"}
+                        {sending ? t("auth.sendingCode") : t("auth.sendCode")}
                       </button>
                     </div>
                   ) : (
                     <div>
                       <p style={{ marginBottom: 18, color: "var(--muted)", lineHeight: 1.6 }}>
-                        We sent a 6-digit code to{" "}
-                        <strong style={{ color: "var(--ink)" }}>{form.email}</strong>.
+                        {t("auth.otpSentTo", { email: form.email })}
                       </p>
                       <div className="field" style={{ textAlign: "center" }}>
                         <OTPInput
@@ -326,12 +324,12 @@ function SignupInner() {
                       </div>
 
                       <button className="btn btn--primary btn--block" onClick={submitSignup} disabled={submitting}>
-                        {submitting ? "Creating account…" : "Create account"}
+                        {submitting ? t("auth.creatingAccount") : t("auth.submitSignup")}
                       </button>
 
                       <div style={{ marginTop: 18, textAlign: "center", fontSize: "0.86rem", color: "var(--muted)" }}>
                         {countdown > 0 ? (
-                          <span>Resend code in {countdown}s</span>
+                          <span>{t("auth.resendIn", { n: countdown })}</span>
                         ) : (
                           <button
                             type="button"
@@ -340,7 +338,7 @@ function SignupInner() {
                             className="u-link"
                             style={{ color: "var(--ink)", fontWeight: 600 }}
                           >
-                            Resend the code
+                            {t("auth.resendCode")}
                           </button>
                         )}
                       </div>
@@ -350,16 +348,16 @@ function SignupInner() {
                   <p style={{ marginTop: 22, fontSize: "0.9rem", color: "var(--muted)" }}>
                     {step === 1 ? (
                       <>
-                        Already have an account?{" "}
+                        {t("auth.haveAccount")}{" "}
                         <Link href={`/login?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                          Sign in
+                          {t("nav.signin")}
                         </Link>
                       </>
                     ) : (
                       <>
-                        Need a different email?{" "}
+                        {t("auth.otherEmail")}{" "}
                         <button type="button" onClick={() => { setOtpSent(false); setStep(1); setForm((f) => ({ ...f, otp: "" })); }} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                          Go back
+                          {t("auth.goBack")}
                         </button>
                       </>
                     )}
@@ -369,7 +367,7 @@ function SignupInner() {
             </Reveal>
           </div>
         </div>
-        <AuthArt />
+        <AuthArt t={t} />
       </div>
     </div>
   );

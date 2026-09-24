@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +8,7 @@ import { splitImages, formatPrice } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import ProductGridSkeleton from "@/components/ProductGridSkeleton";
 import EmptyState from "@/components/EmptyState";
 import Reveal from "@/components/Reveal";
@@ -27,6 +26,7 @@ export default function ProductPage({ params }) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { notify } = useUi();
+  const { t } = useLocale();
 
   const [title, setTitle] = useState("");
   const [product, setProduct] = useState(null);
@@ -96,11 +96,11 @@ export default function ProductPage({ params }) {
     <div className="nav-spacer">
       <div className="container page">
         <div className="breadcrumb">
-          <Link href="/">Home</Link>
+          <Link href="/">{t("nav.home")}</Link>
           <span className="sep">/</span>
-          <Link href="/shop">Shop</Link>
+          <Link href="/shop">{t("nav.shop")}</Link>
           <span className="sep">/</span>
-          <span className="current">{notFound ? "Not found" : loading ? "Loading…" : product?.title}</span>
+          <span className="current">{notFound ? t("pdp.notFound") : loading ? t("pdp.loading") : product?.title}</span>
         </div>
 
         {loading ? (
@@ -108,10 +108,10 @@ export default function ProductPage({ params }) {
         ) : notFound || !product ? (
           <EmptyState
             icon="?"
-            title="Product not found"
-            body="This piece may have sold out or been removed."
+            title={t("pdp.missing")}
+            body={t("pdp.missingBody")}
             action={
-              <Link href="/shop" className="btn btn--primary btn--sm">Back to shop</Link>
+              <Link href="/shop" className="btn btn--primary btn--sm">{t("pdp.backShop")}</Link>
             }
           />
         ) : (
@@ -125,7 +125,7 @@ export default function ProductPage({ params }) {
                       key={src + i}
                       className={`pdp__thumb ${i === active ? "active" : ""}`}
                       onClick={() => setActive(i)}
-                      aria-label={`View image ${i + 1}`}
+                      aria-label={t("pdp.thumb", { n: i + 1 })}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius)" }} />
@@ -160,16 +160,16 @@ export default function ProductPage({ params }) {
                 </div>
 
                 {out ? (
-                  <p className="pdp__stock p-card__stock--out" style={{ fontSize: "0.9rem", marginTop: 6 }}>Out of stock</p>
+                  <p className="pdp__stock p-card__stock--out" style={{ fontSize: "0.9rem", marginTop: 6 }}>{t("pdp.out")}</p>
                 ) : product.stock <= 5 ? (
-                  <p className="pdp__stock p-card__stock--low" style={{ fontSize: "0.9rem", marginTop: 6 }}>Only {product.stock} left</p>
+                  <p className="pdp__stock p-card__stock--low" style={{ fontSize: "0.9rem", marginTop: 6 }}>{t("pdp.low", { n: product.stock })}</p>
                 ) : null}
 
                 <p className="pdp__desc">{product.description}</p>
 
                 {product.colors.length > 0 && (
                   <div>
-                    <div className="pdp__swatch-label">Color — <span style={{ color: "var(--ink)" }}>{color}</span></div>
+                    <div className="pdp__swatch-label">{t("pdp.color")} — <span style={{ color: "var(--ink)" }}>{color}</span></div>
                     <div className="pdp__swatches">
                       {product.colors.map((c) => (
                         <button
@@ -187,7 +187,7 @@ export default function ProductPage({ params }) {
 
                 {product.sizes.length > 0 && (
                   <div>
-                    <div className="pdp__swatch-label">Size — <span style={{ color: "var(--ink)" }}>{size || "Pick"}</span></div>
+                    <div className="pdp__swatch-label">{t("pdp.size")} — <span style={{ color: "var(--ink)" }}>{size || t("pdp.pick")}</span></div>
                     <div className="pdp__swatches">
                       {product.sizes.map((s) => (
                         <button
@@ -204,9 +204,9 @@ export default function ProductPage({ params }) {
                 )}
 
                 <div className="pdp__qty">
-                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" disabled={qty <= 1}>−</button>
+                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label={t("pdp.qtyDown")} disabled={qty <= 1}>−</button>
                   <span>{qty}</span>
-                  <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} aria-label="Increase quantity" disabled={qty >= product.stock}>+</button>
+                  <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} aria-label={t("pdp.qtyUp")} disabled={qty >= product.stock}>+</button>
                 </div>
 
                 <div className="pdp__cta">
@@ -217,29 +217,29 @@ export default function ProductPage({ params }) {
                       setAdding(true);
                       try {
                         await addToCart(product.id, qty, size, color);
-                        notify("Added to your bag");
+                        notify(t("pdp.added"));
                       } catch (err) {
                         if (err?.status === 401 || err?.status === 403) {
                           router.push(`/login?next=/product/${encodeURIComponent(title)}`);
                         } else {
-                          notify(err?.message || "Could not add to bag");
+                          notify(err?.message || t("pdp.addFail"));
                         }
                       } finally {
                         setAdding(false);
                       }
                     }}
                   >
-                    {adding ? "Adding…" : isAuthenticated ? "Add to bag" : "Sign in to add to bag"}
+                    {adding ? t("pdp.adding") : isAuthenticated ? t("pdp.add") : t("pdp.signInAdd")}
                   </button>
-                  <Link href="/cart" className="btn btn--outline btn--dark-text btn--block">View your bag</Link>
+                  <Link href="/cart" className="btn btn--outline btn--dark-text btn--block">{t("pdp.viewBag")}</Link>
                 </div>
 
                 <div className="pdp__meta">
-                  <div><b>SKU</b> — <span>#{product.id}</span></div>
-                  <div><b>Available sizes</b> — <span className="pdp__sizes">{product.sizes.map((s) => <span key={s} style={{ marginRight: 8 }}>{s}</span>)}</span></div>
-                  <div><b>Colors</b> — <span>{product.colors.join(", ") || "—"}</span></div>
-                  <div><b>Stock</b> — <span style={{ color: out ? "var(--err)" : "var(--ok)" }}>{out ? "Sold out" : `${product.stock} in stock`}</span></div>
-                  <p className="pdp__note">Free shipping over $100. This piece is part of the current collection drop.</p>
+                  <div><b>{t("pdp.sku")}</b> — <span>#{product.id}</span></div>
+                  <div><b>{t("pdp.sizes")}</b> — <span className="pdp__sizes">{product.sizes.map((s) => <span key={s} style={{ marginInlineEnd: 8 }}>{s}</span>)}</span></div>
+                  <div><b>{t("pdp.colors")}</b> — <span>{product.colors.join(", ") || "—"}</span></div>
+                  <div><b>{t("pdp.stock")}</b> — <span style={{ color: out ? "var(--err)" : "var(--ok)" }}>{out ? t("pdp.soldOut") : t("pdp.inStock", { n: product.stock })}</span></div>
+                  <p className="pdp__note">{t("pdp.note")}</p>
                 </div>
               </Reveal>
             </div>

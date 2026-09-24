@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getMyOrders } from "@/lib/api/orders";
-import { formatPrice, formatDate, statusLabel, statusTone } from "@/lib/format";
+import { formatPrice, formatDate, statusTone } from "@/lib/format";
+import { statusLabelKey } from "@/lib/i18n";
 import { useAuth } from "@/context/AuthContext";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import EmptyState from "@/components/EmptyState";
 import Reveal from "@/components/Reveal";
@@ -14,6 +16,7 @@ import ProductImage from "@/components/ProductImage";
 export default function OrdersPage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { t } = useLocale();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ export default function OrdersPage() {
         const list = await getMyOrders();
         if (mounted) setOrders(list);
       } catch (err) {
-        if (mounted) setError(err?.message || "Could not load your orders.");
+        if (mounted) setError(err?.message || t("orders.loadFail"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -41,10 +44,11 @@ export default function OrdersPage() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated]);
 
   if (authLoading) {
-    return <div className="nav-spacer"><Loader label="Checking your account" /></div>;
+    return <div className="nav-spacer"><Loader label={t("account.checking")} /></div>;
   }
 
   return (
@@ -52,35 +56,35 @@ export default function OrdersPage() {
       <div className="container page">
         <div className="page-head">
           <div>
-            <p className="section-label">History</p>
-            <h1 className="section-title">Your orders</h1>
+            <p className="section-label">{t("orders.history")}</p>
+            <h1 className="section-title">{t("orders.title")}</h1>
           </div>
           <div className="page-actions">
-            <Link href="/account" className="btn btn--outline btn--dark-text btn--sm">Account</Link>
-            <Link href="/shop" className="btn btn--primary btn--sm">Shop again</Link>
+            <Link href="/account" className="btn btn--outline btn--dark-text btn--sm">{t("orders.account")}</Link>
+            <Link href="/shop" className="btn btn--primary btn--sm">{t("orders.shopAgain")}</Link>
           </div>
         </div>
 
         {loading ? (
-          <Loader label="Loading orders" />
+          <Loader label={t("orders.loading")} />
         ) : error ? (
           <EmptyState
             icon="!"
-            title="Orders unavailable"
+            title={t("orders.unavailable")}
             body={error}
             action={
               <button className="btn btn--primary btn--sm" onClick={() => window.location.reload()}>
-                Try again
+                {t("home.retry")}
               </button>
             }
           />
         ) : orders.length === 0 ? (
           <EmptyState
             icon="◎"
-            title="No orders yet"
-            body="When you place your first order, it will show up here with live status updates."
+            title={t("orders.none")}
+            body={t("orders.noneBody")}
             action={
-              <Link href="/shop" className="btn btn--primary btn--sm">Start shopping</Link>
+              <Link href="/shop" className="btn btn--primary btn--sm">{t("orders.startShopping")}</Link>
             }
           />
         ) : (
@@ -90,11 +94,11 @@ export default function OrdersPage() {
                 <article className="order-card">
                   <div className="order-card__head">
                     <div>
-                      <div className="order-card__id">Order #{order.id}</div>
+                      <div className="order-card__id">{t("orders.cardId", { id: order.id })}</div>
                       <div className="order-card__date">{formatDate(order.created_at)}</div>
                     </div>
                     <span className={`badge badge--${statusTone(order.status)}`}>
-                      {statusLabel(order.status)}
+                      {t(statusLabelKey(order.status))}
                     </span>
                   </div>
 
@@ -122,7 +126,7 @@ export default function OrdersPage() {
                       {order.address ? order.address.slice(0, 48) + (order.address.length > 48 ? "…" : "") : ""}
                     </span>
                     <span style={{ fontFamily: "var(--display)", fontWeight: 600 }}>
-                      Total {formatPrice(order.total)}
+                      {t("orders.total")} {formatPrice(order.total)}
                     </span>
                   </div>
                 </article>

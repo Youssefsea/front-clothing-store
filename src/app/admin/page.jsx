@@ -4,11 +4,14 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAdminOrders, normalizeAdminOrderStats } from "@/lib/api/admin";
 import { api } from "@/lib/api/client";
-import { formatPrice, formatDate, statusLabel, statusTone } from "@/lib/format";
+import { formatPrice, formatDate, statusTone } from "@/lib/format";
+import { statusLabelKey } from "@/lib/i18n";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import EmptyState from "@/components/EmptyState";
 
 export default function AdminDashboard() {
+  const { t } = useLocale();
   const [orders, setOrders] = useState([]);
   const [productCount, setProductCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,7 @@ export default function AdminDashboard() {
   }, [reloadKey]);
 
   if (loading) {
-    return <Loader label="Loading dashboard" />;
+    return <Loader label={t("admin.loadingDashboard")} />;
   }
 
   const stats = normalizeAdminOrderStats(orders);
@@ -47,54 +50,54 @@ export default function AdminDashboard() {
     <div>
       <div className="admin-bar">
         <div>
-          <p className="section-label">Dashboard</p>
-          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>Overview</h1>
+          <p className="section-label">{t("admin.dashboard")}</p>
+          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>{t("admin.overview")}</h1>
         </div>
-        <Link href="/admin/orders" className="btn btn--outline btn--dark-text btn--sm">View all orders</Link>
+        <Link href="/admin/orders" className="btn btn--outline btn--dark-text btn--sm">{t("admin.viewAllOrders")}</Link>
       </div>
 
       <div className="admin-grid">
         <div className="stat-card">
-          <div className="k">Pending</div>
+          <div className="k">{t("admin.statPending")}</div>
           <div className="v">{stats.pending}</div>
         </div>
         <div className="stat-card">
-          <div className="k">Paid</div>
+          <div className="k">{t("admin.statPaid")}</div>
           <div className="v">{stats.paid}</div>
         </div>
         <div className="stat-card">
-          <div className="k">Shipped</div>
+          <div className="k">{t("admin.statShipped")}</div>
           <div className="v">{stats.shipped}</div>
         </div>
         <div className="stat-card">
-          <div className="k">Delivered</div>
+          <div className="k">{t("admin.statDelivered")}</div>
           <div className="v">{stats.delivered}</div>
         </div>
         <div className="stat-card">
-          <div className="k">Revenue</div>
+          <div className="k">{t("admin.statRevenue")}</div>
           <div className="v" style={{ fontSize: "1.5rem" }}>{formatPrice(stats.totalRevenue)}</div>
         </div>
         <div className="stat-card">
-          <div className="k">Products live</div>
+          <div className="k">{t("admin.statProductsLive")}</div>
           <div className="v">{productCount}</div>
         </div>
       </div>
 
       <h2 className="form-section__title" style={{ marginBottom: "var(--space-6)" }}>
-        Recent orders
+        {t("admin.recentOrders")}
       </h2>
 
       {recent.length === 0 ? (
-        <EmptyState icon="◎" title="No orders yet" body="Orders placed by customers will appear here." />
+        <EmptyState icon="◎" title={t("admin.noneOrders")} body={t("admin.noneOrdersBody")} />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Placed</th>
-                <th>Total</th>
-                <th>Status</th>
+                <th>{t("admin.colOrder")}</th>
+                <th>{t("admin.colPlaced")}</th>
+                <th>{t("admin.colPrice")}</th>
+                <th>{t("admin.colStatus")}</th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +107,7 @@ export default function AdminDashboard() {
                   <td>{formatDate(o.created_at)}</td>
                   <td>{formatPrice(o.total)}</td>
                   <td>
-                    <span className={`badge badge--${statusTone(o.status)}`}>{statusLabel(o.status)}</span>
+                    <span className={`badge badge--${statusTone(o.status)}`}>{t(statusLabelKey(o.status))}</span>
                   </td>
                 </tr>
               ))}

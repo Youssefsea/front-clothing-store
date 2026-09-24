@@ -11,50 +11,59 @@ import {
   extractTitles,
 } from "@/lib/api/products";
 import { ApiError } from "@/lib/api/client";
+import { useLocale } from "@/context/LocaleContext";
 
 const MAX_IMAGES = 5;
 
-// Safe mapping for common color names. Unknown names get a neutral swatch —
-// we never invent hex values for arbitrary labels.
+// Fashion size presets, expressed in canonical store order. The backend
+// sizes pattern is /^[A-Za-z0-9, ]*$/, so every value here is safe.
+const FASHION_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
+// 14 standard color presets. Swatch hexes only for known names — we never
+// invent hex values for arbitrary labels.
+const COLOR_PRESETS = [
+  { name: "Black", hex: "#141414" },
+  { name: "White", hex: "#f5f5f5" },
+  { name: "Gray", hex: "#8a8a86" },
+  { name: "Navy", hex: "#1f2d3d" },
+  { name: "Blue", hex: "#31518f" },
+  { name: "Red", hex: "#b32424" },
+  { name: "Green", hex: "#3f6b43" },
+  { name: "Yellow", hex: "#e4c13c" },
+  { name: "Orange", hex: "#e57a32" },
+  { name: "Pink", hex: "#d9a9b8" },
+  { name: "Purple", hex: "#6b4b8f" },
+  { name: "Brown", hex: "#6f4e37" },
+  { name: "Beige", hex: "#d6c8b0" },
+  { name: "Cream", hex: "#eee9dd" },
+];
+
+// Safe mapping for common color names beyond the presets (catalog values).
 const KNOWN_COLORS = {
-  black: "#141414",
-  white: "#f5f5f5",
+  ...Object.fromEntries(COLOR_PRESETS.map((p) => [p.name.toLowerCase(), p.hex])),
   "off-white": "#eeeae1",
   ecru: "#e6dfd0",
-  cream: "#eee9dd",
   ivory: "#f3efe7",
-  gray: "#8a8a86",
   grey: "#8a8a86",
   "light gray": "#c9c9c4",
   "dark gray": "#4b4b4b",
   charcoal: "#3a3a38",
-  navy: "#1f2d3d",
-  "navy blue": "#1f2d3d",
   indigo: "#414c86",
   denim: "#4c648a",
-  blue: "#31518f",
   "royal blue": "#284ea6",
   "light blue": "#9cc3e5",
   sky: "#a8c9e0",
-  green: "#3f6b43",
   "forest green": "#2c4a33",
   olive: "#6b7536",
   "olive green": "#6b7536",
   mint: "#b8d6c0",
-  red: "#b32424",
   burgundy: "#5e1f2f",
   maroon: "#651b2a",
-  pink: "#d9a9b8",
   "hot pink": "#d8487a",
   blush: "#e9c6c4",
   "dusty pink": "#c79a9a",
-  purple: "#6b4b8f",
   lavender: "#b7a6cf",
-  yellow: "#e4c13c",
   "mustard yellow": "#d9a327",
-  orange: "#e57a32",
-  brown: "#6f4e37",
-  beige: "#d6c8b0",
   tan: "#c9a16b",
   khaki: "#b5a06b",
   camel: "#b9894f",
@@ -62,6 +71,11 @@ const KNOWN_COLORS = {
   gold: "#c8a34e",
   silver: "#c6c8cc",
 };
+
+// Backend Joi patterns — mirrored exactly so the UI rejects what the API
+// would reject.
+const SIZES_PATTERN = /^[A-Za-z0-9, ]*$/;
+const COLORS_PATTERN = /^[A-Za-z\u0600-\u06FF, ]*$/;
 
 function hexForColor(name) {
   const key = String(name || "").trim().toLowerCase();
@@ -83,6 +97,47 @@ function titleCase(name) {
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
+// Canonical ordering: fashion letters first (XXS→XXXL), then numbers and
+// anything else via natural sort, with free-form sizes like "One Size" at
+// the end. Used both for display and input serialization.
+const LETTER_ORDER = Object.fromEntries(
+  FASHION_SIZES.map((s, i) => [s.toLowerCase(), i])
+);
+const NATURAL = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+function sortSizes(list) {
+  const items = (list || []).filter(Boolean).map(String);
+  const rank = (v) => {
+    const key = v.trim().toLowerCase().replace(/\s+/g, "");
+    if (LETTER_ORDER[key] != null) return [0, LETTER_ORDER[key]];
+    if (/^(one ?size|os)$/i.test(key)) return [3, 0];
+    return [1, 0];
+  };
+  return [...items].sort((a, b) => {
+    const [ra, ia] = rank(a);
+    const [rb, ib] = rank(b);
+    if (ra !== rb) return ra - rb;
+    return ra === 0 ? ia - ib : NATURAL.compare(a, b);
+  });
+}
+
+// Canonical ordering: presets first (in preset order), then the rest
+// alphabetically.
+const PRESET_ORDER = Object.fromEntries(
+  COLOR_PRESETS.map((p, i) => [p.name.toLowerCase(), i])
+);
+
+function sortColors(list) {
+  return [...(list || []).filter(Boolean).map(String)].sort((a, b) => {
+    const ia = PRESET_ORDER[a.trim().toLowerCase()];
+    const ib = PRESET_ORDER[b.trim().toLowerCase()];
+    if (ia != null && ib != null) return ia - ib;
+    if (ia != null) return -1;
+    if (ib != null) return 1;
+    return NATURAL.compare(a, b);
+  });
+}
+
 export default function AdminProductForm({
   catalog = [],
   mode, // "add" | "edit"
@@ -91,14 +146,31 @@ export default function AdminProductForm({
   onSaved,
   onError,
 }) {
+  const { t } = useLocale();
+
+  const presetSizeNames = useMemo(
+    () => FASHION_SIZES.map((s) => s.toUpperCase()),
+    []
+  );
+  const presetColorNames = useMemo(
+    () => COLOR_PRESETS.map((c) => c.name.toLowerCase()),
+    []
+  );
+
   const suggestions = useMemo(
     () => ({
       categories: extractCategories(catalog).slice().sort((a, b) => a.localeCompare(b)),
-      colors: extractColors(catalog).slice().sort((a, b) => a.localeCompare(b)),
-      sizes: extractSizes(catalog).slice().sort((a, b) => a.localeCompare(b)),
+      colors: extractColors(catalog)
+        .slice()
+        .filter((c) => !presetColorNames.includes(c.toLowerCase()))
+        .sort((a, b) => a.localeCompare(b)),
+      sizes: extractSizes(catalog)
+        .slice()
+        .filter((s) => !presetSizeNames.includes(s.toUpperCase()))
+        .sort((a, b) => a.localeCompare(b)),
       titles: extractTitles(catalog),
     }),
-    [catalog]
+    [catalog, presetColorNames, presetSizeNames]
   );
 
   const existingImages = useMemo(() => {
@@ -118,8 +190,8 @@ export default function AdminProductForm({
     stock: product ? String(product.stock || 0) : "0",
   });
 
-  const [sizes, setSizes] = useState(() => (product?.sizes || []).slice());
-  const [colors, setColors] = useState(() => (product?.colors || []).slice());
+  const [sizes, setSizes] = useState(() => sortSizes(product?.sizes || []));
+  const [colors, setColors] = useState(() => sortColors(product?.colors || []));
 
   const [sizeDraft, setSizeDraft] = useState("");
   const [colorDraft, setColorDraft] = useState("");
@@ -146,17 +218,17 @@ export default function AdminProductForm({
   };
 
   const totalImages = files.length;
+  const slotsRemaining = MAX_IMAGES - totalImages;
 
   const addFiles = (list, source = "click") => {
+    const incoming = Array.from(list || []);
     const allowed =
-      (files.length + (Array.from(list || []).length) > MAX_IMAGES
-        ? MAX_IMAGES - files.length
-        : Array.from(list || []).length);
+      totalImages + incoming.length > MAX_IMAGES ? slotsRemaining : incoming.length;
     if (allowed <= 0) {
-      setFormError(`You can upload up to ${MAX_IMAGES} images.`);
+      setFormError(t("v.maxImages", { n: MAX_IMAGES }));
       return;
     }
-    const next = Array.from(list || []).slice(0, allowed);
+    const next = incoming.slice(0, allowed);
     setFiles((prev) => [...prev, ...next]);
     setFilePreviews((prev) => [
       ...prev,
@@ -188,9 +260,11 @@ export default function AdminProductForm({
 
   const toggleSize = (s) => {
     setSizes((prev) =>
-      prev.some((x) => x.toLowerCase() === s.toLowerCase())
-        ? prev.filter((x) => x.toLowerCase() !== s.toLowerCase())
-        : [...prev, s]
+      sortSizes(
+        prev.some((x) => x.toLowerCase() === s.toLowerCase())
+          ? prev.filter((x) => x.toLowerCase() !== s.toLowerCase())
+          : [...prev, s]
+      )
     );
     setFormError("");
   };
@@ -198,32 +272,45 @@ export default function AdminProductForm({
   const addCustomSize = () => {
     const v = normalizeSize(sizeDraft);
     if (!v) return;
+    if (!SIZES_PATTERN.test(sizeDraft)) {
+      setErrors((e) => ({ ...e, sizes: t("v.sizeBadChars") }));
+      return;
+    }
+    setErrors((e) => ({ ...e, sizes: null }));
     if (sizes.some((x) => x.toLowerCase() === v.toLowerCase())) {
       setSizeDraft("");
       return;
     }
-    setSizes((prev) => [...prev, v]);
+    setSizes((prev) => sortSizes([...prev, v]));
     setSizeDraft("");
     setFormError("");
   };
 
   const toggleColor = (c) => {
     setColors((prev) =>
-      prev.some((x) => x.toLowerCase() === c.toLowerCase())
-        ? prev.filter((x) => x.toLowerCase() !== c.toLowerCase())
-        : [...prev, c]
+      sortColors(
+        prev.some((x) => x.toLowerCase() === c.toLowerCase())
+          ? prev.filter((x) => x.toLowerCase() !== c.toLowerCase())
+          : [...prev, c]
+      )
     );
     setFormError("");
   };
 
   const addCustomColor = () => {
-    const v = normalizeColor(colorDraft);
+    const raw = colorDraft;
+    const v = normalizeColor(raw);
     if (!v) return;
+    if (!COLORS_PATTERN.test(raw)) {
+      setErrors((e) => ({ ...e, colors: t("v.colorBadChars") }));
+      return;
+    }
+    setErrors((e) => ({ ...e, colors: null }));
     if (colors.some((x) => x.toLowerCase() === v.toLowerCase())) {
       setColorDraft("");
       return;
     }
-    setColors((prev) => [...prev, titleCase(v)]);
+    setColors((prev) => sortColors([...prev, titleCase(v)]));
     setColorDraft("");
     setFormError("");
   };
@@ -234,9 +321,9 @@ export default function AdminProductForm({
     try {
       await toggleProduct(product.id);
       setIsActive((v) => !v);
-      if (onError) onError(`${product.title} is now ${!isActive ? "live" : "hidden"}`);
+      if (onError) onError(`${product.title}: ${isActive ? t("admin.live") : t("admin.hidden")}`);
     } catch (err) {
-      if (onError) onError(err instanceof ApiError ? err.message : "Could not update visibility");
+      if (onError) onError(err instanceof ApiError ? err.message : t("v.generic"));
     } finally {
       setTogglingLive(false);
     }
@@ -250,18 +337,24 @@ export default function AdminProductForm({
     const discount = Number(form.discount) || 0;
     const stock = Number(form.stock) || 0;
 
-    if (!title) next.title = "Title is required.";
-    else if (title.length < 2) next.title = "Title is too short.";
+    if (!title) next.title = t("v.titleRequired");
+    else if (title.length < 3) next.title = t("v.titleMin");
+    else if (title.length > 150) next.title = t("v.titleMax");
 
-    if (!category) next.category_name = "Category is required.";
-    if (!Number.isFinite(price) || price < 0) next.price = "Enter a valid price.";
+    if (!category) next.category_name = t("v.categoryRequired");
+    else if (category.length < 2) next.category_name = t("v.categoryShort");
+    else if (category.length > 100) next.category_name = t("v.categoryLong");
+
+    if (!String(form.price).trim() || !Number.isFinite(price) || price <= 0)
+      next.price = price > 0 ? t("v.priceRequired") : t("v.pricePositive");
     if (!Number.isFinite(discount) || discount < 0 || discount > 100)
-      next.discount = "Discount must be between 0 and 100.";
-    if (!Number.isInteger(stock) || stock < 0)
-      next.stock = "Stock must be a whole number of 0 or more.";
+      next.discount = t("v.discount");
+    if (!Number.isInteger(stock) || stock < 0) next.stock = t("v.stock");
 
-    if (mode === "add" && totalImages === 0)
-      next.images = "Add at least one product image.";
+    if (mode === "add" && totalImages === 0) next.images = t("v.images");
+
+    if (sizes.some((s) => !SIZES_PATTERN.test(s))) next.sizes = t("v.sizeBadChars");
+    if (colors.some((c) => !COLORS_PATTERN.test(c))) next.colors = t("v.colorBadChars");
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -279,25 +372,25 @@ export default function AdminProductForm({
       discount: Number(form.discount) || 0,
       stock: Number(form.stock) || 0,
       category_name: form.category_name.trim(),
-      sizes: sizes.join(","),
-      colors: colors.join(","),
+      sizes: sortSizes(sizes).join(","),
+      colors: sortColors(colors).join(","),
     };
 
     setSaving(true);
     try {
       if (mode === "add") {
         await addProduct({ ...base, images: files });
-        onSaved && onSaved({ mode, message: "Product created" });
+        onSaved && onSaved({ mode, message: t("admin.createProduct") });
       } else {
         await updateProduct({
           ...base,
           product_id: product.id,
           images: files,
         });
-        onSaved && onSaved({ mode, message: "Product updated" });
+        onSaved && onSaved({ mode, message: t("admin.editProduct") });
       }
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Could not save product");
+      setFormError(err instanceof ApiError ? err.message : t("v.generic"));
       setSaving(false);
     }
   };
@@ -305,6 +398,15 @@ export default function AdminProductForm({
   const categoryQuickPicks = suggestions.categories.filter(
     (c) => c.toLowerCase() !== form.category_name.trim().toLowerCase()
   );
+
+  const readyLabel =
+    totalImages === 1
+      ? t("pf.imagesReadyOne")
+      : t("pf.imagesReadyMany", { n: totalImages });
+  const slotsLabel =
+    slotsRemaining === 1
+      ? t("pf.slotsRemainingOne", { n: slotsRemaining })
+      : t("pf.slotsRemainingMany", { n: slotsRemaining });
 
   return (
     <form onSubmit={submit} noValidate>
@@ -317,38 +419,34 @@ export default function AdminProductForm({
       {/* ---------- Product information ---------- */}
       <div className="form-section">
         <div className="form-section__head">
-          <h3 className="form-section__title">Product information</h3>
-          <p className="form-section__desc">Core details that define the piece in the catalog.</p>
+          <h3 className="form-section__title">{t("pf.sections.info")}</h3>
+          <p className="form-section__desc">{t("pf.sections.infoDesc")}</p>
         </div>
 
         <div className="field">
-          <label htmlFor="pf-title">Title *</label>
+          <label htmlFor="pf-title">* {t("pf.title")}</label>
           <input
             id="pf-title"
             value={form.title}
             onChange={(e) => setField("title", e.target.value)}
-            placeholder="e.g. Heritage Oversized Overcoat"
             list="pf-title-hints"
             autoComplete="off"
           />
           <datalist id="pf-title-hints">
-            {suggestions.titles.map((t) => (
-              <option key={t} value={t} />
+            {suggestions.titles.map((tp) => (
+              <option key={tp} value={tp} />
             ))}
           </datalist>
-          <span className="field__hint">
-            Suggestions autocomplete wording from existing titles — the field stays fully editable and never overwrites your input.
-          </span>
+          <span className="field__hint">{t("pf.titleHint")}</span>
           {errors.title && <span className="field__error">{errors.title}</span>}
         </div>
 
         <div className="field">
-          <label htmlFor="pf-category">Category *</label>
+          <label htmlFor="pf-category">* {t("pf.category")}</label>
           <input
             id="pf-category"
             value={form.category_name}
             onChange={(e) => setField("category_name", e.target.value)}
-            placeholder="Type a new category or pick one below"
             list="pf-cat-suggestions"
             autoComplete="off"
           />
@@ -360,7 +458,7 @@ export default function AdminProductForm({
           {errors.category_name && <span className="field__error">{errors.category_name}</span>}
           {categoryQuickPicks.length > 0 && (
             <div className="field__hint" style={{ marginTop: 2 }}>
-              Existing categories:
+              {t("pf.categoryQuick")}
             </div>
           )}
           {categoryQuickPicks.length > 0 && (
@@ -383,27 +481,26 @@ export default function AdminProductForm({
         </div>
 
         <div className="field">
-          <label htmlFor="pf-description">Description</label>
+          <label htmlFor="pf-description">{t("pf.description")}</label>
           <textarea
             id="pf-description"
             value={form.description}
             onChange={(e) => setField("description", e.target.value)}
-            placeholder="Materials, fit, care notes…"
             rows={5}
           />
-          <span className="field__hint">Shown on the product page underneath the price.</span>
+          <span className="field__hint">{t("pf.descHint")}</span>
         </div>
       </div>
 
       {/* ---------- Pricing ---------- */}
       <div className="form-section">
         <div className="form-section__head">
-          <h3 className="form-section__title">Pricing</h3>
-          <p className="form-section__desc">Discount is applied as a percentage off the price.</p>
+          <h3 className="form-section__title">{t("pf.sections.pricing")}</h3>
+          <p className="form-section__desc">{t("pf.sections.pricingDesc")}</p>
         </div>
         <div className="field-row">
           <div className="field">
-            <label htmlFor="pf-price">Price (USD) *</label>
+            <label htmlFor="pf-price">* {t("pf.price")}</label>
             <input
               id="pf-price"
               type="number"
@@ -411,12 +508,11 @@ export default function AdminProductForm({
               step="0.01"
               value={form.price}
               onChange={(e) => setField("price", e.target.value)}
-              placeholder="120.00"
             />
             {errors.price && <span className="field__error">{errors.price}</span>}
           </div>
           <div className="field">
-            <label htmlFor="pf-discount">Discount %</label>
+            <label htmlFor="pf-discount">{t("pf.discount")}</label>
             <input
               id="pf-discount"
               type="number"
@@ -433,12 +529,12 @@ export default function AdminProductForm({
       {/* ---------- Inventory ---------- */}
       <div className="form-section">
         <div className="form-section__head">
-          <h3 className="form-section__title">Inventory</h3>
-          <p className="form-section__desc">Stock level plus the sizes and colors this piece is available in.</p>
+          <h3 className="form-section__title">{t("pf.sections.inventory")}</h3>
+          <p className="form-section__desc">{t("pf.sections.inventoryDesc")}</p>
         </div>
 
         <div className="field">
-          <label htmlFor="pf-stock">Stock *</label>
+          <label htmlFor="pf-stock">* {t("pf.stock")}</label>
           <input
             id="pf-stock"
             type="number"
@@ -453,20 +549,40 @@ export default function AdminProductForm({
         <div className="smart-cols">
           <div className="field">
             <span className="field__label attr-label" style={{ marginBottom: 4 }}>
-              Sizes
+              {t("pf.sizes")}
             </span>
             <div className="attr-wrap">
-              {suggestions.sizes.length > 0 ? (
+              <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
+                {t("pf.sizesStandard")}
+              </span>
+              <div className="attr-suggestions">
+                {FASHION_SIZES.map((s) => {
+                  const selected = sizes.some((x) => x.toLowerCase() === s.toLowerCase());
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`attr-suggestion ${selected ? "selected" : ""}`}
+                      aria-pressed={selected}
+                      onClick={() => toggleSize(s)}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {suggestions.sizes.length > 0 && (
                 <>
-                  <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
-                    From the catalog
+                  <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8, marginTop: 2 }}>
+                    {t("pf.sizesCatalog")}
                   </span>
                   <div className="attr-suggestions">
                     {suggestions.sizes.map((s) => {
                       const selected = sizes.some((x) => x.toLowerCase() === s.toLowerCase());
                       return (
                         <button
-                          key={s}
+                          key={`c-${s}`}
                           type="button"
                           className={`attr-suggestion ${selected ? "selected" : ""}`}
                           aria-pressed={selected}
@@ -478,15 +594,15 @@ export default function AdminProductForm({
                     })}
                   </div>
                 </>
-              ) : (
-                <span className="field__hint">No sizes in the catalog yet — add them below and they will appear for future products.</span>
               )}
 
-              <div className="selected-sizes" aria-label="Selected sizes">
+              {errors.sizes && <span className="field__error">{errors.sizes}</span>}
+
+              <div className="selected-sizes" aria-label={t("pf.sizes")}>
                 {sizes.map((s) => (
                   <span key={s} className="selected-value">
                     {s}
-                    <button type="button" onClick={() => toggleSize(s)} aria-label={`Remove size ${s}`}>
+                    <button type="button" onClick={() => toggleSize(s)} aria-label={t("pf.removeSize", { s })}>
                       ×
                     </button>
                   </span>
@@ -496,18 +612,21 @@ export default function AdminProductForm({
               <div className="attr-add">
                 <input
                   value={sizeDraft}
-                  onChange={(e) => setSizeDraft(e.target.value)}
+                  onChange={(e) => {
+                    setSizeDraft(e.target.value);
+                    setErrors((er) => ({ ...er, sizes: null }));
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       addCustomSize();
                     }
                   }}
-                  placeholder="Add custom size, e.g. One Size"
-                  aria-label="Add custom size"
+                  placeholder={t("pf.sizePlaceholderFull")}
+                  aria-label={t("pf.customSize")}
                 />
                 <button type="button" className="btn btn--primary btn--sm" onClick={addCustomSize} disabled={!sizeDraft.trim()}>
-                  Add
+                  {t("pf.add")}
                 </button>
               </div>
             </div>
@@ -515,13 +634,34 @@ export default function AdminProductForm({
 
           <div className="field">
             <span className="attr-label" style={{ marginBottom: 4 }}>
-              Colors
+              {t("pf.colors")}
             </span>
             <div className="attr-wrap">
-              {suggestions.colors.length > 0 ? (
+              <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
+                {t("pf.colorsStandard")}
+              </span>
+              <div className="attr-suggestions">
+                {COLOR_PRESETS.map(({ name, hex }) => {
+                  const selected = colors.some((x) => x.toLowerCase() === name.toLowerCase());
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`attr-suggestion ${selected ? "selected" : ""}`}
+                      aria-pressed={selected}
+                      onClick={() => toggleColor(name)}
+                    >
+                      <span className="preset-swatch" style={{ backgroundColor: hex }} aria-hidden="true" />
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {suggestions.colors.length > 0 && (
                 <>
-                  <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
-                    From the catalog
+                  <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8, marginTop: 2 }}>
+                    {t("pf.colorsCatalog")}
                   </span>
                   <div className="attr-suggestions">
                     {suggestions.colors.map((c) => {
@@ -529,23 +669,24 @@ export default function AdminProductForm({
                       const hex = hexForColor(c);
                       return (
                         <button
-                          key={c}
+                          key={`c-${c}`}
                           type="button"
                           className={`attr-suggestion ${selected ? "selected" : ""} ${!hex ? "no-color" : ""}`}
                           aria-pressed={selected}
                           onClick={() => toggleColor(c)}
                         >
+                          {hex && <span className="preset-swatch" style={{ backgroundColor: hex }} aria-hidden="true" />}
                           {c}
                         </button>
                       );
                     })}
                   </div>
                 </>
-              ) : (
-                <span className="field__hint">No colors in the catalog yet — add them below and they will appear for future products.</span>
               )}
 
-              <div className="selected-colors" aria-label="Selected colors">
+              {errors.colors && <span className="field__error">{errors.colors}</span>}
+
+              <div className="selected-colors" aria-label={t("pf.colors")}>
                 {colors.map((c) => {
                   const hex = hexForColor(c);
                   return (
@@ -556,7 +697,7 @@ export default function AdminProductForm({
                         aria-hidden="true"
                       />
                       {c}
-                      <button type="button" onClick={() => toggleColor(c)} aria-label={`Remove color ${c}`}>
+                      <button type="button" onClick={() => toggleColor(c)} aria-label={t("pf.removeColor", { c })}>
                         ×
                       </button>
                     </span>
@@ -567,18 +708,21 @@ export default function AdminProductForm({
               <div className="attr-add">
                 <input
                   value={colorDraft}
-                  onChange={(e) => setColorDraft(e.target.value)}
+                  onChange={(e) => {
+                    setColorDraft(e.target.value);
+                    setErrors((er) => ({ ...er, colors: null }));
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       addCustomColor();
                     }
                   }}
-                  placeholder="Add custom color, e.g. Rust"
-                  aria-label="Add custom color"
+                  placeholder={t("pf.colorPlaceholderFull")}
+                  aria-label={t("pf.customColor")}
                 />
                 <button type="button" className="btn btn--primary btn--sm" onClick={addCustomColor} disabled={!colorDraft.trim()}>
-                  Add
+                  {t("pf.add")}
                 </button>
               </div>
             </div>
@@ -589,11 +733,11 @@ export default function AdminProductForm({
       {/* ---------- Media ---------- */}
       <div className="form-section">
         <div className="form-section__head">
-          <h3 className="form-section__title">Media</h3>
+          <h3 className="form-section__title">{t("pf.sections.media")}</h3>
           <p className="form-section__desc">
             {mode === "add"
-              ? `Upload the product photos. Up to ${MAX_IMAGES} images, first one is the cover.`
-              : "Existing images are shown for reference. Newly uploaded files replace the current set."}
+              ? t("pf.sections.mediaAdd", { n: MAX_IMAGES })
+              : t("pf.sections.mediaEdit")}
           </p>
         </div>
 
@@ -628,27 +772,31 @@ export default function AdminProductForm({
               onChange={(e) => addFiles(e.target.files)}
             />
             <div className="file-drop__title">
-              {dragging ? "Drop images here" : totalImages > 0 ? `${totalImages} image${totalImages === 1 ? "" : "s"} ready` : mode === "add" ? "Drop images or click to upload" : "Drop new images or click to upload"}
+              {dragging
+                ? t("pf.dropHere")
+                : totalImages > 0
+                  ? readyLabel
+                  : t(mode === "add" ? "pf.uploadAdd" : "pf.uploadEdit")}
             </div>
-            <div className="file-drop__sub">PNG or JPG · {MAX_IMAGES - totalImages} slot{MAX_IMAGES - totalImages === 1 ? "" : "s"} remaining</div>
+            <div className="file-drop__sub">PNG or JPG · {slotsLabel}</div>
           </div>
 
           <span className="media-count">
-            Coverage <b>{totalImages}</b> / {MAX_IMAGES}
+            {t("pf.mediaCoverage")} <b>{totalImages}</b> / {MAX_IMAGES}
           </span>
           {errors.images && <span className="field__error">{errors.images}</span>}
 
           {mode === "edit" && existingImages.length > 0 && (
             <div style={{ marginTop: "var(--space-4)" }}>
               <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
-                Current images (kept unless replaced)
+                {t("pf.currentLabel")}
               </span>
               <div className="media-preview">
                 {existingImages.map((src, i) => (
                   <div key={`src-${i}`} className="media-tile media-tile--current">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt={`Current image ${i + 1}`} />
-                    <span className="media-tile__n" title="Current">✓</span>
+                    <img src={src} alt={t("pf.imageAltCurrent", { i: i + 1 })} />
+                    <span className="media-tile__n" title={t("pf.currentLabel")}>✓</span>
                   </div>
                 ))}
               </div>
@@ -658,22 +806,22 @@ export default function AdminProductForm({
           {filePreviews.length > 0 && (
             <div style={{ marginTop: "var(--space-4)" }}>
               <span className="attr-label" style={{ fontSize: "0.62rem", opacity: 0.8 }}>
-                {mode === "edit" ? "New images (this set replaces the current ones)" : "New images — drag previews to reorder"}
+                {mode === "edit" ? t("pf.newLabelEdit") : t("pf.newLabelAdd")}
               </span>
               <div className="media-preview">
                 {filePreviews.map((src, i) => (
                   <div key={`new-${i}`} className="media-tile">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt={`Upload preview ${i + 1}`} />
+                    <img src={src} alt={t("pf.imageAltNew", { i: i + 1 })} />
                     <span className="media-tile__n">{i + 1}</span>
                     <div className="media-tile__actions">
-                      <button type="button" onClick={() => moveFile(i, -1)} disabled={i === 0} aria-label="Move earlier">
+                      <button type="button" onClick={() => moveFile(i, -1)} disabled={i === 0} aria-label={t("pf.moveEarlier")}>
                         ←
                       </button>
-                      <button type="button" onClick={() => removeFile(i)} aria-label="Remove image">
+                      <button type="button" onClick={() => removeFile(i)} aria-label={t("pf.removeImage")}>
                         ✕
                       </button>
-                      <button type="button" onClick={() => moveFile(i, 1)} disabled={i === files.length - 1} aria-label="Move later">
+                      <button type="button" onClick={() => moveFile(i, 1)} disabled={i === files.length - 1} aria-label={t("pf.moveLater")}>
                         →
                       </button>
                     </div>
@@ -688,28 +836,28 @@ export default function AdminProductForm({
       {/* ---------- Visibility ---------- */}
       <div className="form-section">
         <div className="form-section__head">
-          <h3 className="form-section__title">Visibility</h3>
+          <h3 className="form-section__title">{t("pf.sections.visibility")}</h3>
           <p className="form-section__desc">
             {mode === "add"
-              ? "New products are published to the store immediately after creation."
-              : "Control whether this product is shown in the store."}
+              ? t("pf.sections.visibilityAdd")
+              : t("pf.sections.visibilityEdit")}
           </p>
         </div>
 
         <div className="attr-wrap" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: "var(--space-5) var(--space-6)" }}>
           <div>
-            <div style={{ fontWeight: 500 }}>{mode === "add" ? "Live on publish" : `Currently ${isActive ? "live" : "hidden"}`}</div>
+            <div style={{ fontWeight: 500 }}>
+              {mode === "add" ? t("pf.liveOnPublish") : isActive ? t("pf.currentlyLive") : t("pf.currentlyHidden")}
+            </div>
             <span className="field__hint" style={{ display: "block", marginTop: 2 }}>
-              {mode === "add"
-                ? "You can hide it from the products table anytime."
-                : "Toggling uses the existing visibility endpoint — no extra fields sent."}
+              {mode === "add" ? t("pf.hideAnytime") : t("pf.toggleHint")}
             </span>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={mode === "add" ? true : isActive}
-            aria-label="Product visibility"
+            aria-label={t("pf.visibilityLabel")}
             className={`switch ${mode === "add" || isActive ? "switch--on" : ""} ${togglingLive ? "switch--busy" : ""}`}
             onClick={toggleLive}
             disabled={mode === "add" || togglingLive}
@@ -722,10 +870,16 @@ export default function AdminProductForm({
       {/* ---------- Actions ---------- */}
       <div className="form-actions">
         <button type="submit" className="btn btn--primary" disabled={saving}>
-          {saving ? "Saving…" : mode === "add" ? "Create product" : "Save changes"}
+          {saving
+            ? mode === "add"
+              ? t("pf.creating")
+              : t("pf.saving")
+            : mode === "add"
+              ? t("pf.createProduct")
+              : t("pf.saveChanges")}
         </button>
         <button type="button" className="btn btn--outline btn--dark-text" onClick={onClose} disabled={saving}>
-          Cancel
+          {t("pf.cancel")}
         </button>
       </div>
     </form>

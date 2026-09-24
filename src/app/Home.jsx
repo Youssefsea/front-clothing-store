@@ -8,11 +8,32 @@ import ProductCard from "@/components/ProductCard";
 import ProductGridSkeleton from "@/components/ProductGridSkeleton";
 import Reveal from "@/components/Reveal";
 import { ApiError } from "@/lib/api/client";
+import { useLocale } from "@/context/LocaleContext";
+
+// Editorial media — curated, embedding-friendly sources.
+//   - Stills: Unsplash CDN (images.unsplash.com)
+//   - Loop: Mixkit (assets.mixkit.co) — muted, poster fallback
+// Real products always take precedence in the hero; editorial assets are
+// used only as a graceful fallback when the catalog is empty.
+const EDITORIAL = {
+  // Photo: "fashion model in studio" — https://unsplash.com/photos/FbRxpkNc8sA
+  hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1400&q=80",
+  // Photo: "woman in street style" — https://unsplash.com/photos/yFihlPZDgiE
+  editorial: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1400&q=80",
+  // Photo: "minimal fashion look" — https://unsplash.com/photos/BqoKdLrMoBw
+  spotlight: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1600&q=80",
+  // Video poster uses the editorial still; after that a muted Mixkit loop.
+  // Loop source: https://mixkit.co/free-stock-video/dramatic-fashion-model-poses-in-dark-photography-studio/
+  videoPoster: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80",
+  video: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-posing-in-dramatic-light-49970-large.mp4",
+};
 
 export default function HomePage() {
+  const { t } = useLocale();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [videoFailed, setVideoFailed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -23,7 +44,7 @@ export default function HomePage() {
         setProducts(all.filter((p) => p.is_active));
       } catch (err) {
         if (mounted) {
-          setError(err instanceof ApiError ? err.message : "Could not load the collection.");
+          setError(err instanceof ApiError ? err.message : t("shop.loadFailed"));
         }
       } finally {
         if (mounted) setLoading(false);
@@ -32,19 +53,25 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const heroProduct = products[0];
-  const heroImage = heroProduct ? splitImages(heroProduct.image_url)[0] : null;
+  const heroImage = heroProduct ? splitImages(heroProduct.image_url)[0] : EDITORIAL.hero;
 
   const categories = useMemo(() => extractCategories(products), [products]);
 
-  const categoryTile = (cat) => {
-    const p = products.find((x) => x.category_name === cat);
-    return p;
-  };
+  const categoryTile = (cat) => products.find((x) => x.category_name === cat);
 
   const featured = products.slice(0, 8);
+
+  const spotlight =
+    products.length > 3 ? products[3] : products[1] ?? products[0];
+  const editorialProduct =
+    products.length > 2 ? products[2] : products[1] ?? products[0];
+  const editorialImage = editorialProduct
+    ? splitImages(editorialProduct.image_url)[0]
+    : EDITORIAL.editorial;
 
   return (
     <div>
@@ -53,7 +80,7 @@ export default function HomePage() {
         <div className="hero__img">
           {heroImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={heroImage} alt="Latest collection" />
+            <img src={heroImage} alt={t("home.heroEyebrow")} />
           ) : (
             <div
               style={{
@@ -67,20 +94,19 @@ export default function HomePage() {
         </div>
         <div className="hero__veil" />
         <div className="hero__inner">
-          <p className="hero__eyebrow hero__stagger hero__stagger--1">New season</p>
+          <p className="hero__eyebrow hero__stagger hero__stagger--1">{t("home.heroEyebrow")}</p>
           <h1 className="hero__title hero__stagger hero__stagger--2">
-            Reinvent the <em>everyday.</em>
+            {t("home.heroTitleStart")} <em>{t("home.heroTitleEnd")}</em>
           </h1>
           <p className="hero__sub hero__stagger hero__stagger--3">
-            A focused collection of modern essentials — sharp cuts, honest
-            materials and pieces built to live in your rotation.
+            {t("home.heroSub")}
           </p>
           <div className="hero__cta hero__stagger hero__stagger--4">
             <Link href="/shop" className="btn btn--light">
-              Shop collection <span aria-hidden="true">→</span>
+              {t("home.heroCta")} <span aria-hidden="true">→</span>
             </Link>
             <Link href="/signup" className="btn btn--outline btn--light-text">
-              Create account
+              {t("home.heroCta2")}
             </Link>
           </div>
         </div>
@@ -91,10 +117,10 @@ export default function HomePage() {
         <div className="marquee__track">
           {[0, 1].map((copy) => (
             <span key={copy} style={{ display: "inline-flex", gap: 48 }}>
-              <span>New season</span>
-              <span>Free shipping over $100</span>
-              <span>Fresh drops</span>
-              <span>Modern essentials</span>
+              <span>{t("marquee.season")}</span>
+              <span>{t("marquee.shipping")}</span>
+              <span>{t("marquee.drops")}</span>
+              <span>{t("marquee.essentials")}</span>
             </span>
           ))}
         </div>
@@ -106,11 +132,11 @@ export default function HomePage() {
           <Reveal>
             <div className="section-head">
               <div>
-                <p className="section-label">The drop</p>
-                <h2 className="section-title">Featured pieces</h2>
+                <p className="section-label">{t("home.drop")}</p>
+                <h2 className="section-title">{t("home.featured")}</h2>
               </div>
               <Link href="/shop" className="u-link" style={{ fontWeight: 600, fontSize: "0.9rem" }}>
-                View all products →
+                {t("home.viewAll")} →
               </Link>
             </div>
           </Reveal>
@@ -122,17 +148,17 @@ export default function HomePage() {
           ) : error ? (
             <div className="empty-state">
               <div className="mark" aria-hidden="true">!</div>
-              <h3>Collection unavailable</h3>
+              <h3>{t("home.unavailable")}</h3>
               <p>{error}</p>
               <button className="btn btn--primary btn--sm" onClick={() => window.location.reload()}>
-                Try again
+                {t("home.retry")}
               </button>
             </div>
           ) : featured.length === 0 ? (
             <div className="empty-state">
               <div className="mark" aria-hidden="true">◎</div>
-              <h3>The collection is empty</h3>
-              <p>Products will appear here as soon as they are added.</p>
+              <h3>{t("home.catEmpty")}</h3>
+              <p>{t("home.catEmptyBody")}</p>
             </div>
           ) : (
             <div className="p-grid">
@@ -154,9 +180,9 @@ export default function HomePage() {
               <div className="section-head">
                 <div>
                   <p className="section-label" style={{ color: "var(--accent)" }}>
-                    Discover
+                    {t("home.discover")}
                   </p>
-                  <h2 className="section-title">Shop by category</h2>
+                  <h2 className="section-title">{t("home.shopByCat")}</h2>
                 </div>
               </div>
             </Reveal>
@@ -169,7 +195,7 @@ export default function HomePage() {
                     <Link href={`/shop?category=${encodeURIComponent(cat)}`} className="cat-tile">
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={img} alt={cat} />
+                        <img src={img} alt={cat} loading="lazy" />
                       ) : (
                         <div style={{ position: "absolute", inset: 0 }} />
                       )}
@@ -189,61 +215,79 @@ export default function HomePage() {
       )}
 
       {/* ============ EDITORIAL ============ */}
-      {products.length >= 3 && (
-        <section className="section">
-          <div className="container">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 60,
-                alignItems: "center",
-              }}
-              className="editorial"
-            >
-              <Reveal>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+      <section className="section">
+        <div className="container">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 60,
+              alignItems: "center",
+            }}
+            className="editorial"
+          >
+            <Reveal>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+                {!videoFailed ? (
+                  <video
+                    className="editorial__video"
+                    src={EDITORIAL.video}
+                    poster={EDITORIAL.videoPoster}
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                    aria-hidden="true"
+                    onError={() => setVideoFailed(true)}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "4/5",
+                      objectFit: "cover",
+                      borderRadius: "var(--radius)",
+                      background: "var(--bg-alt)",
+                    }}
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={splitImages(products[1].image_url)[0]}
-                    alt={products[1].title}
+                    src={editorialImage}
+                    alt={editorialProduct?.title || t("home.ideaTitle")}
+                    loading="lazy"
                     style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "var(--radius)" }}
                   />
-                </div>
-              </Reveal>
-              <Reveal delay={120}>
-                <div>
-                  <p className="section-label">The idea</p>
-                  <h2 className="section-title">
-                    Clothes that carry a point of view.
-                  </h2>
-                  <p className="section-sub" style={{ marginTop: "var(--space-5)", marginBottom: "var(--space-7)" }}>
-                    Every piece in the collection is treated like a canvas — a
-                    silhouette to build around, a color to commit to, a fabric
-                    that holds its shape. Less clutter. More intention.
-                  </p>
-                  <Link href="/shop" className="btn btn--primary">
-                    Explore the range <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
-              </Reveal>
-            </div>
+                )}
+              </div>
+            </Reveal>
+            <Reveal delay={120}>
+              <div>
+                <p className="section-label">{t("home.idea")}</p>
+                <h2 className="section-title">{t("home.ideaTitle")}</h2>
+                <p className="section-sub" style={{ marginTop: "var(--space-5)", marginBottom: "var(--space-7)" }}>
+                  {t("home.ideaBody")}
+                </p>
+                <Link href="/shop" className="btn btn--primary">
+                  {t("home.explore")} <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </Reveal>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* ============ FULL WIDTH SPOTLIGHT ============ */}
-      {products[3] && (
+      {spotlight && (
         <section className="section section--tight" style={{ paddingTop: 0 }}>
           <div className="container">
             <Reveal>
               <Link
-                href={`/product/${encodeURIComponent(products[3].title)}`}
+                href={`/product/${encodeURIComponent(spotlight.title)}`}
                 style={{ position: "relative", display: "block", overflow: "hidden", borderRadius: "var(--radius)" }}
                 className="spotlight"
               >
                 <img
-                  src={splitImages(products[3].image_url)[0]}
-                  alt={products[3].title}
+                  src={splitImages(spotlight.image_url)[0] || EDITORIAL.spotlight}
+                  alt={spotlight.title}
+                  loading="lazy"
                   style={{
                     width: "100%",
                     height: "min(72vh, 620px)",
@@ -264,12 +308,12 @@ export default function HomePage() {
                   }}
                 >
                   <div>
-                    <p className="section-label" style={{ color: "var(--accent)" }}>Spotlight</p>
+                    <p className="section-label" style={{ color: "var(--accent)" }}>{t("home.spotlight")}</p>
                     <h2 style={{ color: "var(--bg)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch", marginTop: "var(--space-2)" }}>
-                      {products[3].title}
+                      {spotlight.title}
                     </h2>
                     <span className="btn btn--light btn--sm" style={{ marginTop: "var(--space-6)" }}>
-                      View product →
+                      {t("home.viewProduct")} →
                     </span>
                   </div>
                 </div>
@@ -284,17 +328,17 @@ export default function HomePage() {
         <div className="container" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <Reveal>
             <h2 className="section-title" style={{ maxWidth: "20ch", margin: "0 auto" }}>
-              Ready to refresh your rotation?
+              {t("home.ctaTitle")}
             </h2>
             <p style={{ color: "rgba(245,243,239,0.7)", marginTop: "var(--space-4)", maxWidth: "44ch", lineHeight: 1.75 }}>
-              New pieces drop throughout the season. Be first in line.
+              {t("home.ctaBody")}
             </p>
             <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", marginTop: "var(--space-7)", flexWrap: "wrap" }}>
               <Link href="/shop" className="btn btn--accent">
-                Shop the collection
+                {t("home.ctaPrimary")}
               </Link>
               <Link href="/signup" className="btn btn--outline btn--light-text">
-                Join VANTA
+                {t("home.ctaJoin")}
               </Link>
             </div>
           </Reveal>

@@ -6,7 +6,7 @@
   --bg: #f5f3ef; /* off-white */
   --bg-alt: #eceae4; /* cream */
   --surface: #ffffff;
-  --ink: #0b0b0b; /* near-black */
+  --ink: #0b0b0b; /* near-black — primary text AND strong foreground */
   --ink-2: #16150f;
   --charcoal: #2c2a26;
   --muted: #706a60;
@@ -17,6 +17,16 @@
   --err: #c0392b;
   --info: #2a5fa3;
   --warn: #b5811c;
+
+  /* Theme-aware surfaces (redefined in the dark theme block) */
+  --on-dark: #f5f3ef; /* text on always-dark surfaces (hero, footer, admin side) */
+  --ink-inverse: #0b0b0b; /* text on always-light surfaces (light buttons) */
+  --nav-bg: rgba(255, 255, 255, 0.88);
+  --surface-tint: rgba(245, 243, 239, 0.55);
+  --ring: 11, 11, 11; /* rgb triple for focus/glow shadows */
+  --scroll: #c8c2b6;
+  --skeleton: #e4e0d7;
+  color-scheme: light;
 
   --display: var(--font-display, "Archivo"), "Arial Narrow", sans-serif;
   --body: var(--font-body, "Inter"), "Segoe UI", sans-serif;
@@ -85,6 +95,22 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Global app shell: navbar is fixed, so the page itself is a flex column
+   (Navbar → main → Footer). main grows freely and pushes the footer to the
+   bottom only when content is short. */
+main {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* In-page anchors never land hidden under the fixed navbar */
+[id] {
+  scroll-margin-top: calc(var(--nav-h) + 16px);
 }
 
 img {
@@ -163,7 +189,7 @@ hr.divider {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #c8c2b6;
+  background: var(--scroll);
   border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -178,11 +204,11 @@ hr.divider {
   width: 100%;
 }
 
-/* Vertical rhythm for a standard page: top clears the fixed nav, bottom
-   leaves generous closing space. Apply on top of .container. */
+/* Vertical rhythm for a standard page. The fixed navbar is reserved by the
+   shared `.nav-spacer`; this is breathing room on top of that. */
 .page {
-  padding-top: clamp(44px, 6vw, 64px);
-  padding-bottom: clamp(72px, 10vw, 128px);
+  padding-top: clamp(48px, 6vw, 72px);
+  padding-bottom: clamp(88px, 10vw, 140px);
 }
 
 .page-head {
@@ -191,7 +217,7 @@ hr.divider {
   justify-content: space-between;
   gap: var(--space-6);
   flex-wrap: wrap;
-  margin-bottom: var(--space-9);
+  margin-bottom: var(--space-10);
 }
 
 .page-head .section-title {
@@ -201,35 +227,35 @@ hr.divider {
 
 .page-head .section-sub,
 .page-head > p {
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
   max-width: 58ch;
 }
 
 .page-head .page-actions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   flex-wrap: wrap;
   align-items: center;
 }
 
 .section {
-  padding: clamp(80px, 10vw, 128px) 0;
+  padding: clamp(88px, 11vw, 144px) 0;
 }
 
 .section--tight {
-  padding: clamp(56px, 7vw, 88px) 0;
+  padding: clamp(56px, 7vw, 96px) 0;
 }
 
 .section--alt {
-  background: var(--ink);
-  color: var(--bg);
+  background: #0b0b0b;
+  color: var(--on-dark);
 }
 
 .section--alt h1,
 .section--alt h2,
 .section--alt h3,
 .section--alt h4 {
-  color: var(--bg);
+  color: var(--on-dark);
 }
 
 .section-label {
@@ -257,7 +283,7 @@ hr.divider {
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-9);
+  margin-bottom: var(--space-10);
 }
 
 .section-title {
@@ -337,11 +363,12 @@ hr.divider {
 }
 
 .btn--light {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--on-dark);
+  color: var(--ink-inverse);
 }
 .btn--light:hover {
-  background: #fff;
+  background: #ffffff;
+  color: var(--ink-inverse);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -374,11 +401,11 @@ hr.divider {
 }
 
 .btn--outline.btn--light-text {
-  color: var(--bg);
+  color: var(--on-dark);
 }
 .btn--outline.btn--light-text:hover {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--on-dark);
+  color: var(--ink-inverse);
 }
 
 .btn:disabled {
@@ -418,8 +445,8 @@ hr.divider {
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
+  gap: 10px;
+  margin-bottom: var(--space-7);
 }
 
 .field--tight {
@@ -460,7 +487,7 @@ hr.divider {
 .field select:focus {
   outline: none;
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(11, 11, 11, 0.07);
+  box-shadow: 0 0 0 3px rgba(var(--ring), 0.08);
 }
 
 .field input.has-error {
@@ -532,18 +559,18 @@ hr.divider {
   align-items: center;
   gap: var(--space-4);
   flex-wrap: wrap;
-  margin-top: var(--space-8);
+  margin-top: var(--space-9);
 }
 
 /* Product grid + cards */
 .p-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-9) var(--space-6);
+  gap: var(--space-10) var(--space-7);
 }
 
 .p-grid--dense {
-  gap: var(--space-8) var(--space-4);
+  gap: var(--space-8) var(--space-5);
 }
 
 .p-card {
@@ -622,7 +649,7 @@ hr.divider {
 .p-card__quick .btn {
   width: 100%;
   background: rgba(245, 243, 239, 0.94);
-  color: var(--ink);
+  color: var(--ink-inverse);
   backdrop-filter: blur(4px);
   padding: 14px 18px;
   font-size: 0.72rem;
@@ -633,10 +660,10 @@ hr.divider {
 }
 
 .p-card__body {
-  padding-top: var(--space-4);
+  padding-top: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .p-card__cat {
@@ -650,7 +677,7 @@ hr.divider {
 .p-card__title {
   font-family: var(--display);
   font-weight: 500;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   line-height: var(--leading-snug);
   color: var(--ink);
   display: -webkit-box;
@@ -663,13 +690,13 @@ hr.divider {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .p-card__price .now {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
 }
 
 .p-card__price .was {
@@ -696,7 +723,7 @@ hr.divider {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: #e4e0d7;
+  background: var(--skeleton);
 }
 .skeleton::after {
   content: "";
@@ -825,11 +852,12 @@ hr.divider {
 .hero {
   position: relative;
   min-height: 92vh;
+  min-height: 92dvh;
   display: flex;
   align-items: center;
-  color: var(--bg);
+  color: var(--on-dark);
   overflow: hidden;
-  background: var(--ink);
+  background: #0b0b0b;
 }
 
 .hero__img {
@@ -893,7 +921,7 @@ hr.divider {
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: var(--leading-tight);
-  color: var(--bg);
+  color: var(--on-dark);
   max-width: 14ch;
 }
 
@@ -918,7 +946,7 @@ hr.divider {
 .hero__cta {
   display: flex;
   gap: var(--space-4);
-  margin-top: var(--space-8);
+  margin-top: var(--space-9);
   flex-wrap: wrap;
 }
 
@@ -1075,7 +1103,7 @@ hr.divider {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 28px;
+  padding: var(--space-6) var(--space-7);
   border-bottom: 1px solid var(--line);
 }
 
@@ -1317,7 +1345,7 @@ hr.divider {
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid rgba(226, 221, 212, 0.5);
+  border-bottom: 1px solid var(--line);
   transition: background 0.18s;
 }
 .search-item:hover {
@@ -1368,7 +1396,7 @@ hr.divider {
 .otp-cell:focus {
   outline: none;
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(11, 11, 11, 0.08);
+  box-shadow: 0 0 0 3px rgba(var(--ring), 0.08);
   transform: translateY(-2px);
 }
 .otp-cell.error {
@@ -1381,6 +1409,7 @@ hr.divider {
 /* Auth pages + generic centered forms */
 .auth-shell {
   min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
@@ -1394,8 +1423,8 @@ hr.divider {
 .auth-shell__art {
   position: relative;
   overflow: hidden;
-  background: var(--ink);
-  color: var(--bg);
+  background: #0b0b0b;
+  color: var(--on-dark);
   display: flex;
   align-items: flex-end;
 }
@@ -1559,7 +1588,7 @@ hr.divider {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-4);
-  background: rgba(245, 243, 239, 0.55);
+  background: var(--surface-tint);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
 }
@@ -1588,6 +1617,8 @@ hr.divider {
   border-radius: 999px;
   background: var(--surface);
   color: var(--charcoal);
+  display: inline-flex;
+  align-items: center;
   transition: border-color 0.2s, background 0.2s, color 0.2s,
     transform 0.2s var(--ease);
 }
@@ -1605,7 +1636,6 @@ hr.divider {
 
 .attr-suggestion::before {
   content: "+";
-  margin-right: 8px;
   color: var(--accent);
   font-weight: 600;
 }
@@ -1617,6 +1647,14 @@ hr.divider {
 .attr-suggestion:disabled,
 .attr-suggestion[aria-pressed="true"].no-color {
   opacity: 0.7;
+}
+
+.preset-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(128, 128, 128, 0.4);
 }
 
 .attr-add {
@@ -1634,7 +1672,7 @@ hr.divider {
 .attr-add input:focus {
   outline: none;
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(11, 11, 11, 0.07);
+  box-shadow: 0 0 0 3px rgba(var(--ring), 0.08);
 }
 .attr-add button {
   padding: 0 var(--space-4);
@@ -1662,7 +1700,7 @@ hr.divider {
 .selected-value.swatch-no-color {
   border-style: dashed;
   border-color: var(--line);
-  background: rgba(245, 243, 239, 0.6);
+  background: var(--surface-tint);
 }
 .selected-value .sw {
   width: 18px;
@@ -1742,7 +1780,7 @@ hr.divider {
   align-items: center;
   justify-content: center;
   background: rgba(245, 243, 239, 0.92);
-  color: var(--ink);
+  color: var(--ink-inverse);
   font-size: 0.85rem;
   transition: background 0.2s, color 0.2s;
 }
@@ -1759,7 +1797,7 @@ hr.divider {
   padding: 0 5px;
   border-radius: 999px;
   background: rgba(9, 8, 6, 0.6);
-  color: var(--bg);
+  color: var(--on-dark);
   font-family: var(--display);
   font-size: 0.7rem;
   display: inline-flex;
@@ -2093,8 +2131,9 @@ legend.field-label,
 }
 
 .navbar--solid {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
+  background: var(--nav-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: var(--shadow-sm);
   color: var(--ink);
   border-bottom: 1px solid var(--line);
@@ -2102,7 +2141,7 @@ legend.field-label,
 
 .navbar--transparent {
   background: transparent;
-  color: var(--bg);
+  color: var(--on-dark);
 }
 
 .navbar__inner {
@@ -2176,7 +2215,7 @@ legend.field-label,
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .navbar__cart {
@@ -2201,7 +2240,7 @@ legend.field-label,
 .navbar__cart-count {
   position: absolute;
   top: 2px;
-  right: 0;
+  inset-inline-end: 0;
   min-width: 18px;
   height: 18px;
   border-radius: 999px;
@@ -2220,16 +2259,16 @@ legend.field-label,
 }
 
 .navbar--transparent .navbar__signin {
-  color: var(--bg);
-  border-color: var(--bg);
+  color: var(--on-dark);
+  border-color: var(--on-dark);
 }
 .navbar--transparent .navbar__signin:hover {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--on-dark);
+  color: var(--ink-inverse);
 }
 .navbar--transparent .navbar__avatar {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--on-dark);
+  color: var(--ink-inverse);
 }
 .navbar--transparent .navbar__cart:hover,
 .navbar--transparent .navbar__burger:hover,
@@ -2249,7 +2288,7 @@ legend.field-label,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 6px;
+  margin-inline-start: 6px;
 }
 
 .navbar__burger {
@@ -2258,6 +2297,47 @@ legend.field-label,
 
 .navbar__search {
   display: none;
+}
+
+.navbar__lang,
+.navbar__theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: var(--radius);
+  font-family: var(--display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  transition: background 0.2s, color 0.2s;
+}
+.navbar__lang {
+  min-width: 36px;
+  border: 1px solid var(--line);
+}
+.navbar__lang:hover,
+.navbar__theme:hover {
+  background: var(--bg-alt);
+}
+.navbar--transparent .navbar__lang,
+.navbar--transparent .navbar__theme {
+  color: var(--on-dark);
+}
+.navbar--transparent .navbar__lang {
+  border-color: rgba(245, 243, 239, 0.35);
+}
+.navbar--transparent .navbar__lang:hover,
+.navbar--transparent .navbar__theme:hover {
+  background: rgba(245, 243, 239, 0.16);
+}
+
+.nav-menu__toggles {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 /* Mobile full menu */
@@ -2342,7 +2422,7 @@ legend.field-label,
    Footer
    ============================================================= */
 .footer {
-  background: var(--ink);
+  background: #0b0b0b;
   color: rgba(245, 243, 239, 0.7);
   margin-top: auto;
 }
@@ -2362,7 +2442,7 @@ legend.field-label,
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--bg);
+  color: var(--on-dark);
   display: block;
   margin-bottom: var(--space-4);
 }
@@ -2379,7 +2459,7 @@ legend.field-label,
   font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--bg);
+  color: var(--on-dark);
   margin-bottom: var(--space-5);
 }
 
@@ -2880,7 +2960,7 @@ select {
 }
 .method--active {
   border-color: var(--ink);
-  background: rgba(11, 11, 11, 0.03);
+  background: var(--surface-tint);
 }
 .method input {
   accent-color: var(--accent);
@@ -2951,7 +3031,7 @@ select {
   gap: var(--space-3);
   padding: 20px 24px;
   border-bottom: 1px solid var(--line);
-  background: rgba(245, 243, 239, 0.5);
+  background: var(--surface-tint);
 }
 .order-card__id {
   font-family: var(--display);
@@ -2995,7 +3075,7 @@ select {
   justify-content: space-between;
   padding: 16px 22px;
   border-top: 1px solid var(--line);
-  background: rgba(245, 243, 239, 0.5);
+  background: var(--surface-tint);
   font-size: 0.9rem;
 }
 
@@ -3187,20 +3267,24 @@ select {
 .admin-shell {
   display: grid;
   grid-template-columns: 230px 1fr;
-  min-height: calc(100vh - var(--nav-h));
 }
 
 .admin-side {
-  background: var(--ink);
-  color: var(--bg);
+  background: #0b0b0b;
+  color: var(--on-dark);
   padding: 28px 18px;
   display: flex;
   flex-direction: column;
   gap: 24px;
   position: sticky;
   top: var(--nav-h);
-  height: calc(100vh - var(--nav-h));
   align-self: start;
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+  max-height: calc(100vh - var(--nav-h));
+  max-height: calc(100dvh - var(--nav-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .admin-side__brand {
@@ -3239,7 +3323,7 @@ select {
 }
 .admin-side__link:hover {
   background: rgba(245, 243, 239, 0.08);
-  color: var(--bg);
+  color: var(--on-dark);
 }
 .admin-side__link.active {
   background: var(--accent);
@@ -3267,8 +3351,9 @@ select {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 6vh var(--space-5) var(--space-8);
+  padding: 6vh var(--space-5) var(--space-10);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .modal__panel {
   background: var(--surface);
@@ -3291,8 +3376,9 @@ select {
 }
 .modal__body {
   padding: var(--space-7);
-  max-height: min(76vh, 760px);
+  max-height: min(78dvh, 860px);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @media (max-width: 900px) {
@@ -3327,4 +3413,191 @@ select {
   .modal__head {
     padding: var(--space-5);
   }
+}
+
+/* =============================================================
+   Theme system (dark) — the CSS is built on tokens, so the dark
+   theme is a single, deliberate redefinition of those tokens.
+   NOTE: `--on-dark`, `--ink-inverse`, `--dark` stay fixed in both
+   themes: dark surfaces (hero/footer/admin) are ALWAYS dark and
+   light surfaces are ALWAYS light, which keeps contrast correct.
+   ============================================================= */
+html[data-theme="dark"] {
+  --bg: #0e0d0b;
+  --bg-alt: #171510;
+  --surface: #15130f;
+  --ink: #f2efe8;
+  --ink-2: #e6e1d6;
+  --charcoal: #d3cdc0;
+  --muted: #a39b8b;
+  --line: rgba(242, 239, 232, 0.14);
+  --accent: #ff6b3d;
+  --accent-ink: #ff7d54;
+  --ok: #46b375;
+  --err: #e05c4d;
+  --info: #6b9fe0;
+  --warn: #e0ac47;
+
+  --nav-bg: rgba(21, 19, 15, 0.85);
+  --surface-tint: rgba(255, 255, 255, 0.05);
+  --ring: 242, 239, 232;
+  --scroll: #3a362e;
+  --skeleton: #232019;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 28px 64px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/* Form controls inherit sensible dark surfaces */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
+/* Theme-aware imagery: soften the same dark scrims in dark mode so
+   text stays readable without muddying the picture. */
+html[data-theme="dark"] .hero__veil {
+  background: linear-gradient(
+    80deg,
+    rgba(4, 4, 4, 0.86) 0%,
+    rgba(4, 4, 4, 0.5) 45%,
+    rgba(4, 4, 4, 0.1) 100%
+  );
+}
+html[data-theme="dark"] .hero__sub {
+  color: rgba(245, 243, 239, 0.74);
+}
+
+/* =============================================================
+   Arabic (RTL) — fonts, direction and directional behaviour
+   ============================================================= */
+html[lang="ar"] {
+  --display: var(--font-ar, "IBM Plex Sans Arabic"), "Segoe UI", sans-serif;
+  --body: var(--font-ar, "IBM Plex Sans Arabic"), "Segoe UI", sans-serif;
+}
+
+html[dir="rtl"] .navbar__links {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+html[dir="rtl"] .nav-menu__link {
+  text-align: right;
+}
+html[dir="rtl"] .nav-menu__link:hover {
+  padding-left: 0;
+  padding-right: var(--space-4);
+}
+
+html[dir="rtl"] .footer__links a:hover {
+  transform: translateX(-4px);
+}
+
+/* Mirror arrow glyphs and directional affordances */
+html[dir="rtl"] .hero__cta .btn span[aria-hidden="true"],
+html[dir="rtl"] .section-head .u-link,
+html[dir="rtl"] .section-label::before,
+html[dir="rtl"] .cat-tile__label .arrow,
+html[dir="rtl"] .btn span[aria-hidden="true"] {
+  transform: scaleX(-1);
+}
+html[dir="rtl"] .cat-tile__label .arrow,
+html[dir="rtl"] .section-head .u-link,
+html[dir="rtl"] .btn span[aria-hidden="true"] {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Marquee runs the other way in RTL */
+html[dir="rtl"] .marquee__track {
+  animation-direction: reverse;
+}
+
+/* Drawer slides from the left in RTL */
+html[dir="rtl"] .drawer {
+  right: auto;
+  left: 0;
+  transform: translateX(-100%);
+}
+html[dir="rtl"] .drawer.open {
+  transform: translateX(0);
+}
+html[dir="rtl"] .drawer--left {
+  right: 0;
+  left: auto;
+  transform: translateX(100%);
+}
+html[dir="rtl"] .drawer--left.open {
+  transform: translateX(0);
+}
+
+/* Breadcrumbs and meta row separators read naturally in RTL */
+html[dir="rtl"] .breadcrumb {
+  justify-content: flex-start;
+}
+html[dir="rtl"] .meta-row {
+  flex-direction: row-reverse;
+}
+
+/* Product detail: gallery columns mirror so the thumbs sit on the
+   right in RTL (grid auto-flow follows direction). */
+html[dir="rtl"] .pdp__gallery {
+  grid-template-columns: 1fr 64px;
+}
+
+/* Admin back link arrow */
+html[dir="rtl"] .admin-side__foot .admin-side__link {
+  flex-direction: row-reverse;
+}
+
+/* Media tile order badge and actions align to the inline start */
+html[dir="rtl"] .media-tile__n {
+  left: auto;
+  right: 6px;
+}
+html[dir="rtl"] .p-card__badge {
+  left: auto;
+  right: var(--space-3);
+}
+
+/* ---- Arabic typography resets -------------------------------- */
+html[lang="ar"] body,
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select,
+html[lang="ar"] button {
+  letter-spacing: 0;
+}
+html[lang="ar"] .section-label,
+html[lang="ar"] .navbar__brand em,
+html[lang="ar"] .nav-link,
+html[lang="ar"] .footer__heading,
+html[lang="ar"] .btn,
+html[lang="ar"] .marquee__inner,
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3 {
+  letter-spacing: 0;
+}
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] .section-title,
+html[lang="ar"] .hero__title {
+  line-height: 1.35;
+}
+html[lang="ar"] .hero__title em {
+  font-style: normal;
+}
+html[lang="ar"] .navbar__brand {
+  font-size: 1.3rem;
+}
+html[lang="ar"] .p-card__badge,
+html[lang="ar"] .badge {
+  letter-spacing: 0;
 }

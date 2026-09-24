@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { formatPrice } from "@/lib/format";
 import ProductImage from "@/components/ProductImage";
 import Reveal from "@/components/Reveal";
@@ -17,6 +18,7 @@ export default function CartPage() {
   const { items, totals, loading, mutating, updateQuantity, removeFromCart, error, refresh } = useCart();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { notify } = useUi();
+  const { t } = useLocale();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -27,16 +29,16 @@ export default function CartPage() {
   const handleRemove = async (cartItemId, title) => {
     try {
       await removeFromCart(cartItemId);
-      notify(`${title} removed from your bag`);
+      notify(t("cart.removed", { t: title }));
     } catch (err) {
-      notify(err?.message || "Could not remove item");
+      notify(err?.message || t("cart.removeFail"));
     }
   };
 
   if (authLoading) {
     return (
       <div className="nav-spacer">
-        <Loader label="Checking your bag" />
+        <Loader label={t("cart.checkingBag")} />
       </div>
     );
   }
@@ -48,25 +50,25 @@ export default function CartPage() {
     <div className="nav-spacer">
       <div className="container page">
         <div className="breadcrumb">
-          <Link href="/">Home</Link>
+          <Link href="/">{t("cart.breadcrumb")}</Link>
           <span className="sep">/</span>
-          <span className="current">Your bag</span>
+          <span className="current">{t("cart.current")}</span>
         </div>
 
         <div className="page-head">
-          <p className="section-label">Almost there</p>
-          <h1 className="section-title">Your bag</h1>
+          <p className="section-label">{t("cart.label")}</p>
+          <h1 className="section-title">{t("cart.title")}</h1>
         </div>
 
         {loading && items.length === 0 ? (
-          <Loader label="Loading your bag" />
+          <Loader label={t("cart.loadingBag")} />
         ) : items.length === 0 ? (
           <EmptyState
             icon="◎"
-            title="Your bag is empty"
-            body="Nothing here yet — find pieces you love and they will show up in your bag."
+            title={t("cart.empty")}
+            body={t("cart.emptyBody")}
             action={
-              <Link href="/shop" className="btn btn--primary btn--sm">Shop the collection</Link>
+              <Link href="/shop" className="btn btn--primary btn--sm">{t("cart.shop")}</Link>
             }
           />
         ) : (
@@ -92,12 +94,12 @@ export default function CartPage() {
                       </div>
                       <div className="cart-line__controls">
                         <div className="cart-line__qty">
-                          <button onClick={() => updateQuantity(item.cart_item_id, -1)} disabled={mutating[item.cart_item_id] || item.quantity <= 1} aria-label="Decrease quantity">−</button>
+                          <button onClick={() => updateQuantity(item.cart_item_id, -1)} disabled={mutating[item.cart_item_id] || item.quantity <= 1} aria-label="−">−</button>
                           <span style={{ minWidth: 22, textAlign: "center" }}>{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.cart_item_id, 1)} disabled={mutating[item.cart_item_id]} aria-label="Increase quantity">+</button>
+                          <button onClick={() => updateQuantity(item.cart_item_id, 1)} disabled={mutating[item.cart_item_id]} aria-label="+">+</button>
                         </div>
                         <button className="cart-line__remove" onClick={() => handleRemove(item.cart_item_id, item.title)} disabled={mutating[item.cart_item_id]}>
-                          Remove
+                          {t("cart.remove")}
                         </button>
                       </div>
                     </div>
@@ -108,39 +110,38 @@ export default function CartPage() {
                 ))}
               </Reveal>
               <button className="btn btn--outline btn--dark-text btn--sm" onClick={refresh} style={{ marginTop: 22 }}>
-                Refresh bag
+                {t("cart.refresh")}
               </button>
             </div>
 
             <aside className="summary">
               <h3 style={{ fontFamily: "var(--display)", fontSize: "1.05rem", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                Summary
+                {t("cart.summary")}
               </h3>
               <div className="summary__rows">
                 <div className="summary__row">
-                  <span>Items ({totals.totalItems})</span>
-                  <span>{totals.itemLines} line{totals.itemLines === 1 ? "" : "s"}</span>
+                  <span>{t("cart.items")} ({totals.totalItems})</span>
+                  <span>{t("cart.lines", { n: totals.itemLines })}</span>
                 </div>
                 <div className="summary__row">
-                  <span>Subtotal</span>
+                  <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
                 </div>
                 <div className="summary__row">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
+                  <span>{t("cart.shipping")}</span>
+                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
                 </div>
                 <div className="summary__row summary__row--total">
-                  <span>Total</span>
+                  <span>{t("cart.total")}</span>
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
-              <Link href="/checkout" className="btn btn--primary btn--block">Proceed to checkout</Link>
+              <Link href="/checkout" className="btn btn--primary btn--block">{t("cart.checkout")}</Link>
               <Link href="/shop" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
-                Continue shopping
+                {t("cart.continue")}
               </Link>
               <p className="summary__note">
-                Free standard shipping on orders over $100. Payment is confirmed
-                after you upload your payment screenshot at checkout.
+                {t("cart.note")}
               </p>
             </aside>
           </div>

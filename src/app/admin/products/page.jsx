@@ -5,6 +5,7 @@ import { fetchProducts, toggleProduct } from "@/lib/api/products";
 import { formatPrice } from "@/lib/format";
 import { ApiError } from "@/lib/api/client";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import EmptyState from "@/components/EmptyState";
 import ProductImage from "@/components/ProductImage";
@@ -12,6 +13,7 @@ import AdminProductForm from "@/components/admin/AdminProductForm";
 
 export default function AdminProducts() {
   const { notify } = useUi();
+  const { t } = useLocale();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // { product } | "add" | null
@@ -22,7 +24,7 @@ export default function AdminProducts() {
     try {
       setProducts(await fetchProducts());
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not load products");
+      notify(err instanceof ApiError ? err.message : t("admin.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -33,17 +35,11 @@ export default function AdminProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openNew = () => {
-    setModal("add");
-  };
+  const openNew = () => setModal("add");
 
-  const openEdit = (p) => {
-    setModal({ product: p });
-  };
+  const openEdit = (p) => setModal({ product: p });
 
-  const closeModal = () => {
-    setModal(null);
-  };
+  const closeModal = () => setModal(null);
 
   const onSaved = (info) => {
     setModal(null);
@@ -58,9 +54,10 @@ export default function AdminProducts() {
       setProducts((list) =>
         list.map((x) => (x.id === p.id ? { ...x, is_active: !x.is_active } : x))
       );
-      notify(`${p.title} is now ${p.is_active !== false ? "hidden" : "live"}`);
+      const willHide = p.is_active !== false;
+      notify(willHide ? t("admin.hiddenNow", { t: p.title }) : t("admin.liveNow", { t: p.title }));
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not toggle product");
+      notify(err instanceof ApiError ? err.message : t("admin.toggleFail"));
     } finally {
       setToggling(null);
     }
@@ -72,35 +69,35 @@ export default function AdminProducts() {
     <div>
       <div className="admin-bar">
         <div>
-          <p className="section-label">Catalog</p>
-          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>Products</h1>
+          <p className="section-label">{t("admin.catalog")}</p>
+          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>{t("admin.products")}</h1>
           <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-            {products.length} total · {activeCount} live
+            {t("admin.totalLive", { n: products.length, m: activeCount })}
           </span>
         </div>
-        <button className="btn btn--accent btn--sm" onClick={openNew}>+ Add product</button>
+        <button className="btn btn--accent btn--sm" onClick={openNew}>+ {t("admin.createProduct")}</button>
       </div>
 
       {loading ? (
-        <Loader label="Loading products" />
+        <Loader label={t("admin.loadingProducts")} />
       ) : products.length === 0 ? (
         <EmptyState
           icon="◎"
-          title="No products yet"
-          body="Create your first product to bring life to the store."
-          action={<button className="btn btn--primary btn--sm" onClick={openNew}>Add product</button>}
+          title={t("admin.noProducts")}
+          body={t("admin.noProductsBody")}
+          action={<button className="btn btn--primary btn--sm" onClick={openNew}>{t("admin.createProduct")}</button>}
         />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Sizes</th>
-                <th>Status</th>
+                <th>{t("admin.colProduct")}</th>
+                <th>{t("admin.colCategory")}</th>
+                <th>{t("admin.colPrice")}</th>
+                <th>{t("admin.colStock")}</th>
+                <th>{t("admin.colSizes")}</th>
+                <th>{t("admin.colStatus")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -117,7 +114,7 @@ export default function AdminProducts() {
                   <td style={{ fontFamily: "var(--display)", fontWeight: 600 }}>
                     {formatPrice(p.finalPrice)}
                     {p.discount > 0 && (
-                      <span className="p-card__badge" style={{ position: "static", marginLeft: 8 }}>-{Math.round(p.discount)}%</span>
+                      <span className="p-card__badge" style={{ position: "static", marginInlineStart: 8 }}>-{Math.round(p.discount)}%</span>
                     )}
                   </td>
                   <td>{p.stock}</td>
@@ -128,13 +125,13 @@ export default function AdminProducts() {
                       onClick={() => toggle(p)}
                       disabled={toggling === String(p.id)}
                       style={{ cursor: "pointer" }}
-                      aria-label={`Toggle visibility of ${p.title}`}
+                      aria-label={t("admin.toggleLabel", { t: p.title })}
                     >
-                      {p.is_active !== false ? "Live" : "Hidden"}
+                      {p.is_active !== false ? t("admin.live") : t("admin.hidden")}
                     </button>
                   </td>
                   <td>
-                    <button className="cart-line__remove" onClick={() => openEdit(p)}>Edit</button>
+                    <button className="cart-line__remove" onClick={() => openEdit(p)}>{t("admin.edit")}</button>
                   </td>
                 </tr>
               ))}
@@ -147,8 +144,8 @@ export default function AdminProducts() {
         <div className="modal" role="dialog" aria-modal="true">
           <div className="modal__panel">
             <div className="modal__head">
-              <h3>{modal === "add" ? "Add product" : `Edit — ${modal.product.title}`}</h3>
-              <button className="icon-btn" onClick={closeModal} aria-label="Close">✕</button>
+              <h3>{modal === "add" ? t("admin.createProduct") : t("admin.modalEditTitle", { t: modal.product.title })}</h3>
+              <button className="icon-btn" onClick={closeModal} aria-label={t("common.close")}>✕</button>
             </div>
 
             <div className="modal__body">

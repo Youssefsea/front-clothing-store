@@ -3,12 +3,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { fetchProductByTitle } from "@/lib/api/products";
 import { formatPrice } from "@/lib/format";
 import { ApiError } from "@/lib/api/client";
 
 export default function SearchOverlay() {
   const { searchOpen, closeSearch } = useUi();
+  const { t } = useLocale();
   const inputRef = useRef(null);
   const [value, setValue] = useState("");
   const [results, setResults] = useState([]);
@@ -44,13 +46,13 @@ export default function SearchOverlay() {
     try {
       const found = await fetchProductByTitle(term);
       setResults(found);
-      if (found.length === 0) setMessage("No matches for that search.");
+      if (found.length === 0) setMessage(t("search.none"));
     } catch (err) {
       setResults([]);
       if (err instanceof ApiError) {
-        setMessage(err.status === 404 ? "No matches for that search." : err.message);
+        setMessage(err.status === 404 ? t("search.none") : err.message);
       } else {
-        setMessage("Search is unavailable right now.");
+        setMessage(t("search.unavailable"));
       }
     } finally {
       setLoading(false);
@@ -63,7 +65,7 @@ export default function SearchOverlay() {
       onClick={closeSearch}
       role="dialog"
       aria-modal="true"
-      aria-label="Search products"
+      aria-label={t("search.label")}
     >
       <div
         className="search-overlay__panel"
@@ -76,23 +78,23 @@ export default function SearchOverlay() {
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Search the collection…"
-            aria-label="Search products by name"
+            placeholder={t("search.placeholder")}
+            aria-label={t("search.byName")}
           />
           {loading ? (
             <span className="spin" style={{ display: "inline-block", borderRight: "2px solid var(--muted)", width: 14, height: 14, borderRadius: "50%" }} />
           ) : (
             <span className="kbd">↵</span>
           )}
-          <button className="icon-btn" onClick={closeSearch} aria-label="Close search">
+          <button className="icon-btn" onClick={closeSearch} aria-label={t("common.close")}>
             ✕
           </button>
         </form>
 
         <div className="search-overlay__hint">
-          <span>Search by product name</span>
-          <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-            <span className="kbd">esc</span> to close
+          <span>{t("search.byName")}</span>
+          <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+            <span className="kbd">esc</span> {t("search.toClose")}
           </span>
         </div>
 

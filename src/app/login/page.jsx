@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { validateEmail } from "@/lib/validation";
 import { ApiError } from "@/lib/api/client";
 import { fetchProducts } from "@/lib/api/products";
@@ -37,6 +38,7 @@ function LoginInner() {
   const searchParams = useSearchParams();
   const { login, isAuthenticated, loading: authLoading, isAdmin } = useAuth();
   const { notify } = useUi();
+  const { t } = useLocale();
   const art = useArtImage();
 
   const next = searchParams.get("next") || "/";
@@ -63,8 +65,8 @@ function LoginInner() {
   const onSubmit = async (e) => {
     e.preventDefault();
     const nextErrors = {};
-    if (!validateEmail(form.email)) nextErrors.email = "Enter a valid email address.";
-    if (!form.password) nextErrors.password = "Enter your password.";
+    if (!validateEmail(form.email)) nextErrors.email = t("auth.emailInvalid");
+    if (!form.password) nextErrors.password = t("auth.passwordRequired");
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -72,19 +74,19 @@ function LoginInner() {
     setServerError("");
     try {
       await login(form.email.trim(), form.password);
-      notify("Welcome back");
+      notify(t("auth.welcomeBack"));
       router.replace(next);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          setServerError("Incorrect email or password.");
+          setServerError(t("auth.badCredentials"));
         } else if (err.status === 404) {
-          setServerError("No account found with that email.");
+          setServerError(t("auth.noAccount"));
         } else {
           setServerError(err.message);
         }
       } else {
-        setServerError("Could not sign in right now. Please try again.");
+        setServerError(t("auth.cantSignin"));
       }
     } finally {
       setSubmitting(false);
@@ -97,18 +99,17 @@ function LoginInner() {
         <div className="auth-shell__form">
           <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
             <Reveal>
-              <p className="section-label">Welcome back</p>
+              <p className="section-label">{t("auth.welcomeBack")}</p>
               <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
-                Sign in
+                {t("nav.signin")}
               </h1>
               <p style={{ color: "var(--muted)", marginBottom: 34, lineHeight: 1.7 }}>
-                Pick up where you left off — track orders, manage your details
-                and move through checkout faster.
+                {t("auth.loginBody")}
               </p>
 
               <form onSubmit={onSubmit} noValidate>
                 <div className="field">
-                  <label htmlFor="email">Email</label>
+                  <label htmlFor="email">{t("auth.email")}</label>
                   <input
                     id="email"
                     name="email"
@@ -123,7 +124,7 @@ function LoginInner() {
                 </div>
 
                 <div className="field">
-                  <label htmlFor="password">Password</label>
+                  <label htmlFor="password">{t("auth.password")}</label>
                   <div className="field__box">
                     <input
                       id="password"
@@ -148,9 +149,9 @@ function LoginInner() {
                         color: "var(--muted)",
                         fontFamily: "var(--display)",
                       }}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                     >
-                      {showPassword ? "Hide" : "Show"}
+                      {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                     </button>
                   </div>
                   {errors.password && <span className="field__error">{errors.password}</span>}
@@ -188,25 +189,25 @@ function LoginInner() {
                           borderRadius: "50%",
                         }}
                       />
-                      Signing in…
+                      {t("auth.signingIn")}
                     </>
                   ) : (
-                    "Sign in"
+                    t("nav.signin")
                   )}
                 </button>
               </form>
 
               <p style={{ marginTop: 24, fontSize: "0.9rem", color: "var(--muted)" }}>
-                New to VANTA?{" "}
+                {t("auth.newPrompt")}{" "}
                 <Link href={`/signup?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                  Create an account
+                  {t("nav.createAccount")}
                 </Link>
               </p>
               {isAdmin && (
                 <p style={{ marginTop: 10, fontSize: "0.84rem", color: "var(--muted)" }}>
-                  Admin session detected —{" "}
+                  {t("auth.adminSession")}{" "}
                   <Link href="/admin" className="u-link" style={{ color: "var(--accent)" }}>
-                    open the admin area
+                    {t("auth.openAdmin")}
                   </Link>
                 </p>
               )}
@@ -228,8 +229,7 @@ function LoginInner() {
                 color: "rgba(245,243,239,0.9)",
               }}
             >
-              Your wardrobe, your account, your pace — everything exactly where
-              you left it.
+              {t("auth.quoteLogin")}
             </p>
             <p
               style={{
@@ -241,7 +241,7 @@ function LoginInner() {
                 color: "var(--accent)",
               }}
             >
-              VANTA members
+              {t("auth.quoteLoginTag")}
             </p>
           </div>
         </div>

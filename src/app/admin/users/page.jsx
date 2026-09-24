@@ -10,11 +10,13 @@ import {
 import { formatDate } from "@/lib/format";
 import { ApiError } from "@/lib/api/client";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import EmptyState from "@/components/EmptyState";
 
 export default function AdminUsers() {
   const { notify } = useUi();
+  const { t } = useLocale();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -26,7 +28,7 @@ export default function AdminUsers() {
     try {
       setUsers(await getAdminUsers());
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not load users");
+      notify(err instanceof ApiError ? err.message : t("admin.loadFailUsers"));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function AdminUsers() {
       setUsers(list);
     } catch (err) {
       setUsers([]);
-      notify(err instanceof ApiError ? err.message : "No users match that search.");
+      notify(err instanceof ApiError ? err.message : t("admin.noMatchUsers"));
     } finally {
       setLoading(false);
     }
@@ -57,16 +59,16 @@ export default function AdminUsers() {
 
   const removeUser = async (u) => {
     if (!u.id) {
-      notify("This user can't be removed.");
+      notify(t("admin.cannotRemove"));
       return;
     }
     setRemoving(String(u.id));
     try {
       await deleteAdminUser(u.id);
       setUsers((list) => list.filter((x) => String(x.id) !== String(u.id)));
-      notify(`${u.name || u.email} removed`);
+      notify(t("admin.removedUser", { name: u.name || u.email }));
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not remove user");
+      notify(err instanceof ApiError ? err.message : t("admin.removeFail"));
     } finally {
       setRemoving(null);
     }
@@ -76,8 +78,8 @@ export default function AdminUsers() {
     <div>
       <div className="admin-bar">
         <div>
-          <p className="section-label">Management</p>
-          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>Users</h1>
+          <p className="section-label">{t("admin.management")}</p>
+          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>{t("admin.users")}</h1>
         </div>
       </div>
 
@@ -85,40 +87,40 @@ export default function AdminUsers() {
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value)}
-          aria-label="Search mode"
+          aria-label={t("admin.searchMode")}
         >
-          <option value="email">By email</option>
-          <option value="phone">By phone</option>
+          <option value="email">{t("admin.byEmail")}</option>
+          <option value="phone">{t("admin.byPhone")}</option>
         </select>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={mode === "email" ? "customer@email.com" : "phone number"}
-          aria-label="Search users"
+          placeholder={mode === "email" ? t("admin.emailPlaceholder") : t("admin.phonePlaceholder")}
+          aria-label={t("admin.searchUsers")}
         />
         <button className="btn btn--primary btn--sm" type="submit" disabled={loading}>
-          {loading ? "Loading…" : "Search"}
+          {loading ? t("admin.searching") : t("admin.search")}
         </button>
         <button className="btn btn--outline btn--dark-text btn--sm" type="button" onClick={loadAll} disabled={loading}>
-          All users
+          {t("admin.allUsers")}
         </button>
       </form>
 
       {loading ? (
-        <Loader label="Loading users" />
+        <Loader label={t("admin.loadFailUsers")} />
       ) : users.length === 0 ? (
-        <EmptyState icon="◎" title="No users found" body="Try a different search term or load all users." />
+        <EmptyState icon="◎" title={t("admin.noUsersFound")} body={t("admin.noUsersBody")} />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Role</th>
-                <th>Joined</th>
+                <th>{t("admin.colId")}</th>
+                <th>{t("admin.colName")}</th>
+                <th>{t("admin.colEmail")}</th>
+                <th>{t("admin.colPhone")}</th>
+                <th>{t("admin.colRole")}</th>
+                <th>{t("admin.colJoined")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -131,7 +133,7 @@ export default function AdminUsers() {
                   <td>{u.phone || "—"}</td>
                   <td>
                     <span className={`badge ${u.role === "admin" ? "badge--info" : "badge--muted"}`}>
-                      {u.role || "customer"}
+                      {u.role || t("admin.customerRole")}
                     </span>
                   </td>
                   <td>{formatDate(u.created_at)}</td>
@@ -140,9 +142,9 @@ export default function AdminUsers() {
                       className="cart-line__remove"
                       onClick={() => removeUser(u)}
                       disabled={removing === String(u.id)}
-                      aria-label={`Remove ${u.name || u.email}`}
+                      aria-label={t("admin.removeLabel", { name: u.name || u.email })}
                     >
-                      {removing === String(u.id) ? "Removing…" : "Remove"}
+                      {removing === String(u.id) ? t("admin.removing") : t("admin.remove")}
                     </button>
                   </td>
                 </tr>

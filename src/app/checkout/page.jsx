@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { confirmOrder } from "@/lib/api/orders";
 import { formatPrice } from "@/lib/format";
 import { ApiError } from "@/lib/api/client";
@@ -15,9 +16,9 @@ import Reveal from "@/components/Reveal";
 import ProductImage from "@/components/ProductImage";
 
 const METHODS = [
-  { value: "cod", label: "Cash on delivery", hint: "Pay when your order arrives." },
-  { value: "bank_transfer", label: "Bank transfer", hint: "We confirm your order once the transfer is verified." },
-  { value: "card", label: "Card payment", hint: "A secure card payment is processed on our end." },
+  { value: "cod" },
+  { value: "bank_transfer" },
+  { value: "card" },
 ];
 
 export default function CheckoutPage() {
@@ -25,6 +26,7 @@ export default function CheckoutPage() {
   const { items, totals, loading } = useCart();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { notify } = useUi();
+  const { t } = useLocale();
 
   const [address, setAddress] = useState("");
   const [method, setMethod] = useState("bank_transfer");
@@ -48,8 +50,13 @@ export default function CheckoutPage() {
   }, [preview]);
 
   if (authLoading) {
-    return <div className="nav-spacer"><Loader label="Preparing checkout" /></div>;
+    return <div className="nav-spacer"><Loader label={t("checkout.preparing")} /></div>;
   }
+
+  const methodLabel = (m) =>
+    m.value === "cod" ? t("checkout.mCod") : m.value === "card" ? t("checkout.mCard") : t("checkout.mBank");
+  const methodHint = (m) =>
+    m.value === "cod" ? t("checkout.hCod") : m.value === "card" ? t("checkout.hCard") : t("checkout.hBank");
 
   const handleFile = (file) => {
     setFileError("");
@@ -57,11 +64,11 @@ export default function CheckoutPage() {
     const okType = file.type.startsWith("image/");
     const okSize = file.size <= 8 * 1024 * 1024;
     if (!okType) {
-      setFileError("Please upload an image file (PNG or JPG).");
+      setFileError(t("checkout.fileType"));
       return;
     }
     if (!okSize) {
-      setFileError("That file is over 8 MB — please use a smaller screenshot.");
+      setFileError(t("checkout.fileSize"));
       return;
     }
     setScreenshot(file);
@@ -75,13 +82,13 @@ export default function CheckoutPage() {
     e.preventDefault();
     let bad = false;
     if (!address.trim() || address.trim().length < 8) {
-      setAddressError("Enter a full delivery address (at least 8 characters).");
+      setAddressError(t("checkout.addressTooShort"));
       bad = true;
     } else {
       setAddressError("");
     }
     if (!screenshot) {
-      setFileError("Upload a payment screenshot so we can confirm the order.");
+      setFileError(t("checkout.fileRequired"));
       bad = true;
     } else {
       setFileError("");
@@ -95,15 +102,15 @@ export default function CheckoutPage() {
         address: address.trim(),
         screenshot,
       });
-      notify(data?.message || "Order placed");
+      notify(data?.message || t("checkout.orderPlaced"));
       const orderId = data?.order_id || data?.orderId || "";
       const total = data?.total ?? totals.subtotal;
       router.push(`/orderComplet?order=${encodeURIComponent(orderId)}&total=${total}`);
     } catch (err) {
       if (err instanceof ApiError) {
-        notify(err.status === 401 ? "Your session expired — sign in again." : err.message);
+        notify(err.status === 401 ? t("checkout.sessionExpired") : err.message);
       } else {
-        notify("We couldn't place the order. Please try again.");
+        notify(t("checkout.placeFail"));
       }
     } finally {
       setSubmitting(false);
@@ -118,20 +125,20 @@ export default function CheckoutPage() {
       <div className="container page">
         <div className="page-head">
           <div>
-            <p className="section-label">Final step</p>
-            <h1 className="section-title">Checkout</h1>
+            <p className="section-label">{t("checkout.finalStep")}</p>
+            <h1 className="section-title">{t("checkout.title")}</h1>
           </div>
         </div>
 
         {loading && items.length === 0 ? (
-          <Loader label="Checking your order" />
+          <Loader label={t("checkout.checkingOrder")} />
         ) : items.length === 0 ? (
           <EmptyState
             icon="◎"
-            title="Your bag is empty"
-            body="Add a few pieces first, then come back to check out."
+            title={t("cart.empty")}
+            body={t("checkout.emptyBody")}
             action={
-              <Link href="/shop" className="btn btn--primary btn--sm">Shop the collection</Link>
+              <Link href="/shop" className="btn btn--primary btn--sm">{t("home.shop")}</Link>
             }
           />
         ) : (
@@ -139,12 +146,12 @@ export default function CheckoutPage() {
             <div>
               <Reveal>
                 <div className="checkout-panel">
-                  <h3><span className="n">1</span> Delivery address</h3>
+                  <h3><span className="n">1</span> {t("checkout.addressPanel")}</h3>
                   <div className="field">
-                    <label htmlFor="address">Address</label>
+                    <label htmlFor="address">{t("checkout.address")}</label>
                     <textarea
                       id="address"
-                      placeholder="Street, city, postal code, country"
+                      placeholder={t("checkout.addressPlaceholder")}
                       value={address}
                       onChange={(e) => { setAddress(e.target.value); setAddressError(""); }}
                       className={addressError ? "has-error" : ""}
@@ -156,7 +163,7 @@ export default function CheckoutPage() {
 
               <Reveal delay={80}>
                 <div className="checkout-panel">
-                  <h3><span className="n">2</span> Payment method</h3>
+                  <h3><span className="n">2</span> {t("checkout.paymentPanel")}</h3>
                   <div className="methods">
                     {METHODS.map((m) => (
                       <label
@@ -171,8 +178,8 @@ export default function CheckoutPage() {
                           onChange={() => setMethod(m.value)}
                         />
                         <span style={{ flex: 1 }}>
-                          <div className="method__label">{m.label}</div>
-                          <div className="method__hint">{m.hint}</div>
+                          <div className="method__label">{methodLabel(m)}</div>
+                          <div className="method__hint">{methodHint(m)}</div>
                         </span>
                       </label>
                     ))}
@@ -182,7 +189,7 @@ export default function CheckoutPage() {
 
               <Reveal delay={160}>
                 <div className="checkout-panel">
-                  <h3><span className="n">3</span> Payment screenshot</h3>
+                  <h3><span className="n">3</span> {t("checkout.screenshotPanel")}</h3>
                   <div
                     className={`file-drop ${screenshot ? "has-file" : ""}`}
                     onClick={() => fileRef.current?.click()}
@@ -194,10 +201,10 @@ export default function CheckoutPage() {
                       onChange={(e) => handleFile(e.target.files?.[0])}
                     />
                     <div className="file-drop__title">
-                      {screenshot ? "Screenshot ready" : "Upload your payment screenshot"}
+                      {screenshot ? t("checkout.dropReady") : t("checkout.dropUpload")}
                     </div>
                     <div className="file-drop__sub">
-                      PNG or JPG, up to 8 MB — attach the proof of payment for your order.
+                      {t("checkout.dropSub")}
                     </div>
                   </div>
                   {fileError && <span className="field__error">{fileError}</span>}
@@ -205,13 +212,13 @@ export default function CheckoutPage() {
                   {preview && (
                     <div className="drop-zone--preview">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={preview} alt="Payment screenshot preview" />
+                      <img src={preview} alt={t("ordered.screenshotAlt")} />
                       <button
                         type="button"
                         className="cart-line__remove"
                         onClick={() => { setScreenshot(null); setPreview(""); }}
                       >
-                        Remove
+                        {t("cart.remove")}
                       </button>
                     </div>
                   )}
@@ -221,7 +228,7 @@ export default function CheckoutPage() {
 
             <aside className="summary">
               <h3 style={{ fontFamily: "var(--display)", fontSize: "1.05rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
-                Your order
+                {t("checkout.yourOrder")}
               </h3>
 
               <div style={{ margin: "14px 0" }}>
@@ -238,34 +245,35 @@ export default function CheckoutPage() {
                   </div>
                 ))}
                 {items.length > 4 && (
-                  <p className="order-line__meta" style={{ padding: "6px 0" }}>+ {items.length - 4} more item{items.length - 4 === 1 ? "" : "s"}</p>
+                  <p className="order-line__meta" style={{ padding: "6px 0" }}>
+                    + {items.length - 4 === 1 ? t("checkout.moreOne", { n: items.length - 4 }) : t("checkout.moreMany", { n: items.length - 4 })}
+                  </p>
                 )}
               </div>
 
               <div className="summary__rows">
                 <div className="summary__row">
-                  <span>Subtotal</span>
+                  <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
                 </div>
                 <div className="summary__row">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
+                  <span>{t("cart.shipping")}</span>
+                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
                 </div>
                 <div className="summary__row summary__row--total">
-                  <span>Total</span>
+                  <span>{t("cart.total")}</span>
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
 
               <button className="btn btn--primary btn--block" disabled={submitting || loading}>
-                {submitting ? "Placing order…" : `Place order · ${formatPrice(grandTotal)}`}
+                {submitting ? t("checkout.placing") : t("checkout.placeBtn", { price: formatPrice(grandTotal) })}
               </button>
               <Link href="/cart" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
-                Back to bag
+                {t("checkout.backBag")}
               </Link>
               <p className="summary__note">
-                By placing an order you confirm that your payment screenshot is
-                genuine. Our team reviews it before shipping.
+                {t("checkout.note")}
               </p>
             </aside>
           </form>

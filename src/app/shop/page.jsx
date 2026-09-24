@@ -22,13 +22,9 @@ import ProductCard from "@/components/ProductCard";
 import ProductGridSkeleton from "@/components/ProductGridSkeleton";
 import EmptyState from "@/components/EmptyState";
 import Reveal from "@/components/Reveal";
+import { useLocale } from "@/context/LocaleContext";
 
-const SORTS = [
-  { value: "default", label: "Sort" },
-  { value: "priceAsc", label: "Price: Low to High" },
-  { value: "priceDesc", label: "Price: High to Low" },
-  { value: "title", label: "Name: A → Z" },
-];
+const SORTS = ["default", "priceAsc", "priceDesc", "title"];
 
 function readParams(params) {
   return {
@@ -43,6 +39,7 @@ function readParams(params) {
 function ShopPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
 
   const initial = useMemo(
     () => readParams(new URLSearchParams(searchParams.toString())),
@@ -202,27 +199,30 @@ function ShopPageInner() {
     (price[0] > 0 || price[1] < 10000 ? 1 : 0) +
     (q ? 1 : 0);
 
+  const sortLabel = (s) =>
+    s === "priceAsc" ? t("shop.sortLow") : s === "priceDesc" ? t("shop.sortHigh") : s === "title" ? t("shop.sortName") : t("shop.sort");
+
   const FilterPanel = ({ onAfterChange }) => (
     <div className="filters">
       <div className="field">
-        <label htmlFor="shop-search">Search</label>
+        <label htmlFor="shop-search">{t("shop.search")}</label>
         <input
           id="shop-search"
           type="search"
-          placeholder="Find a piece…"
+          placeholder={t("shop.find")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
 
       <div className="field">
-        <label htmlFor="shop-cat">Category</label>
+        <label htmlFor="shop-cat">{t("shop.category")}</label>
         <select
           id="shop-cat"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
-          <option value="">All categories</option>
+          <option value="">{t("shop.allCategories")}</option>
           {allCategories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -230,11 +230,11 @@ function ShopPageInner() {
       </div>
 
       <div className="field">
-        <label>Price range</label>
+        <label>{t("shop.priceRange")}</label>
         <div style={{ display: "flex", gap: 8 }}>
           <input
             type="number"
-            placeholder="Min"
+            placeholder={t("shop.min")}
             min={0}
             value={price[0] === 0 ? "" : price[0]}
             onChange={(e) => setPrice((p) => [Number(e.target.value) || 0, p[1]])}
@@ -242,7 +242,7 @@ function ShopPageInner() {
           />
           <input
             type="number"
-            placeholder="Max"
+            placeholder={t("shop.max")}
             min={0}
             value={price[1] >= 10000 ? "" : price[1]}
             onChange={(e) => setPrice((p) => [p[0], Number(e.target.value) || 10000])}
@@ -253,8 +253,8 @@ function ShopPageInner() {
 
       {allColors.length > 0 && (
         <div className="field">
-          <label>Color</label>
-          <div className="chips" role="group" aria-label="Filter by color">
+          <label>{t("shop.color")}</label>
+          <div className="chips" role="group" aria-label={t("shop.colorsAria")}>
             {allColors.map((c) => (
               <button
                 key={c}
@@ -270,8 +270,8 @@ function ShopPageInner() {
       )}
 
       <div className="field">
-        <label>Size</label>
-        <div className="chips" role="group" aria-label="Filter by size">
+        <label>{t("shop.size")}</label>
+        <div className="chips" role="group" aria-label={t("shop.sizesAria")}>
           {["XS", "S", "M", "L", "XL", "XXL", "XXXL"].map((s) => (
             <button
               key={s}
@@ -286,7 +286,7 @@ function ShopPageInner() {
       </div>
 
       <button type="button" className="btn btn--outline btn--dark-text btn--sm btn--block" onClick={() => { resetAll(); onAfterChange?.(); }}>
-        Reset filters
+        {t("shop.resetFilters")}
       </button>
     </div>
   );
@@ -298,16 +298,16 @@ function ShopPageInner() {
         <Reveal>
           <div className="shop-page__head">
             <div>
-              <p className="section-label">Catalog</p>
+              <p className="section-label">{t("shop.head")}</p>
               <h1 className="section-title">
-                Shop
+                {t("shop.title")}
               </h1>
             </div>
             <button
               className="btn btn--outline btn--dark-text btn--sm shop-filter-toggle"
               onClick={() => setFiltersOpen(true)}
             >
-              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+              {t("shop.filter")} {activeFilterCount > 0 && `(${activeFilterCount})`}
             </button>
           </div>
         </Reveal>
@@ -315,19 +315,19 @@ function ShopPageInner() {
         <hr className="divider" style={{ margin: "0 0 var(--space-9)" }} />
 
         <div className="shop-layout">
-          <aside className="shop-filters" aria-label="Product filters">
+          <aside className="shop-filters" aria-label={t("shop.filtersAria")}>
             <FilterPanel />
           </aside>
 
           <div className="shop-main">
             <div className="meta-row" style={{ marginBottom: "var(--space-6)" }}>
               <span style={{ color: "var(--muted)", fontSize: "0.86rem" }}>
-                {loading ? "Updating…" : `${sorted.length} product${sorted.length === 1 ? "" : "s"}`}
+                {loading ? t("shop.updating") : sorted.length === 1 ? t("shop.countOne", { n: sorted.length }) : t("shop.countMany", { n: sorted.length })}
               </span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                aria-label="Sort products"
+                aria-label={t("shop.sortAria")}
                 style={{
                   border: "1px solid var(--line)",
                   background: "var(--surface)",
@@ -338,7 +338,7 @@ function ShopPageInner() {
                 }}
               >
                 {SORTS.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s} value={s}>{sortLabel(s)}</option>
                 ))}
               </select>
             </div>
@@ -348,22 +348,22 @@ function ShopPageInner() {
             ) : error ? (
               <EmptyState
                 icon="!"
-                title="Could not load products"
+                title={t("shop.loadTitle")}
                 body={error}
                 action={
                   <button className="btn btn--primary btn--sm" onClick={() => fetchData()}>
-                    Try again
+                    {t("home.retry")}
                   </button>
                 }
               />
             ) : sorted.length === 0 ? (
               <EmptyState
                 icon="⌕"
-                title="No pieces match"
-                body="Try clearing a filter or two, or search for something else."
+                title={t("shop.noMatch")}
+                body={t("shop.noMatchBody")}
                 action={
                   <button className="btn btn--primary btn--sm" onClick={resetAll}>
-                    Clear all filters
+                    {t("shop.clearAll")}
                   </button>
                 }
               />
@@ -383,8 +383,8 @@ function ShopPageInner() {
       <div className={`overlay ${filtersOpen ? "open" : ""}`} onClick={() => setFiltersOpen(false)} aria-hidden="true" />
       <aside className={`drawer drawer--left ${filtersOpen ? "open" : ""}`} aria-hidden={!filtersOpen}>
         <div className="drawer__head">
-          <h3>Filters</h3>
-          <button className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label="Close filters">✕</button>
+          <h3>{t("shop.filter")}</h3>
+          <button className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label={t("common.close")}>✕</button>
         </div>
         <div className="drawer__body drawer__body--filters">
           <FilterPanel onAfterChange={() => setFiltersOpen(false)} />

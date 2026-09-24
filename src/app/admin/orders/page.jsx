@@ -8,14 +8,17 @@ import {
   updateOrderStatus,
   ORDER_STATUSES,
 } from "@/lib/api/admin";
-import { formatPrice, formatDate, statusLabel, statusTone } from "@/lib/format";
+import { formatPrice, formatDate, statusTone } from "@/lib/format";
+import { statusLabelKey } from "@/lib/i18n";
 import { ApiError } from "@/lib/api/client";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import EmptyState from "@/components/EmptyState";
 
 export default function AdminOrders() {
   const { notify } = useUi();
+  const { t } = useLocale();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -27,7 +30,7 @@ export default function AdminOrders() {
     try {
       setOrders(await getAdminOrders());
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not load orders");
+      notify(err instanceof ApiError ? err.message : t("admin.loadFailOrders"));
     } finally {
       setLoading(false);
     }
@@ -51,7 +54,7 @@ export default function AdminOrders() {
       setOrders(list);
     } catch (err) {
       setOrders([]);
-      notify(err instanceof ApiError ? err.message : "No orders match that search.");
+      notify(err instanceof ApiError ? err.message : t("admin.noMatchOrders"));
     } finally {
       setLoading(false);
     }
@@ -64,9 +67,9 @@ export default function AdminOrders() {
       setOrders((list) =>
         list.map((o) => (String(o.id) === String(orderId) ? { ...o, status } : o))
       );
-      notify(`Order #${orderId} → ${status}`);
+      notify(t("admin.statusUpdated", { id: orderId, status }));
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Could not update status");
+      notify(err instanceof ApiError ? err.message : t("admin.updateStatusFail"));
     } finally {
       setUpdating(null);
     }
@@ -76,8 +79,8 @@ export default function AdminOrders() {
     <div>
       <div className="admin-bar">
         <div>
-          <p className="section-label">Management</p>
-          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>Orders</h1>
+          <p className="section-label">{t("admin.management")}</p>
+          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>{t("admin.orders")}</h1>
         </div>
       </div>
 
@@ -85,40 +88,40 @@ export default function AdminOrders() {
         <select
           value={mode}
           onChange={(e) => { setMode(e.target.value); setQuery(""); }}
-          aria-label="Search mode"
+          aria-label={t("admin.searchMode")}
         >
-          <option value="all">All orders</option>
-          <option value="email">By email</option>
-          <option value="userId">By user id</option>
+          <option value="all">{t("admin.allOrders")}</option>
+          <option value="email">{t("admin.byEmail")}</option>
+          <option value="userId">{t("admin.byUserId")}</option>
         </select>
         {mode !== "all" && (
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={mode === "email" ? "customer@email.com" : "e.g. 3"}
-            aria-label={mode === "email" ? "Search orders by email" : "Search orders by user id"}
+            placeholder={mode === "email" ? t("admin.emailPlaceholder") : t("admin.userIdPlaceholder")}
+            aria-label={mode === "email" ? t("admin.searchByEmail") : t("admin.searchByUserId")}
           />
         )}
         <button className="btn btn--primary btn--sm" type="submit" disabled={loading}>
-          {loading ? "Loading…" : mode === "all" ? "Refresh" : "Search"}
+          {loading ? t("admin.searching") : mode === "all" ? t("admin.refresh") : t("admin.search")}
         </button>
       </form>
 
       {loading ? (
-        <Loader label="Loading orders" />
+        <Loader label={t("admin.loadingProducts")} />
       ) : orders.length === 0 ? (
-        <EmptyState icon="◎" title="No orders found" body="Try a different search or load all orders." />
+        <EmptyState icon="◎" title={t("admin.noOrdersFound")} body={t("admin.noOrdersBody")} />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Total</th>
-                <th>Payment</th>
-                <th>Status</th>
+                <th>{t("admin.colOrder")}</th>
+                <th>{t("admin.colCustomer")}</th>
+                <th>{t("admin.colDate")}</th>
+                <th>{t("admin.colPrice")}</th>
+                <th>{t("admin.colPayment")}</th>
+                <th>{t("admin.colStatus")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -141,7 +144,7 @@ export default function AdminOrders() {
                         rel="noopener noreferrer"
                         style={{ fontSize: "0.72rem", color: "var(--info)" }}
                       >
-                        View receipt
+                        {t("admin.viewReceipt")}
                       </a>
                     )}
                   </td>
@@ -151,12 +154,12 @@ export default function AdminOrders() {
                       onChange={(e) => changeStatus(o.id, e.target.value)}
                       disabled={updating === String(o.id)}
                       className={`badge badge--${statusTone(o.status)}`}
-                      aria-label={`Status for order ${o.id}`}
+                      aria-label={t("admin.statusForOrder", { id: o.id })}
                       style={{ border: "none", background: "transparent", cursor: "pointer", fontFamily: "var(--display)" }}
                     >
                       {ORDER_STATUSES.map((s) => (
                         <option key={s} value={s} style={{ backgroundColor: "var(--surface)", color: "var(--ink)" }}>
-                          {statusLabel(s)}
+                          {t(statusLabelKey(s))}
                         </option>
                       ))}
                     </select>

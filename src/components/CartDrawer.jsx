@@ -4,19 +4,21 @@ import React from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { formatPrice } from "@/lib/format";
 import ProductImage from "./ProductImage";
 
 export default function CartDrawer() {
   const { cartOpen, closeCart, notify } = useUi();
   const { items, totals, updateQuantity, removeFromCart, mutating } = useCart();
+  const { t } = useLocale();
 
   const handleRemove = async (id, title) => {
     try {
       await removeFromCart(id);
-      notify(`${title} removed`);
+      notify(`${title} ${t("cart.remove")}`);
     } catch (err) {
-      notify(err?.message || "Could not remove item");
+      notify(err?.message || t("cart.removeFail"));
     }
   };
 
@@ -30,9 +32,9 @@ export default function CartDrawer() {
       <aside className={`drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
         <div className="drawer__head">
           <h3>
-            Your bag <span className="drawer__count">({totals.totalItems})</span>
+            {t("cart.title")} <span className="drawer__count">({totals.totalItems})</span>
           </h3>
-          <button className="icon-btn" onClick={closeCart} aria-label="Close bag">
+          <button className="icon-btn" onClick={closeCart} aria-label={t("common.close")}>
             ✕
           </button>
         </div>
@@ -41,10 +43,10 @@ export default function CartDrawer() {
           {items.length === 0 ? (
             <div className="empty-state" style={{ padding: "60px 24px" }}>
               <div className="mark" aria-hidden="true">◎</div>
-              <h3>Your bag is empty</h3>
-              <p>Find pieces you love and they will show up here.</p>
+              <h3>{t("cart.empty")}</h3>
+              <p>{t("cart.emptyBody")}</p>
               <Link href="/shop" className="btn btn--primary btn--sm" onClick={closeCart}>
-                Shop the collection
+                {t("cart.shop")}
               </Link>
             </div>
           ) : (
@@ -72,7 +74,7 @@ export default function CartDrawer() {
                     <button
                       onClick={() => updateQuantity(item.cart_item_id, -1)}
                       disabled={mutating[item.cart_item_id] || item.quantity <= 1}
-                      aria-label="Decrease quantity"
+                      aria-label="−"
                     >
                       −
                     </button>
@@ -80,7 +82,7 @@ export default function CartDrawer() {
                     <button
                       onClick={() => updateQuantity(item.cart_item_id, 1)}
                       disabled={mutating[item.cart_item_id]}
-                      aria-label="Increase quantity"
+                      aria-label="+"
                     >
                       +
                     </button>
@@ -92,7 +94,7 @@ export default function CartDrawer() {
                     onClick={() => handleRemove(item.cart_item_id, item.title)}
                     disabled={mutating[item.cart_item_id]}
                   >
-                    Remove
+                    {t("cart.remove")}
                   </button>
                   <div style={{ fontFamily: "var(--display)", fontWeight: 600 }}>
                     {formatPrice((item.final_price || 0) * item.quantity)}
@@ -105,18 +107,18 @@ export default function CartDrawer() {
 
         <div className="drawer__foot">
           <div className="drawer__totals">
-            <span className="label">Subtotal</span>
+            <span className="label">{t("cart.subtotal")}</span>
             <span className="value">{formatPrice(totals.subtotal)}</span>
           </div>
           <Link href="/checkout" className="btn btn--primary btn--block" onClick={closeCart}>
-            Checkout
+            {t("cart.checkout")}
           </Link>
           <Link
             href="/cart"
             className="btn btn--outline btn--dark-text btn--block"
             onClick={closeCart}
           >
-            View bag
+            {t("cart.viewBag")}
           </Link>
         </div>
       </aside>

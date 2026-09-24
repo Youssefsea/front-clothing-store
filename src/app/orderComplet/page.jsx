@@ -4,8 +4,10 @@ import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getMyOrders } from "@/lib/api/orders";
-import { formatPrice, formatDate, statusLabel, statusTone } from "@/lib/format";
+import { formatPrice, formatDate, statusTone } from "@/lib/format";
+import { statusLabelKey } from "@/lib/i18n";
 import { useCart } from "@/context/CartContext";
+import { useLocale } from "@/context/LocaleContext";
 import Loader from "@/components/Loader";
 import ProductImage from "@/components/ProductImage";
 
@@ -14,6 +16,7 @@ function OrderCompletInner() {
   const orderId = searchParams.get("order") || "";
   const totalQuery = Number(searchParams.get("total")) || 0;
   const { refresh } = useCart();
+  const { t } = useLocale();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,37 +48,36 @@ function OrderCompletInner() {
       <div className="container page">
         <div className="success-hero">
           <div className="mark" aria-hidden="true">✓</div>
-          <h1>Thank you — your order is in.</h1>
+          <h1>{t("ordered.thanks")}</h1>
           <p>
             {order
-              ? `Order ${order.id} is ${statusLabel(order.status).toLowerCase()} and our team is
-                already on it. A confirmation is on its way to your inbox.`
-              : "Your order was received and is now pending confirmation. Our team will review your payment shortly."}
+              ? `${t("ordered.thanksBody", { id: order.id, status: t(statusLabelKey(order.status)) })} ${t("ordered.inbox")}`
+              : t("ordered.processing")}
           </p>
         </div>
 
         {loading ? (
-          <Loader label="Loading your order" />
+          <Loader label={t("ordered.loading")} />
         ) : (
           <div className="success-card">
             <div className="success-card__row">
-              <span className="k">Order number</span>
+              <span className="k">{t("ordered.orderNumber")}</span>
               <span className="v">{order ? order.id : orderId || "—"}</span>
             </div>
             <div className="success-card__row">
-              <span className="k">Placed on</span>
-              <span className="v">{order ? formatDate(order.created_at) : "Just now"}</span>
+              <span className="k">{t("ordered.placedOn")}</span>
+              <span className="v">{order ? formatDate(order.created_at) : t("ordered.placedJustNow")}</span>
             </div>
             {order && (
               <div className="success-card__row">
-                <span className="k">Status</span>
+                <span className="k">{t("ordered.status")}</span>
                 <span className={`badge badge--${order ? statusTone(order.status) : "muted"}`}>
-                  {statusLabel(order ? order.status : "pending")}
+                  {t(statusLabelKey(order ? order.status : "pending"))}
                 </span>
               </div>
             )}
             <div className="success-card__row">
-              <span className="k">Total</span>
+              <span className="k">{t("ordered.total")}</span>
               <span className="v">{order ? formatPrice(order.total) : formatPrice(totalQuery)}</span>
             </div>
 
@@ -96,7 +98,7 @@ function OrderCompletInner() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={order.payment_screenshot}
-                alt="Your payment screenshot"
+                alt={t("ordered.screenshotAlt")}
                 style={{ marginTop: 8 }}
               />
             )}
@@ -104,8 +106,8 @@ function OrderCompletInner() {
         )}
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 30, flexWrap: "wrap" }}>
-          <Link href="/orders" className="btn btn--primary">Track my order</Link>
-          <Link href="/shop" className="btn btn--outline btn--dark-text">Keep shopping</Link>
+          <Link href="/orders" className="btn btn--primary">{t("ordered.track")}</Link>
+          <Link href="/shop" className="btn btn--outline btn--dark-text">{t("ordered.keepShopping")}</Link>
         </div>
       </div>
     </div>

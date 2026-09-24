@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale, LANGS } from "@/context/LocaleContext";
+import { useTheme } from "@/context/ThemeContext";
 import { initials } from "@/lib/format";
 
 export default function Navbar() {
@@ -14,6 +16,8 @@ export default function Navbar() {
   const { user, isAuthenticated, isAdmin, loading: authLoading, logout } = useAuth();
   const { count } = useCart();
   const { openCart, openSearch, notify } = useUi();
+  const { lang, t, toggleLang } = useLocale();
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -39,15 +43,17 @@ export default function Navbar() {
   const transparent = pathname === "/" && !scrolled;
 
   const links = [
-    { href: "/shop", label: "Shop" },
-    ...(isAuthenticated ? [{ href: "/orders", label: "Orders" }] : []),
+    { href: "/shop", label: t("nav.shop") },
+    ...(isAuthenticated ? [{ href: "/orders", label: t("nav.orders") }] : []),
   ];
 
   const handleLogout = async () => {
     await logout();
-    notify("Signed out");
+    notify(t("nav.signout"));
     router.push("/");
   };
+
+  const nextLang = lang === "en" ? "ar" : "en";
 
   return (
     <>
@@ -57,7 +63,7 @@ export default function Navbar() {
             VANTA
           </Link>
 
-          <nav className="navbar__links" aria-label="Primary">
+          <nav className="navbar__links" aria-label={t("nav.shop")}>
             {links.map((l) => (
               <Link
                 key={l.href}
@@ -70,16 +76,34 @@ export default function Navbar() {
               </Link>
             ))}
             <button className="nav-link nav-link--btn" onClick={openSearch}>
-              Search
+              {t("nav.search")}
             </button>
           </nav>
 
           <div className="navbar__actions">
-            <button className="icon-btn navbar__search" onClick={openSearch} aria-label="Search">
+            <button
+              className="navbar__theme"
+              onClick={toggleTheme}
+              aria-label={isDark ? t("common.light") : t("common.dark")}
+              title={isDark ? t("common.light") : t("common.dark")}
+            >
+              {isDark ? "☀" : "☾"}
+            </button>
+
+            <button
+              className="navbar__lang"
+              onClick={toggleLang}
+              aria-label={LANGS[nextLang].label}
+              title={LANGS[nextLang].label}
+            >
+              {LANGS[nextLang].short}
+            </button>
+
+            <button className="icon-btn navbar__search" onClick={openSearch} aria-label={t("nav.search")}>
               ⌕
             </button>
 
-            <button className="navbar__cart" onClick={openCart} aria-label={`Open bag, ${count} items`}>
+            <button className="navbar__cart" onClick={openCart} aria-label={t("nav.openBag", { count })}>
               <span className="navbar__cart-icon">◎</span>
               <span className={`navbar__cart-count ${count > 0 ? "cart-badge-pulse" : ""}`}>
                 {count}
@@ -90,28 +114,28 @@ export default function Navbar() {
               <>
                 {isAdmin && (
                   <Link href="/admin" className="nav-link">
-                    Admin
+                    {t("nav.admin")}
                   </Link>
                 )}
                 <Link
                   href="/account"
                   className="navbar__avatar"
-                  aria-label="Account"
-                  title={user?.name || user?.email || "Account"}
+                  aria-label={t("nav.account")}
+                  title={user?.name || user?.email || t("nav.account")}
                 >
                   {initials(user?.name || user?.email)}
                 </Link>
               </>
             ) : (
               <Link href="/login" className="btn btn--outline btn--dark-text btn--sm navbar__signin">
-                Sign in
+                {t("nav.signin")}
               </Link>
             )}
 
             <button
               className="icon-btn navbar__burger"
               onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileOpen ? t("common.closeMenu") : t("common.openMenu")}
               aria-expanded={mobileOpen}
             >
               {mobileOpen ? "✕" : "☰"}
@@ -122,39 +146,48 @@ export default function Navbar() {
 
       <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true">
         <div className="nav-menu__links">
-          <Link href="/" className="nav-menu__link">Home</Link>
-          <Link href="/shop" className="nav-menu__link">Shop</Link>
+          <Link href="/" className="nav-menu__link">{t("nav.home")}</Link>
+          <Link href="/shop" className="nav-menu__link">{t("nav.shop")}</Link>
           <button
             className="nav-menu__link nav-menu__link--btn"
             onClick={() => { setMobileOpen(false); openSearch(); }}
           >
-            Search
+            {t("nav.search")}
           </button>
           {isAuthenticated && (
-            <Link href="/orders" className="nav-menu__link">My Orders</Link>
+            <Link href="/orders" className="nav-menu__link">{t("nav.myOrders")}</Link>
           )}
           {isAuthenticated && (
-            <Link href="/account" className="nav-menu__link">Account</Link>
+            <Link href="/account" className="nav-menu__link">{t("nav.account")}</Link>
           )}
           {isAdmin && (
-            <Link href="/admin" className="nav-menu__link">Admin</Link>
+            <Link href="/admin" className="nav-menu__link">{t("nav.admin")}</Link>
           )}
         </div>
         <div className="nav-menu__foot">
+          <div className="nav-menu__toggles">
+            <button className="btn btn--outline btn--dark-text btn--block" onClick={toggleLang}>
+              {LANGS[nextLang].short} — {LANGS[nextLang].label}
+            </button>
+            <button className="btn btn--outline btn--dark-text btn--block" onClick={toggleTheme}>
+              {isDark ? "☀ " : "☾ "}
+              {isDark ? t("theme.light") : t("theme.dark")}
+            </button>
+          </div>
           {isAuthenticated ? (
             <>
               <span className="nav-menu__user">{user?.name || user?.email}</span>
               <button className="btn btn--outline btn--dark-text btn--block" onClick={handleLogout}>
-                Sign out
+                {t("nav.signout")}
               </button>
             </>
           ) : (
             <>
               <Link href="/login" className="btn btn--primary btn--block" onClick={() => setMobileOpen(false)}>
-                Sign in
+                {t("nav.signin")}
               </Link>
               <Link href="/signup" className="btn btn--outline btn--dark-text btn--block" onClick={() => setMobileOpen(false)}>
-                Create account
+                {t("nav.createAccount")}
               </Link>
             </>
           )}
@@ -162,7 +195,7 @@ export default function Navbar() {
             className="btn btn--accent btn--block"
             onClick={() => { setMobileOpen(false); openCart(); }}
           >
-            Bag ({count})
+            {t("nav.bag")} ({count})
           </button>
         </div>
       </div>

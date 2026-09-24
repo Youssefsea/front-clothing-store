@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 import { initials } from "@/lib/format";
 import Reveal from "@/components/Reveal";
 import Loader from "@/components/Loader";
@@ -13,6 +14,7 @@ export default function AccountPage() {
   const router = useRouter();
   const { user, isAdmin, isAuthenticated, loading, logout } = useAuth();
   const { notify } = useUi();
+  const { t } = useLocale();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -21,12 +23,12 @@ export default function AccountPage() {
   }, [loading, isAuthenticated, router]);
 
   if (loading) {
-    return <div className="nav-spacer"><Loader label="Loading account" /></div>;
+    return <div className="nav-spacer"><Loader label={t("account.loading")} /></div>;
   }
 
   const handleLogout = async () => {
     await logout();
-    notify("Signed out");
+    notify(t("account.signedOut"));
     router.push("/");
   };
 
@@ -35,20 +37,20 @@ export default function AccountPage() {
       <div className="container page">
         <div className="page-head">
           <div>
-            <p className="section-label">You</p>
-            <h1 className="section-title">Account</h1>
+            <p className="section-label">{t("account.you")}</p>
+            <h1 className="section-title">{t("account.title")}</h1>
           </div>
           <div className="page-actions">
-            <Link href="/orders" className="btn btn--outline btn--dark-text btn--sm">My orders</Link>
-            {isAdmin && <Link href="/admin" className="btn btn--primary btn--sm">Admin area</Link>}
+            <Link href="/orders" className="btn btn--outline btn--dark-text btn--sm">{t("nav.myOrders")}</Link>
+            {isAdmin && <Link href="/admin" className="btn btn--primary btn--sm">{t("footer.admin")}</Link>}
           </div>
         </div>
 
-        <nav className="account-nav" aria-label="Account sections">
-          <Link href="/account" className="active">Profile</Link>
-          <Link href="/orders">Orders</Link>
-          <Link href="/cart">Bag</Link>
-          <Link href="/shop">Shop</Link>
+        <nav className="account-nav" aria-label={t("account.profile")}>
+          <Link href="/account" className="active">{t("account.profile")}</Link>
+          <Link href="/orders">{t("nav.orders")}</Link>
+          <Link href="/cart">{t("nav.bag")}</Link>
+          <Link href="/shop">{t("nav.shop")}</Link>
         </nav>
 
         <Reveal>
@@ -91,27 +93,27 @@ export default function AccountPage() {
 
           <div className="info-grid">
             <div className="info-cell">
-              <div className="k">Name</div>
+              <div className="k">{t("account.name")}</div>
               <div className="v">{user?.name || "—"}</div>
             </div>
             <div className="info-cell">
-              <div className="k">Email</div>
+              <div className="k">{t("auth.email")}</div>
               <div className="v">{user?.email || "—"}</div>
             </div>
             <div className="info-cell">
-              <div className="k">Phone</div>
+              <div className="k">{t("account.phone")}</div>
               <div className="v">{user?.phone || "—"}</div>
             </div>
             <div className="info-cell">
-              <div className="k">Role</div>
-              <div className="v">{isAdmin ? "Administrator" : "Member"}</div>
+              <div className="k">{t("account.role")}</div>
+              <div className="v">{isAdmin ? t("account.roleAdmin") : t("account.roleMember")}</div>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginTop: 30, flexWrap: "wrap" }}>
-            <Link href="/orders" className="btn btn--primary">View my orders</Link>
+            <Link href="/orders" className="btn btn--primary">{t("account.viewOrders")}</Link>
             <button className="btn btn--outline btn--dark-text" onClick={handleLogout}>
-              Sign out
+              {t("nav.signout")}
             </button>
           </div>
         </Reveal>

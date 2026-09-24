@@ -2,22 +2,24 @@
 
 import React from "react";
 import Link from "next/link";
+import { useLocale } from "@/context/LocaleContext";
 import EmptyState from "@/components/EmptyState";
 import Reveal from "@/components/Reveal";
 
 export default function UnauthorizedPage() {
+  const { t } = useLocale();
   return (
     <div className="nav-spacer">
       <div className="container page">
         <Reveal>
           <EmptyState
             icon="!"
-            title="Access denied"
-            body="You don't have permission to view this area. If you think this is a mistake, sign in with an authorized account or head back home."
+            title={t("unauth.title")}
+            body={t("unauth.body")}
             action={
               <div className="page-actions" style={{ justifyContent: "center" }}>
-                <Link href="/login" className="btn btn--primary btn--sm">Sign in</Link>
-                <Link href="/" className="btn btn--outline btn--dark-text btn--sm">Go home</Link>
+                <Link href="/login" className="btn btn--primary btn--sm">{t("nav.signin")}</Link>
+                <Link href="/" className="btn btn--outline btn--dark-text btn--sm">{t("unauth.goHome")}</Link>
               </div>
             }
           />
