@@ -99,7 +99,8 @@ function SignupInner() {
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    const nextValue = name === "phone" ? value.replace(/\D/g, "").slice(0, 15) : value;
+    setForm((f) => ({ ...f, [name]: nextValue }));
     setErrors((er) => ({ ...er, [name]: "" }));
     setServerError("");
   };
@@ -232,7 +233,7 @@ function SignupInner() {
                     </div>
                     <div className="field">
                       <label htmlFor="signup-phone">{t("auth.phone")}</label>
-                      <input id="signup-phone" name="phone" type="tel" autoComplete="tel" placeholder="+1 555 000 1234" value={form.phone} onChange={onChange} className={errors.phone ? "has-error" : ""} />
+                      <input id="signup-phone" name="phone" type="tel" autoComplete="tel" placeholder="201001234567" value={form.phone} onChange={onChange} className={errors.phone ? "has-error" : ""} />
                       {errors.phone && <span className="field__error">{errors.phone}</span>}
                     </div>
                     <div className="field">
