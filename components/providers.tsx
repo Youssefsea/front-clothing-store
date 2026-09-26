@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- async remote-state lifecycle is intentional in this client feature */
 "use client";
 import {createContext,useContext,useEffect,useState} from "react";
 import {api,ApiError} from "../lib/api";
