@@ -70,9 +70,3 @@ export function normalizeAdminOrderStats(orders) {
 }
 
 export const ORDER_STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled"];
-
-// Used by the auth layer to detect admin sessions by probing a real admin route.
-export async function probeAdmin() {
-  await api.get("/admin/orders");
-  return true;
-}
