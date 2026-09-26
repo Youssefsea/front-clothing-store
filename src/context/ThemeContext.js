@@ -6,12 +6,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 // Theme system — `vanta.theme` (light | dark | system) persisted in
 // localStorage. The <html> element is pre-themed by the no-flash script
-// in layout.js before React hydrates, so state starts from that value.
+// in layout.js before React hydrates.
+//
+// SSR-safety: `resolveTheme()` depends on matchMedia (browser-only), so we
+// must NOT compute it during the first render — server would resolve to
+// light while the client could resolve to dark, aborting hydration (#418).
+// The provider therefore starts both sides on `resolved = "light"` and only
+// reconciles to the real preference inside an effect (already hydrated at
+// that point). The no-flash script keeps the pre-hydration paint correct.
 
 const STORAGE_KEY = "vanta.theme";
 
@@ -26,8 +34,7 @@ function readInitial() {
 }
 
 function systemTheme() {
-  return typeof window !== "undefined" &&
-    window.matchMedia &&
+  return window.matchMedia &&
     window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
@@ -40,37 +47,47 @@ export function resolveTheme(mode) {
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [mode, setMode] = useState(readInitial);
+  const [mode, setMode] = useState("system");
+  const [resolved, setResolved] = useState("light");
+  const didInit = useRef(false);
 
   useEffect(() => {
-    const el = document.documentElement;
-    el.setAttribute("data-theme", resolveTheme(mode));
+    if (didInit.current) return;
+    didInit.current = true;
+    setMode(readInitial());
+  }, []);
+
+  useEffect(() => {
+    if (!didInit.current) return;
+    const next = mode === "system" ? systemTheme() : mode;
+    setResolved(next);
+    document.documentElement.setAttribute("data-theme", next);
     window.localStorage.setItem(STORAGE_KEY, mode);
-  }, [mode]);
 
-  useEffect(() => {
     if (mode !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
-      document.documentElement.setAttribute("data-theme", systemTheme());
+      const nr = systemTheme();
+      setResolved(nr);
+      document.documentElement.setAttribute("data-theme", nr);
     };
     mq.addEventListener?.("change", onChange);
     return () => mq.removeEventListener?.("change", onChange);
   }, [mode]);
 
   const toggle = useCallback(() => {
-    setMode((m) => (resolveTheme(m) === "dark" ? "light" : "dark"));
+    setMode((m) => (m !== "system" && m === "dark" ? "light" : "dark"));
   }, []);
 
   const value = useMemo(
     () => ({
       mode,
-      resolved: resolveTheme(mode),
-      isDark: resolveTheme(mode) === "dark",
+      resolved,
+      isDark: resolved === "dark",
       toggle,
       setMode,
     }),
-    [mode, toggle]
+    [mode, resolved, toggle]
   );
 
   return (

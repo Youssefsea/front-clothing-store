@@ -6,13 +6,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { DEFAULT_LANG, LANGS, getLangDir, translate } from "@/lib/i18n";
 
 // Language — `vanta.lang` (en | ar) persisted in localStorage. The
-// no-flash script in layout.js sets <html lang|dir> before hydration, so
-// the initial state matches the already-visible direction.
+// no-flash script in layout.js sets <html lang|dir> before hydration.
+//
+// SSR-safety: the server always renders English, so the first client render
+// must also start on DEFAULT_LANG — reading the persisted/"ar" locale during
+// the initial render would make every translated text node mismatch and
+// abort hydration (#418). The real locale is applied in an effect instead;
+// the no-flash script keeps the pre-hydration direction correct, and this
+// provider swaps the strings right after hydration.
 
 const STORAGE_KEY = "vanta.lang";
 
@@ -33,9 +40,17 @@ function applyLang(language) {
 const LocaleContext = createContext(null);
 
 export function LocaleProvider({ children }) {
-  const [lang, setLang] = useState(readInitial);
+  const [lang, setLang] = useState(DEFAULT_LANG);
+  const didInit = useRef(false);
 
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+    setLang(readInitial());
+  }, []);
+
+  useEffect(() => {
+    if (!didInit.current) return;
     applyLang(lang);
     window.localStorage.setItem(STORAGE_KEY, lang);
   }, [lang]);
