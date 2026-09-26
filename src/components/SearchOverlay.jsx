@@ -12,6 +12,7 @@ export default function SearchOverlay() {
   const { searchOpen, closeSearch } = useUi();
   const { t } = useLocale();
   const inputRef = useRef(null);
+  const openerRef = useRef(null);
   const [value, setValue] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ export default function SearchOverlay() {
 
   useEffect(() => {
     if (searchOpen) {
+      openerRef.current = document.activeElement;
       setValue("");
       setResults([]);
       setSearched(false);
@@ -32,6 +34,10 @@ export default function SearchOverlay() {
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
       } catch {}
+      return () => {
+        const opener = openerRef.current;
+        if (!searchOpen && opener && typeof opener.focus === "function") opener.focus();
+      };
     }
   }, [searchOpen, closeSearch]);
 
@@ -67,6 +73,8 @@ export default function SearchOverlay() {
       onClick={closeSearch}
       role="dialog"
       aria-modal="true"
+      aria-hidden={!searchOpen}
+      inert={!searchOpen ? "" : undefined}
       aria-label={t("search.label")}
     >
       <div
@@ -88,7 +96,7 @@ export default function SearchOverlay() {
           ) : (
             <span className="kbd">↵</span>
           )}
-          <button className="icon-btn" onClick={closeSearch} aria-label={t("common.close")}>
+          <button type="button" className="icon-btn" onClick={closeSearch} aria-label={t("common.close")}>
             ✕
           </button>
         </form>
