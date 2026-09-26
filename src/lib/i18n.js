@@ -496,6 +496,7 @@ const en = {
   "v.images": "Add at least one product image.",
   "v.maxImages": "You can upload up to {n} images.",
   "v.sizeBadChars": "Sizes allow letters, numbers, spaces and commas only.",
+  "v.sizeNotSupported": "This size is not supported by the cart system. Use XS, S, M, L, XL, XXL or XXXL.",
   "v.colorBadChars": "Colors allow letters, spaces and commas only.",
   "v.generic": "Could not save product",
 
@@ -1031,6 +1032,7 @@ const ar = {
   "v.images": "أضف صورة واحدة على الأقل.",
   "v.maxImages": "يمكنك رفع حتى {n} صور.",
   "v.sizeBadChars": "تسمح المقاسات بالأحرف والأرقام والمسافات والفواصل فقط.",
+  "v.sizeNotSupported": "هذا المقاس غير مدعوم في نظام السلة. استخدم XS أو S أو M أو L أو XL أو XXL أو XXXL.",
   "v.colorBadChars": "تسمح الألوان بالأحرف والمسافات والفواصل فقط.",
   "v.generic": "تعذّر حفظ المنتج",
 
