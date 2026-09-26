@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, CreditCard, Upload } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/stores/auth-store";
@@ -10,13 +10,12 @@ import { useLang } from "@/components/transitions/language-provider";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ErrorBlock, LoadingBlock, SuccessNotice } from "@/components/ui/feedback";
+import { ErrorBlock, LoadingBlock } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/input";
 
 export function CheckoutClient(){
   const auth=useAuth();const cart=useCart();const {t}=useLang();const [address,setAddress]=useState("");const [method,setMethod]=useState<typeof PAYMENT_METHODS[number]>("vodafone_cash");const [file,setFile]=useState<File|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [success,setSuccess]=useState<string|null>(null);
   const valid=auth.status==="authenticated"&&cart.items.length>0&&!cart.items.some(i=>!i.available)&&address.trim().length>=10&&!!file&&!loading;
-  const label=useMemo(()=>method==="vodafone_cash"?t("checkout.vodafone"):t("checkout.instapay"),[method,t]);
   if(auth.status==="unknown"||auth.status==="checking"||cart.status==="loading")return <main className="site-container py-12"><LoadingBlock label={t("common.loading")}/></main>;
   if(auth.status!=="authenticated")return <main className="site-container py-20 text-center"><h1 className="text-4xl font-semibold">{t("checkout.title")}</h1><p className="mt-4 text-muted-foreground">{t("cart.signin")}</p><Link href="/login" className="mt-7 inline-flex min-h-11 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground">{t("nav.login")}</Link></main>;
   if(success)return <main className="site-container flex min-h-[65vh] items-center justify-center py-16"><div className="surface-card max-w-xl p-8 text-center md:p-12"><CheckCircle2 className="mx-auto size-10 text-success" aria-hidden/><h1 className="mt-5 text-3xl font-semibold">{t("checkout.success")}</h1><p className="mt-3 text-muted-foreground">{t("checkout.orderId")}: <span className="font-semibold text-foreground">{success}</span></p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link href="/orders" className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground">{t("nav.orders")}</Link><Link href="/shop" className="inline-flex min-h-11 items-center rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground">{t("home.shop")}</Link></div></div></main>;
