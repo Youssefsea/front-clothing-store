@@ -138,7 +138,13 @@ export default function CartPage() {
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
-              <Link href="/checkout" className="btn btn--primary btn--block">{t("cart.checkout")}</Link>
+              {items.some((item) => item.available === false) ? (
+  <div className="form-alert form-alert--err" role="alert">
+    {t("cart.unavailableItems")}
+  </div>
+) : (
+  <Link href="/checkout" className="btn btn--primary btn--block">{t("cart.checkout")}</Link>
+)}
               <Link href="/shop" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
                 {t("cart.continue")}
               </Link>
