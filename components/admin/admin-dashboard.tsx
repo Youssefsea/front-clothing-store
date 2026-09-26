@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight, Boxes, ShoppingCart, Users } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useLang } from "@/components/transitions/language-provider";
