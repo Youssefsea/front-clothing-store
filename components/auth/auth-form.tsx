@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/stores/auth-store";
 import { useLang } from "@/components/transitions/language-provider";
@@ -13,8 +13,9 @@ import { ErrorBlock, SuccessNotice } from "@/components/ui/feedback";
 import type { User } from "@/types/domain";
 
 export function AuthForm({ mode }: { mode:"login"|"signup" }) {
-  const {t}=useLang();const router=useRouter();const params=useSearchParams();const auth=useAuth();
-  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [phone,setPhone]=useState("");const [otp,setOtp]=useState("");const [otpStage,setOtpStage]=useState(false);const [show,setShow]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState(mode==="login"&&params.get("created")==="1"?t("auth.signupSuccess"):"");
+  const {t}=useLang();const router=useRouter();const auth=useAuth();
+  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [phone,setPhone]=useState("");const [otp,setOtp]=useState("");const [otpStage,setOtpStage]=useState(false);const [show,setShow]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
+  useEffect(()=>{if(mode==="login"&&window.location.search.includes("created=1"))setNotice(t("auth.signupSuccess"))},[mode,t]);
 
   const submitLogin=async()=>{
     if(!email||password.length<6){setError(t("common.required"));return;}
@@ -52,5 +53,5 @@ export function AuthForm({ mode }: { mode:"login"|"signup" }) {
 }
 
 function Field({label,value,onChange,icon,type="text",...props}:{label:string;value:string;onChange:(v:string)=>void;icon:React.ReactNode;type?:string;[key:string]:unknown}){
-  return <div><label className="text-sm font-semibold">{label}</label><div className="relative mt-2">{<span className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>}<Input type={type} value={value} onChange={(e)=>onChange(e.target.value)} className="ps-10" {...props}/></div></div>;
+  return <div><label className="text-sm font-semibold">{label}</label><div className="relative mt-2"><span className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span><Input type={type} value={value} onChange={(e)=>onChange(e.target.value)} className="ps-10" {...props}/></div></div>;
 }
