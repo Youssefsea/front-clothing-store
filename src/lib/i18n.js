@@ -54,7 +54,7 @@ const en = {
   "home.retry": "Try again",
   "home.shop": "Shop the collection",
   "marquee.season": "New season",
-  "marquee.shipping": "Free shipping over $100",
+  "marquee.shipping": "Payment verified after screenshot upload",
   "marquee.drops": "Fresh drops",
   "marquee.essentials": "Modern essentials",
 
