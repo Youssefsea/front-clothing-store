@@ -70,7 +70,7 @@ export function CartBootstrap({ children }: { children: React.ReactNode }) {
   const hydrate = useCart((s) => s.hydrate);
 
   React.useEffect(() => {
-    if (authStatus === "authenticated") void hydrate();
+    if (authStatus === "authenticated") queueMicrotask(() => void hydrate());
   }, [authStatus, hydrate]);
 
   return <>{children}</>;
