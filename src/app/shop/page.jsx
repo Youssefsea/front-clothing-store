@@ -220,12 +220,12 @@ function ShopPageInner() {
   const sortLabel = (s) =>
     s === "priceAsc" ? t("shop.sortLow") : s === "priceDesc" ? t("shop.sortHigh") : s === "title" ? t("shop.sortName") : t("shop.sort");
 
-  const FilterPanel = ({ onAfterChange }) => (
+  const FilterPanel = ({ onAfterChange, idPrefix = "filter" }) => (
     <div className="filters">
       <div className="field">
-        <label htmlFor="shop-search">{t("shop.search")}</label>
+        <label htmlFor={`${idPrefix}-search`}>{t("shop.search")}</label>
         <input
-          id="shop-search"
+          id={`${idPrefix}-search`}
           type="search"
           placeholder={t("shop.find")}
           value={q}
@@ -234,9 +234,9 @@ function ShopPageInner() {
       </div>
 
       <div className="field">
-        <label htmlFor="shop-cat">{t("shop.category")}</label>
+        <label htmlFor={`${idPrefix}-cat`}>{t("shop.category")}</label>
         <select
-          id="shop-cat"
+          id={`${idPrefix}-cat`}
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
@@ -334,7 +334,7 @@ function ShopPageInner() {
 
         <div className="shop-layout">
           <aside className="shop-filters" aria-label={t("shop.filtersAria")}>
-            <FilterPanel />
+            <FilterPanel idPrefix="desktop" />
           </aside>
 
           <div className="shop-main">
@@ -344,7 +344,7 @@ function ShopPageInner() {
               </span>
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value)}
+                onChange={(e) => { const nextSort = e.target.value; setSort(nextSort); syncUrl({ sort: nextSort }); }}
                 aria-label={t("shop.sortAria")}
                 style={{
                   border: "1px solid var(--line)",
@@ -405,7 +405,7 @@ function ShopPageInner() {
           <button type="button" className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label={t("common.close")}>✕</button>
         </div>
         <div className="drawer__body drawer__body--filters">
-          <FilterPanel onAfterChange={() => setFiltersOpen(false)} />
+          <FilterPanel idPrefix="mobile" onAfterChange={() => setFiltersOpen(false)} />
         </div>
       </aside>
     </div>
