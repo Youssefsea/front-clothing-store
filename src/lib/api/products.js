@@ -157,8 +157,7 @@ export async function addProduct(payload) {
   formData.append("category_name", payload.category_name);
   formData.append("sizes", payload.sizes || "");
   formData.append("colors", payload.colors || "");
-  const image = Array.isArray(payload.images) ? payload.images[0] : payload.image;
-  if (image) formData.append("image", image);
+  (payload.images || []).forEach((file) => formData.append("images", file));
   return api.fetch("/products/add", { method: "POST", formData });
 }
 
@@ -173,7 +172,9 @@ export async function updateProduct(payload) {
   formData.append("category_name", payload.category_name);
   formData.append("sizes", payload.sizes || "");
   formData.append("colors", payload.colors || "");
-  (payload.images || []).forEach((file) => formData.append("images", file));
+  if (payload.image_url) formData.append("image_url", String(payload.image_url));
+  const image = Array.isArray(payload.images) ? payload.images[0] : payload.image;
+  if (image) formData.append("image", image);
   return api.fetch("/products/update", { method: "PUT", formData });
 }
 
