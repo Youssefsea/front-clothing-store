@@ -381,10 +381,10 @@ function ShopPageInner() {
       </div>
 
       <div className={`overlay ${filtersOpen ? "open" : ""}`} onClick={() => setFiltersOpen(false)} aria-hidden="true" />
-      <aside className={`drawer drawer--left ${filtersOpen ? "open" : ""}`} aria-hidden={!filtersOpen}>
+      <aside className={`drawer drawer--left ${filtersOpen ? "open" : ""}`} aria-hidden={!filtersOpen} inert={!filtersOpen ? "" : undefined} role="dialog" aria-modal="true" aria-label={t("shop.filter")}>
         <div className="drawer__head">
           <h3>{t("shop.filter")}</h3>
-          <button className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label={t("common.close")}>✕</button>
+          <button type="button" className="icon-btn" onClick={() => setFiltersOpen(false)} aria-label={t("common.close")}>✕</button>
         </div>
         <div className="drawer__body drawer__body--filters">
           <FilterPanel onAfterChange={() => setFiltersOpen(false)} />
