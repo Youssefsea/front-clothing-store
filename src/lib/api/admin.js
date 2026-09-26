@@ -16,7 +16,7 @@ export async function getAdminOrdersByUserId(userId) {
 }
 
 export async function getAdminOrdersByEmail(email) {
-  const data = await api.post("/admin/orders/userEmail", { email });
+  const data = await apiGetWithBody("/admin/orders/userEmail", { email });
   return normalizeOrders(data?.orders || []);
 }
 
@@ -51,12 +51,12 @@ export async function deleteAdminUser(userId) {
 }
 
 export async function findAdminUserByEmail(email) {
-  const data = await api.post("/admin/users/email", { email });
+  const data = await apiGetWithBody("/admin/users/email", { email });
   return normalizeAdminUsers(data?.users || (data?.user ? [data.user] : []));
 }
 
 export async function findAdminUserByPhone(phone) {
-  const data = await api.post("/admin/users/phone", { phone });
+  const data = await apiGetWithBody("/admin/users/phone", { phone });
   return normalizeAdminUsers(data?.users || (data?.user ? [data.user] : []));
 }
 
