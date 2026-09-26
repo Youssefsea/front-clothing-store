@@ -616,7 +616,7 @@ const ar = {
   "home.retry": "حاول مرة أخرى",
   "home.shop": "تسوق المجموعة",
   "marquee.season": "موسم جديد",
-  "marquee.shipping": "شحن مجاني للطلبات فوق 100$",
+  "marquee.shipping": "يتم تأكيد الدفع بعد رفع صورة الإثبات",
   "marquee.drops": "إصدارات جديدة",
   "marquee.essentials": "أساسيات عصرية",
 
