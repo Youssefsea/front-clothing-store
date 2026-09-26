@@ -57,11 +57,17 @@ export async function fetchProducts() {
 }
 
 export async function fetchProductByTitle(title) {
-  const data = await api.post("/products/byName", { title });
-  const product = data?.product;
-  return normalizeProducts(
-    Array.isArray(product) ? product : product ? [product] : []
-  );
+  const needle = String(title ?? "").trim().toLowerCase();
+  if (!needle) return [];
+  const products = await fetchProducts();
+  return products.filter((product) => product.title.trim().toLowerCase().includes(needle));
+}
+
+export async function fetchProductById(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId)) return [];
+  const products = await fetchProducts();
+  return products.filter((product) => Number(product.id) === numericId);
 }
 
 export async function fetchProductsByCategory(categoryName) {
@@ -151,13 +157,14 @@ export async function addProduct(payload) {
   formData.append("category_name", payload.category_name);
   formData.append("sizes", payload.sizes || "");
   formData.append("colors", payload.colors || "");
-  (payload.images || []).forEach((file) => formData.append("images", file));
+  const image = Array.isArray(payload.images) ? payload.images[0] : payload.image;
+  if (image) formData.append("image", image);
   return api.fetch("/products/add", { method: "POST", formData });
 }
 
 export async function updateProduct(payload) {
   const formData = new FormData();
-  formData.append("product_id", String(payload.product_id));
+  formData.append("id", String(payload.id ?? payload.product_id));
   formData.append("title", payload.title);
   formData.append("description", payload.description || "");
   formData.append("price", String(payload.price));
@@ -171,8 +178,5 @@ export async function updateProduct(payload) {
 }
 
 export async function toggleProduct(productId) {
-  return api.put("/products/toggle", {
-    product_id: String(productId),
-    id: String(productId),
-  });
+  return api.put("/products/toggle", { id: Number(productId) });
 }
