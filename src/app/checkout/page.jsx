@@ -116,9 +116,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // The current backend order total is the product subtotal only.
-  // Do not invent a shipping charge that is absent from the order contract.
-  const shipping = 0;
   const grandTotal = totals.subtotal;
 
   return (
@@ -256,10 +253,6 @@ export default function CheckoutPage() {
                 <div className="summary__row">
                   <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
-                </div>
-                <div className="summary__row">
-                  <span>{t("cart.shipping")}</span>
-                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
                 </div>
                 <div className="summary__row summary__row--total">
                   <span>{t("cart.total")}</span>
