@@ -64,7 +64,7 @@ export function HomeClient() {
               <Link href="/shop" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-black transition hover:bg-white/90">{t("home.shop")}<ArrowUpRight className="size-4" aria-hidden /></Link>
               <a href="#featured" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/30 px-6 text-sm font-semibold transition hover:bg-white/10">{t("home.discover")}<ArrowDownRight className="size-4" aria-hidden /></a>
             </div>
-            {HERO_VIDEO_URL && <div className="mt-6 inline-flex items-center gap-2 text-xs text-white/60"><PlayCircle className="size-4" aria-hidden /> Campaign media</div>}
+            {HERO_VIDEO_URL && <div className="mt-6 inline-flex items-center gap-2 text-xs text-white/60"><PlayCircle className="size-4" aria-hidden />{t("home.media")}</div>}
           </motion.div>
         </div>
       </section>

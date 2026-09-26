@@ -1,5 +1,9 @@
 name: VANTA CI
 
+concurrency:
+  group: vanta-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["main", "vanta-greenfield"]
