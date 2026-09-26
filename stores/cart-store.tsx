@@ -68,13 +68,10 @@ export const useCart = create<CartStore>((set) => ({
 export function CartBootstrap({ children }: { children: React.ReactNode }) {
   const authStatus = useAuth((s) => s.status);
   const hydrate = useCart((s) => s.hydrate);
-  const [bootstrapped, setBootstrapped] = React.useState(false);
 
   React.useEffect(() => {
-    if (authStatus === "authenticated") { void hydrate(); setBootstrapped(true); }
-    else if (authStatus === "unauthenticated") { useCart.getState().clear(); setBootstrapped(true); }
+    if (authStatus === "authenticated") void hydrate();
   }, [authStatus, hydrate]);
 
-  if (!bootstrapped) return <div className="min-h-screen bg-background" aria-busy="true">{children}</div>;
   return <>{children}</>;
 }
