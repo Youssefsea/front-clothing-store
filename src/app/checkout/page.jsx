@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { notify } = useUi();
   const { t } = useLocale();
+  const hasUnavailable = items.some((item) => item.available === false);
 
   const [address, setAddress] = useState("");
   const [method, setMethod] = useState("vodafone_cash");
@@ -141,6 +142,11 @@ export default function CheckoutPage() {
           />
         ) : (
           <form className="checkout-layout" onSubmit={submit} noValidate>
+            {hasUnavailable && (
+              <div className="form-alert form-alert--err" role="alert" style={{ gridColumn: "1 / -1" }}>
+                {t("cart.unavailableItems")}
+              </div>
+            )}
             <div>
               <Reveal>
                 <div className="checkout-panel">
@@ -260,7 +266,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button className="btn btn--primary btn--block" disabled={submitting || loading}>
+              <button className="btn btn--primary btn--block" disabled={submitting || loading || hasUnavailable}>
                 {submitting ? t("checkout.placing") : t("checkout.placeBtn", { price: formatPrice(grandTotal) })}
               </button>
               <Link href="/cart" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
