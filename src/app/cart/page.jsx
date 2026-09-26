@@ -19,7 +19,7 @@ export default function CartPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { notify } = useUi();
   const { t } = useLocale();
-
+console.log("items ",items);
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace("/login?next=/cart");

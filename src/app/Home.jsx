@@ -10,11 +10,7 @@ import Reveal from "@/components/Reveal";
 import { ApiError } from "@/lib/api/client";
 import { useLocale } from "@/context/LocaleContext";
 
-// Editorial media — curated, embedding-friendly sources.
-//   - Stills: Unsplash CDN (images.unsplash.com)
-//   - Loop: Mixkit (assets.mixkit.co) — muted, poster fallback
-// Real products always take precedence in the hero; editorial assets are
-// used only as a graceful fallback when the catalog is empty.
+
 const EDITORIAL = {
   // Photo: "fashion model in studio" — https://unsplash.com/photos/FbRxpkNc8sA
   hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1400&q=80",
