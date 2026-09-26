@@ -23,7 +23,7 @@ export function Navbar() {
   const showOverlay=pathname==="/"&&!scrolled;const accountHref=auth.status==="authenticated"?"/account":"/login";
   const links=useMemo(()=>[{href:"/",label:t("nav.home")},{href:"/shop",label:t("nav.shop")},...(auth.status==="authenticated"?[{href:"/orders",label:t("nav.orders")}]:[]),...(auth.user?.role==="admin"?[{href:"/admin",label:t("nav.admin")}]:[])],[auth.status,auth.user?.role,t]);
   return <>
-    <header className={showOverlay?"fixed inset-x-0 top-0 z-[100] text-white":"sticky top-0 z-[100] border-b border-border bg-background/90 text-foreground backdrop-blur-xl"}>
+    <header style={{ zIndex: 1000, position: showOverlay ? "fixed" : "sticky", top: 0, insetInline: 0, pointerEvents: "auto" }} className={showOverlay?"text-white":"border-b border-border bg-background/90 text-foreground backdrop-blur-xl"}>
       <div className="site-container flex min-h-20 items-center justify-between gap-5">
         <Link href="/" className="shrink-0 text-xl font-black tracking-[.22em]" aria-label="VANTA home">VANTA</Link>
         <nav className="hidden items-center gap-7 lg:flex" aria-label={t("nav.primary")}>{links.map(link=><Link key={link.href} href={link.href} className="group relative text-sm font-medium opacity-80 transition hover:opacity-100">{link.label}<span className="absolute -bottom-2 start-0 h-px w-0 bg-current transition-all duration-300 group-hover:w-full"/></Link>)}</nav>
