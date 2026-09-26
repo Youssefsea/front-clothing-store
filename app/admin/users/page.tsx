@@ -1,0 +1,1 @@
+import{AdminUsers,AdminShell}from"../../../features/admin";export default function Page(){return <AdminShell><AdminUsers/></AdminShell>}

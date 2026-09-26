@@ -1,0 +1,1 @@
+import type{MetadataRoute}from"next";export default function sitemap():MetadataRoute.Sitemap{const b="https://front-clothing-store.vercel.app";return[{url:b,priority:1},{url:b+"/shop",priority:.9},{url:b+"/login",priority:.3},{url:b+"/signup",priority:.3}]}
