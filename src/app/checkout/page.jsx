@@ -51,6 +51,7 @@ export default function CheckoutPage() {
   if (authLoading) {
     return <div className="nav-spacer"><Loader label={t("checkout.preparing")} /></div>;
   }
+  if (!isAuthenticated) return null;
 
   const methodLabel = (m) =>
     m.value === "vodafone_cash" ? t("checkout.mVodafone") : t("checkout.mInstapay");
