@@ -16,9 +16,8 @@ import Reveal from "@/components/Reveal";
 import ProductImage from "@/components/ProductImage";
 
 const METHODS = [
-  { value: "cod" },
-  { value: "bank_transfer" },
-  { value: "card" },
+  { value: "vodafone_cash" },
+  { value: "instapay" },
 ];
 
 export default function CheckoutPage() {
@@ -29,7 +28,7 @@ export default function CheckoutPage() {
   const { t } = useLocale();
 
   const [address, setAddress] = useState("");
-  const [method, setMethod] = useState("bank_transfer");
+  const [method, setMethod] = useState("vodafone_cash");
   const [screenshot, setScreenshot] = useState(null);
   const [preview, setPreview] = useState("");
   const [addressError, setAddressError] = useState("");
@@ -54,9 +53,9 @@ export default function CheckoutPage() {
   }
 
   const methodLabel = (m) =>
-    m.value === "cod" ? t("checkout.mCod") : m.value === "card" ? t("checkout.mCard") : t("checkout.mBank");
+    m.value === "vodafone_cash" ? t("checkout.mVodafone") : t("checkout.mInstapay");
   const methodHint = (m) =>
-    m.value === "cod" ? t("checkout.hCod") : m.value === "card" ? t("checkout.hCard") : t("checkout.hBank");
+    m.value === "vodafone_cash" ? t("checkout.hVodafone") : t("checkout.hInstapay");
 
   const handleFile = (file) => {
     setFileError("");
@@ -81,7 +80,7 @@ export default function CheckoutPage() {
   const submit = async (e) => {
     e.preventDefault();
     let bad = false;
-    if (!address.trim() || address.trim().length < 8) {
+    if (!address.trim() || address.trim().length < 10) {
       setAddressError(t("checkout.addressTooShort"));
       bad = true;
     } else {
@@ -117,8 +116,10 @@ export default function CheckoutPage() {
     }
   };
 
-  const shipping = totals.subtotal > 0 && totals.subtotal < 100 ? 6.5 : 0;
-  const grandTotal = totals.subtotal + shipping;
+  // The current backend order total is the product subtotal only.
+  // Do not invent a shipping charge that is absent from the order contract.
+  const shipping = 0;
+  const grandTotal = totals.subtotal;
 
   return (
     <div className="nav-spacer">
