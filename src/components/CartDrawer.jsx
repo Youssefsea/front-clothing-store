@@ -11,6 +11,7 @@ import ProductImage from "./ProductImage";
 export default function CartDrawer() {
   const { cartOpen, closeCart, notify } = useUi();
   const { items, totals, updateQuantity, removeFromCart, mutating } = useCart();
+  const hasUnavailable = items.some((item) => item.available === false);
   const { t } = useLocale();
 
   const handleRemove = async (id, title) => {
@@ -110,9 +111,13 @@ export default function CartDrawer() {
             <span className="label">{t("cart.subtotal")}</span>
             <span className="value">{formatPrice(totals.subtotal)}</span>
           </div>
-          <Link href="/checkout" className="btn btn--primary btn--block" onClick={closeCart}>
-            {t("cart.checkout")}
-          </Link>
+          {hasUnavailable ? (
+            <div className="form-alert form-alert--err" role="alert">{t("cart.unavailableItems")}</div>
+          ) : (
+            <Link href="/checkout" className="btn btn--primary btn--block" onClick={closeCart}>
+              {t("cart.checkout")}
+            </Link>
+          )}
           <Link
             href="/cart"
             className="btn btn--outline btn--dark-text btn--block"
