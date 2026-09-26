@@ -13,7 +13,7 @@ import { ErrorBlock, LoadingBlock } from "@/components/ui/feedback";
 
 export function AdminOrders(){
   const {t}=useLang();const [orders,setOrders]=useState<Order[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [query,setQuery]=useState("");
-  const load=useCallback(()=>{setLoading(true);apiRequest<{orders?:Order[]}>("/admin/orders").then(r=>setOrders(Array.isArray(r.orders)?r.orders:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))};
+  const load=useCallback(()=>{setLoading(true);apiRequest<{orders?:Order[]}>("/admin/orders").then(r=>setOrders(Array.isArray(r.orders)?r.orders:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))},[t]);
   useEffect(()=>{void load()},[load]);
   const visible=useMemo(()=>orders.filter(o=>[o.id,o.customer_name,o.customer_email,o.status].some(v=>String(v??"").toLowerCase().includes(query.toLowerCase()))),[orders,query]);
   const update=async(id:Order["id"],status:string)=>{try{await apiRequest("/admin/orders/status",{method:"PUT",body:{order_id:Number(id),status}});setOrders(prev=>prev.map(o=>o.id===id?{...o,status}:o))}catch(err){setError(err instanceof Error?err.message:t("common.error"))}};
