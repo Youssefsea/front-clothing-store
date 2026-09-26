@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { create } from "zustand";
 import { apiRequest } from "@/lib/api";
 import { clearSession, readSession, writeSession } from "@/lib/storage";
@@ -29,9 +30,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       const session = await apiRequest<{ message: string; name: string; email: string }>("/isLoggedIn");
       const role = snapshot?.user.role ?? "user";
       let user: User = { name: session.name, email: session.email, role };
-      if (snapshot?.user.email === session.email) {
-        user = { ...snapshot.user, name: session.name, email: session.email };
-      }
+      if (snapshot?.user.email === session.email) user = { ...snapshot.user, name: session.name, email: session.email };
 
       if (user.role === "admin") {
         try {
@@ -44,11 +43,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       writeSession(user);
       set({ status: "authenticated", user });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        clearSession();
-        set({ status: "unauthenticated", user: null });
-        return;
-      }
+      if (error instanceof ApiError && error.status === 401) clearSession();
       set({ status: "unauthenticated", user: null });
     }
   },
@@ -70,7 +65,7 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const status = useAuth((s) => s.status);
   const init = useAuth((s) => s.init);
 
-  React.useEffect(() => { void init(); }, [init]);
+  useEffect(() => { void init(); }, [init]);
 
   if (status === "unknown" || status === "checking") {
     return <div className="min-h-screen bg-background" aria-busy="true">{children}</div>;
