@@ -82,7 +82,7 @@ export async function apiRequest<T = unknown>(path: string, options: RequestOpti
   }
 
   if (!response.ok) {
-    throw new ApiError(friendlyMessage(response.status, data), response.status, (typeof data === "object" && data !== null ? data as any : undefined));
+    throw new ApiError(friendlyMessage(response.status, data), response.status, (typeof data === "object" && data !== null ? data as ApiErrorPayload : undefined));
   }
   return data as T;
 }
