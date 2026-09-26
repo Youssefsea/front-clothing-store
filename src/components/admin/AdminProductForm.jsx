@@ -17,7 +17,7 @@ const MAX_IMAGES = 5;
 
 // Fashion size presets, expressed in canonical store order. The backend
 // sizes pattern is /^[A-Za-z0-9, ]*$/, so every value here is safe.
-const FASHION_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const FASHION_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 // 14 standard color presets. Swatch hexes only for known names — we never
 // invent hex values for arbitrary labels.
@@ -217,15 +217,16 @@ export default function AdminProductForm({
     setFormError("");
   };
 
+  const imageLimit = mode === "edit" ? 1 : MAX_IMAGES;
   const totalImages = files.length;
-  const slotsRemaining = MAX_IMAGES - totalImages;
+  const slotsRemaining = imageLimit - totalImages;
 
   const addFiles = (list, source = "click") => {
     const incoming = Array.from(list || []);
     const allowed =
-      totalImages + incoming.length > MAX_IMAGES ? slotsRemaining : incoming.length;
+      totalImages + incoming.length > imageLimit ? slotsRemaining : incoming.length;
     if (allowed <= 0) {
-      setFormError(t("v.maxImages", { n: MAX_IMAGES }));
+      setFormError(t("v.maxImages", { n: imageLimit }));
       return;
     }
     const next = incoming.slice(0, allowed);
@@ -239,9 +240,17 @@ export default function AdminProductForm({
   };
 
   const removeFile = (i) => {
+    setFilePreviews((prev) => {
+      const url = prev[i];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, idx) => idx !== i);
+    });
     setFiles((prev) => prev.filter((_, idx) => idx !== i));
-    setFilePreviews((prev) => prev.filter((_, idx) => idx !== i));
   };
+
+  useEffect(() => () => {
+    filePreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [filePreviews]);
 
   const moveFile = (i, dir) => {
     const j = i + dir;
@@ -321,7 +330,7 @@ export default function AdminProductForm({
     try {
       await toggleProduct(product.id);
       setIsActive((v) => !v);
-      if (onError) onError(`${product.title}: ${isActive ? t("admin.live") : t("admin.hidden")}`);
+      if (onError) onError(`${product.title}: ${!isActive ? t("admin.live") : t("admin.hidden")}`);
     } catch (err) {
       if (onError) onError(err instanceof ApiError ? err.message : t("v.generic"));
     } finally {
@@ -384,7 +393,7 @@ export default function AdminProductForm({
       } else {
         await updateProduct({
           ...base,
-          product_id: product.id,
+          id: product.id,
           images: files,
         });
         onSaved && onSaved({ mode, message: t("admin.editProduct") });
