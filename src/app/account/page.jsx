@@ -25,6 +25,7 @@ export default function AccountPage() {
   if (loading) {
     return <div className="nav-spacer"><Loader label={t("account.loading")} /></div>;
   }
+  if (!isAuthenticated || !user) return null;
 
   const handleLogout = async () => {
     await logout();
