@@ -104,8 +104,7 @@ export default function CheckoutPage() {
       });
       notify(data?.message || t("checkout.orderPlaced"));
       const orderId = data?.order_id || data?.orderId || "";
-      const total = data?.total ?? totals.subtotal;
-      router.push(`/orderComplet?order=${encodeURIComponent(orderId)}&total=${total}`);
+      router.push(`/orderComplet?order=${encodeURIComponent(orderId)}`);
     } catch (err) {
       if (err instanceof ApiError) {
         notify(err.status === 401 ? t("checkout.sessionExpired") : err.message);
