@@ -45,9 +45,9 @@ export function HomeClient() {
     <div>
       <section className="relative isolate min-h-[min(86vh,860px)] overflow-hidden bg-black text-white">
         <div className="absolute inset-0">
-          <MediaImage src={HERO_IMAGE_FALLBACK} alt="" fill priority sizes="100vw" className="object-cover" />
+          <MediaImage src={HERO_IMAGE_FALLBACK} alt="" fill priority sizes="100vw" className="pointer-events-none object-cover" />
           {HERO_VIDEO_URL && (
-            <video className="absolute inset-0 size-full object-cover" autoPlay muted loop playsInline poster={HERO_IMAGE_FALLBACK} onError={(e) => { e.currentTarget.style.display = "none"; }} aria-hidden>
+            <video className="pointer-events-none absolute inset-0 size-full object-cover" autoPlay muted loop playsInline poster={HERO_IMAGE_FALLBACK} onError={(e) => { e.currentTarget.style.display = "none"; }} aria-hidden>
               <source src={HERO_VIDEO_URL} />
             </video>
           )}
