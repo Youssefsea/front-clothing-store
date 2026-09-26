@@ -19,8 +19,10 @@ export function UiProvider({ children }) {
   const notify = useCallback((message) => {
     setGlobalMsg(message);
     if (message) {
-      window.clearTimeout(notify._t);
-      notify._t = window.setTimeout(() => setGlobalMsg(null), 2600);
+      try {
+        window.clearTimeout(notify._t);
+        notify._t = window.setTimeout(() => setGlobalMsg(null), 2600);
+      } catch {}
     }
   }, []);
 

@@ -14,18 +14,31 @@ const STORAGE_KEY = "vanta.theme";
 
 function readStoredMode() {
   if (typeof window === "undefined") return "system";
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === "light" || saved === "dark" || saved === "system") return saved;
-  const attribute = document.documentElement.getAttribute("data-theme");
-  if (attribute === "light" || attribute === "dark") return attribute;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+  } catch {
+    // localStorage blocked/unavailable (private browsing, quota, etc.)
+  }
+  try {
+    const attribute = document.documentElement.getAttribute("data-theme");
+    if (attribute === "light" || attribute === "dark") return attribute;
+  } catch {
+    // DOM access failed
+  }
   return "system";
 }
 
 function systemTheme() {
-  return window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  if (typeof window === "undefined") return "light";
+  try {
+    return window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  } catch {
+    return "light";
+  }
 }
 
 export function resolveTheme(mode) {
@@ -34,12 +47,14 @@ export function resolveTheme(mode) {
 }
 
 function pulseThemeSwitch() {
-  const root = document.documentElement;
-  root.classList.remove("theme-switching");
-  // Force reflow so re-adding the class retriggers the animation.
-  void root.offsetWidth;
-  root.classList.add("theme-switching");
-  window.setTimeout(() => root.classList.remove("theme-switching"), 420);
+  if (typeof document === "undefined") return;
+  try {
+    const root = document.documentElement;
+    root.classList.remove("theme-switching");
+    void root.offsetWidth;
+    root.classList.add("theme-switching");
+    window.setTimeout(() => root.classList.remove("theme-switching"), 420);
+  } catch {}
 }
 
 const ThemeContext = createContext(null);
@@ -55,26 +70,40 @@ export function ThemeProvider({ children }) {
     ready.current = true;
     setModeState(initial);
     setResolved(next);
-    document.documentElement.setAttribute("data-theme", next);
-    window.localStorage.setItem(STORAGE_KEY, initial);
+    try {
+      document.documentElement.setAttribute("data-theme", next);
+    } catch {}
+    try {
+      window.localStorage.setItem(STORAGE_KEY, initial);
+    } catch {}
   }, []);
 
   useEffect(() => {
     if (!ready.current) return;
     const next = mode === "system" ? systemTheme() : mode;
     setResolved(next);
-    document.documentElement.setAttribute("data-theme", next);
-    window.localStorage.setItem(STORAGE_KEY, mode);
+    try {
+      document.documentElement.setAttribute("data-theme", next);
+    } catch {}
+    try {
+      window.localStorage.setItem(STORAGE_KEY, mode);
+    } catch {}
 
     if (mode !== "system") return undefined;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      const nr = systemTheme();
-      setResolved(nr);
-      document.documentElement.setAttribute("data-theme", nr);
-    };
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
+    try {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const onChange = () => {
+        const nr = systemTheme();
+        setResolved(nr);
+        try {
+          document.documentElement.setAttribute("data-theme", nr);
+        } catch {}
+      };
+      mq.addEventListener?.("change", onChange);
+      return () => mq.removeEventListener?.("change", onChange);
+    } catch {
+      return undefined;
+    }
   }, [mode]);
 
   const setMode = useCallback((next) => {

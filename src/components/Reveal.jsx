@@ -24,32 +24,36 @@ export default function Reveal({
     const el = ref.current;
     if (!el) return;
 
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    try {
+      if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setInView(true);
+        return;
+      }
+
+      const obs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setInView(true);
+              obs.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.08, rootMargin: "40px 0px 0px 0px" }
+      );
+      obs.observe(el);
+
+      // Safety: if already in viewport on mount, reveal immediately.
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        setInView(true);
+        obs.unobserve(el);
+      }
+
+      return () => obs.disconnect();
+    } catch {
       setInView(true);
-      return;
     }
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setInView(true);
-            obs.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: "40px 0px 0px 0px" }
-    );
-    obs.observe(el);
-
-    // Safety: if already in viewport on mount, reveal immediately.
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      setInView(true);
-      obs.unobserve(el);
-    }
-
-    return () => obs.disconnect();
   }, [eager]);
 
   return (

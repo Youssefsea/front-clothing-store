@@ -22,17 +22,30 @@ const STORAGE_KEY = "vanta.lang";
 
 function readStoredLang() {
   if (typeof window === "undefined") return DEFAULT_LANG;
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === "ar" || saved === "en") return saved;
-  const attribute = document.documentElement.getAttribute("lang");
-  if (attribute === "ar" || attribute === "en") return attribute;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === "ar" || saved === "en") return saved;
+  } catch {
+    // localStorage blocked/unavailable
+  }
+  try {
+    const attribute = document.documentElement.getAttribute("lang");
+    if (attribute === "ar" || attribute === "en") return attribute;
+  } catch {
+    // DOM access failed
+  }
   return DEFAULT_LANG;
 }
 
 function applyLang(language) {
-  const dir = getLangDir(language);
-  document.documentElement.setAttribute("lang", language);
-  document.documentElement.setAttribute("dir", dir);
+  if (typeof document === "undefined") return;
+  try {
+    const dir = getLangDir(language);
+    document.documentElement.setAttribute("lang", language);
+    document.documentElement.setAttribute("dir", dir);
+  } catch {
+    // DOM access failed
+  }
 }
 
 const LocaleContext = createContext(null);
@@ -46,13 +59,17 @@ export function LocaleProvider({ children }) {
     ready.current = true;
     setLangState(initial);
     applyLang(initial);
-    window.localStorage.setItem(STORAGE_KEY, initial);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, initial);
+    } catch {}
   }, []);
 
   useEffect(() => {
     if (!ready.current) return;
     applyLang(lang);
-    window.localStorage.setItem(STORAGE_KEY, lang);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, lang);
+    } catch {}
   }, [lang]);
 
   const t = useCallback(
@@ -64,15 +81,21 @@ export function LocaleProvider({ children }) {
     if (next !== "en" && next !== "ar") return;
     if (next === lang) return;
     
-    const root = document.documentElement;
-    root.classList.add("lang-wave-active");
-    
-    window.setTimeout(() => {
-      setLangState(next);
+    try {
+      const root = document.documentElement;
+      root.classList.add("lang-wave-active");
+      
       window.setTimeout(() => {
-        root.classList.remove("lang-wave-active");
-      }, 500);
-    }, 450);
+        setLangState(next);
+        window.setTimeout(() => {
+          try {
+            root.classList.remove("lang-wave-active");
+          } catch {}
+        }, 500);
+      }, 450);
+    } catch {
+      setLangState(next);
+    }
   }, [lang]);
 
   const toggleLang = useCallback(() => {

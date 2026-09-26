@@ -248,7 +248,7 @@ export default function HomePage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={editorialImage}
-                    alt={editorialProduct?.title || t("home.ideaTitle")}
+                    alt={t("home.ideaTitle")}
                     loading="lazy"
                     style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "var(--radius)" }}
                   />

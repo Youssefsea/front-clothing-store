@@ -25,11 +25,13 @@ export default function SearchOverlay() {
       setSearched(false);
       setMessage("");
       setTimeout(() => inputRef.current?.focus(), 120);
-      const onKey = (e) => {
-        if (e.key === "Escape") closeSearch();
-      };
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
+      try {
+        const onKey = (e) => {
+          if (e.key === "Escape") closeSearch();
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+      } catch {}
     }
   }, [searchOpen, closeSearch]);
 
