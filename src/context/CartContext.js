@@ -230,7 +230,7 @@ export function CartProvider({ children }) {
 
     const subtotal = items.reduce(
       (sum, i) =>
-        sum + (i.final_price || 0) * i.quantity,
+        sum + (i.available !== false ? (i.final_price || 0) * i.quantity : 0),
       0
     );
 
