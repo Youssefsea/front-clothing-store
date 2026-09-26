@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Package, ShoppingBag } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import type { Product } from "@/types/domain";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 
 export function ProductDetailsClient({ productId }: { productId:string }) {
   const { t, locale } = useLang();
+  const router = useRouter();
   const auth = useAuth();
   const cart = useCart();
   const [product, setProduct] = useState<Product | null>(null);
@@ -66,7 +68,7 @@ export function ProductDetailsClient({ productId }: { productId:string }) {
   const canAdd=auth.status==="authenticated"&&!adding&&!(!product.is_active||product.stock<=0)&&(!sizes.length||!!size)&&(!colors.length||!!color);
 
   const add=async()=>{
-    if(auth.status!=="authenticated"){window.location.href="/login";return;}
+    if(auth.status!=="authenticated"){router.push("/login");return;}
     if(!canAdd)return;
     try{
       setAdding(true);setAdded(false);
