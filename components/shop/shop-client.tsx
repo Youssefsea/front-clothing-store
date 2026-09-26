@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { ChevronDown, Filter, Search, SlidersHorizontal, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
@@ -91,7 +91,18 @@ export function ShopClient() {
   );
 }
 
-function FilterPanel({t,query,setQuery,category,setCategory,color,setColor,size,setSize,minPrice,setMinPrice,maxPrice,setMaxPrice,sort,setSort,categories,colors,clear}:any){
+type FilterPanelProps={
+  t:(key:string)=>string;
+  query:string;setQuery:Dispatch<SetStateAction<string>>;
+  category:string;setCategory:Dispatch<SetStateAction<string>>;
+  color:string;setColor:Dispatch<SetStateAction<string>>;
+  size:string;setSize:Dispatch<SetStateAction<string>>;
+  minPrice:string;setMinPrice:Dispatch<SetStateAction<string>>;
+  maxPrice:string;setMaxPrice:Dispatch<SetStateAction<string>>;
+  sort:SortMode;setSort:Dispatch<SetStateAction<SortMode>>;
+  categories:string[];colors:string[];clear:()=>void;
+};
+function FilterPanel({t,query,setQuery,category,setCategory,color,setColor,size,setSize,minPrice,setMinPrice,maxPrice,setMaxPrice,sort,setSort,categories,colors,clear}:FilterPanelProps){
   return <div className="space-y-7">
     <div><label className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">{t("shop.search")}</label><div className="mt-2 relative"><Search className="absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden/><Input value={query} onChange={(e)=>setQuery(e.target.value)} className="ps-10" placeholder={t("search.placeholder")}/></div></div>
     <SelectField label={t("shop.category")} value={category} setValue={setCategory} options={categories}/><SelectField label={t("shop.color")} value={color} setValue={setColor} options={colors}/><SelectField label={t("shop.size")} value={size} setValue={setSize} options={SUPPORTED_SIZES.slice()}/>
