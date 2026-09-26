@@ -11,7 +11,7 @@ import { ErrorBlock, LoadingBlock } from "@/components/ui/feedback";
 
 export function AdminUsers(){
   const {t}=useLang();const [users,setUsers]=useState<AdminUser[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [query,setQuery]=useState("");
-  const load=useCallback(()=>{setLoading(true);apiRequest<{users?:AdminUser[]}>("/admin/users").then(r=>setUsers(Array.isArray(r.users)?r.users:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))};
+  const load=useCallback(()=>{setLoading(true);apiRequest<{users?:AdminUser[]}>("/admin/users").then(r=>setUsers(Array.isArray(r.users)?r.users:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))},[t]);
   useEffect(()=>{void load()},[load]);
   const visible=useMemo(()=>users.filter(u=>[u.name,u.email,u.phone,u.role].some(v=>String(v??"").toLowerCase().includes(query.toLowerCase()))),[users,query]);
   const remove=async(id:number)=>{const confirmed=window.confirm("Delete this user?");if(!confirmed)return;try{await apiRequest("/admin/users/delete",{method:"DELETE",body:{user_id:id}});setUsers(prev=>prev.filter(u=>u.id!==id))}catch(err){setError(err instanceof Error?err.message:t("common.error"))}};
