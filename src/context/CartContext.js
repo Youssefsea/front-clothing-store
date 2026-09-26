@@ -197,7 +197,7 @@ export function CartProvider({ children }) {
       );
 
       try {
-        await apiRemove(cartItemId);
+        await apiRemove(productId);
         await refresh();
       } catch (err) {
         setItems(previous);
