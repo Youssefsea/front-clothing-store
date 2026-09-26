@@ -181,6 +181,9 @@ export function CartProvider({ children }) {
 
   const removeFromCart = useCallback(
     async (cartItemId) => {
+      const item = items.find((i) => i.cart_item_id === cartItemId);
+      if (!item) return;
+
       const previous = items;
 
       setError(null);
@@ -197,7 +200,7 @@ export function CartProvider({ children }) {
       );
 
       try {
-        await apiRemove(cartItemId);
+        await apiRemove(item.product_id);
         await refresh();
       } catch (err) {
         setItems(previous);
@@ -227,7 +230,7 @@ export function CartProvider({ children }) {
 
     const subtotal = items.reduce(
       (sum, i) =>
-        sum + (i.final_price || 0) * i.quantity,
+        sum + (i.available !== false ? (i.final_price || 0) * i.quantity : 0),
       0
     );
 

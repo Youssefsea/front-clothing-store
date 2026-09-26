@@ -16,9 +16,8 @@ import Reveal from "@/components/Reveal";
 import ProductImage from "@/components/ProductImage";
 
 const METHODS = [
-  { value: "cod" },
-  { value: "bank_transfer" },
-  { value: "card" },
+  { value: "vodafone_cash" },
+  { value: "instapay" },
 ];
 
 export default function CheckoutPage() {
@@ -27,9 +26,10 @@ export default function CheckoutPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { notify } = useUi();
   const { t } = useLocale();
+  const hasUnavailable = items.some((item) => item.available === false);
 
   const [address, setAddress] = useState("");
-  const [method, setMethod] = useState("bank_transfer");
+  const [method, setMethod] = useState("vodafone_cash");
   const [screenshot, setScreenshot] = useState(null);
   const [preview, setPreview] = useState("");
   const [addressError, setAddressError] = useState("");
@@ -52,11 +52,12 @@ export default function CheckoutPage() {
   if (authLoading) {
     return <div className="nav-spacer"><Loader label={t("checkout.preparing")} /></div>;
   }
+  if (!isAuthenticated) return null;
 
   const methodLabel = (m) =>
-    m.value === "cod" ? t("checkout.mCod") : m.value === "card" ? t("checkout.mCard") : t("checkout.mBank");
+    m.value === "vodafone_cash" ? t("checkout.mVodafone") : t("checkout.mInstapay");
   const methodHint = (m) =>
-    m.value === "cod" ? t("checkout.hCod") : m.value === "card" ? t("checkout.hCard") : t("checkout.hBank");
+    m.value === "vodafone_cash" ? t("checkout.hVodafone") : t("checkout.hInstapay");
 
   const handleFile = (file) => {
     setFileError("");
@@ -80,8 +81,12 @@ export default function CheckoutPage() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (hasUnavailable) {
+      notify(t("cart.unavailableItems"));
+      return;
+    }
     let bad = false;
-    if (!address.trim() || address.trim().length < 8) {
+    if (!address.trim() || address.trim().length < 10) {
       setAddressError(t("checkout.addressTooShort"));
       bad = true;
     } else {
@@ -104,8 +109,7 @@ export default function CheckoutPage() {
       });
       notify(data?.message || t("checkout.orderPlaced"));
       const orderId = data?.order_id || data?.orderId || "";
-      const total = data?.total ?? totals.subtotal;
-      router.push(`/orderComplet?order=${encodeURIComponent(orderId)}&total=${total}`);
+      router.push(`/orderComplet?order=${encodeURIComponent(orderId)}`);
     } catch (err) {
       if (err instanceof ApiError) {
         notify(err.status === 401 ? t("checkout.sessionExpired") : err.message);
@@ -117,8 +121,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const shipping = totals.subtotal > 0 && totals.subtotal < 100 ? 6.5 : 0;
-  const grandTotal = totals.subtotal + shipping;
+  const grandTotal = totals.subtotal;
 
   return (
     <div className="nav-spacer">
@@ -143,6 +146,11 @@ export default function CheckoutPage() {
           />
         ) : (
           <form className="checkout-layout" onSubmit={submit} noValidate>
+            {hasUnavailable && (
+              <div className="form-alert form-alert--err" role="alert" style={{ gridColumn: "1 / -1" }}>
+                {t("cart.unavailableItems")}
+              </div>
+            )}
             <div>
               <Reveal>
                 <div className="checkout-panel">
@@ -256,17 +264,13 @@ export default function CheckoutPage() {
                   <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
                 </div>
-                <div className="summary__row">
-                  <span>{t("cart.shipping")}</span>
-                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
-                </div>
                 <div className="summary__row summary__row--total">
                   <span>{t("cart.total")}</span>
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
 
-              <button className="btn btn--primary btn--block" disabled={submitting || loading}>
+              <button className="btn btn--primary btn--block" disabled={submitting || loading || hasUnavailable}>
                 {submitting ? t("checkout.placing") : t("checkout.placeBtn", { price: formatPrice(grandTotal) })}
               </button>
               <Link href="/cart" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>

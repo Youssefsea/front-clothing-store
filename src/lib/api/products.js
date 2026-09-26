@@ -1,4 +1,12 @@
-import { api } from "./client";
+import { api, ApiError } from "./client";
+
+async function readProductList(request) {
+  try { return await request(); }
+  catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
+}
 
 /** Coerce sizes/colors whether the API returns a CSV string or an array. */
 function toAttrList(value) {
@@ -52,34 +60,51 @@ export function getFinalPrice(price, discount) {
 }
 
 export async function fetchProducts() {
-  const data = await api.get("/products");
-  return normalizeProducts(data?.allProducts);
+  try {
+    const data = await api.get("/products");
+    return normalizeProducts(data?.allProducts);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function fetchProductByTitle(title) {
-  const data = await api.post("/products/byName", { title });
-  const product = data?.product;
-  return normalizeProducts(
-    Array.isArray(product) ? product : product ? [product] : []
-  );
+  const needle = String(title ?? "").trim().toLowerCase();
+  if (!needle) return [];
+  const products = await fetchProducts();
+  return products.filter((product) => product.title.trim().toLowerCase().includes(needle));
+}
+
+export async function fetchProductById(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId)) return [];
+  const products = await fetchProducts();
+  return products.filter((product) => Number(product.id) === numericId);
 }
 
 export async function fetchProductsByCategory(categoryName) {
-  const data = await api.post("/products/byCategory", { category_name: categoryName });
-  return normalizeProducts(data?.products);
+  return readProductList(async () => {
+    const data = await api.post("/products/byCategory", { category_name: categoryName });
+    return normalizeProducts(data?.products);
+  });
 }
 
 export async function fetchProductsInRange(minPrice, maxPrice) {
-  const data = await api.post("/products/inRange", {
-    minPrice: Number(minPrice),
-    maxPrice: Number(maxPrice),
+  return readProductList(async () => {
+    const data = await api.post("/products/inRange", {
+      minPrice: Number(minPrice),
+      maxPrice: Number(maxPrice),
+    });
+    return normalizeProducts(data?.products);
   });
-  return normalizeProducts(data?.products);
 }
 
 export async function fetchProductsByColor(color) {
-  const data = await api.post("/products/byColor", { color });
-  return normalizeProducts(data?.products);
+  return readProductList(async () => {
+    const data = await api.post("/products/byColor", { color });
+    return normalizeProducts(data?.products);
+  });
 }
 
 // Unique, real categories derived from product data (never invented).
@@ -157,7 +182,7 @@ export async function addProduct(payload) {
 
 export async function updateProduct(payload) {
   const formData = new FormData();
-  formData.append("product_id", String(payload.product_id));
+  formData.append("id", String(payload.id ?? payload.product_id));
   formData.append("title", payload.title);
   formData.append("description", payload.description || "");
   formData.append("price", String(payload.price));
@@ -166,13 +191,12 @@ export async function updateProduct(payload) {
   formData.append("category_name", payload.category_name);
   formData.append("sizes", payload.sizes || "");
   formData.append("colors", payload.colors || "");
-  (payload.images || []).forEach((file) => formData.append("images", file));
+  if (payload.image_url) formData.append("image_url", String(payload.image_url));
+  const image = Array.isArray(payload.images) ? payload.images[0] : payload.image;
+  if (image) formData.append("image", image);
   return api.fetch("/products/update", { method: "PUT", formData });
 }
 
 export async function toggleProduct(productId) {
-  return api.put("/products/toggle", {
-    product_id: String(productId),
-    id: String(productId),
-  });
+  return api.put("/products/toggle", { id: Number(productId) });
 }

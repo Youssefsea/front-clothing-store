@@ -108,7 +108,7 @@ export default function AdminOrders() {
       </form>
 
       {loading ? (
-        <Loader label={t("admin.loadingProducts")} />
+        <Loader label={t("admin.loadingOrders")} />
       ) : orders.length === 0 ? (
         <EmptyState icon="◎" title={t("admin.noOrdersFound")} body={t("admin.noOrdersBody")} />
       ) : (

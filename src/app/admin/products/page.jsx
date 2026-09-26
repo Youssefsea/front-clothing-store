@@ -145,7 +145,7 @@ export default function AdminProducts() {
           <div className="modal__panel">
             <div className="modal__head">
               <h3>{modal === "add" ? t("admin.createProduct") : t("admin.modalEditTitle", { t: modal.product.title })}</h3>
-              <button className="icon-btn" onClick={closeModal} aria-label={t("common.close")}>✕</button>
+              <button type="button" className="icon-btn" onClick={closeModal} aria-label={t("common.close")}>✕</button>
             </div>
 
             <div className="modal__body">

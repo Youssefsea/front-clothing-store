@@ -26,6 +26,10 @@ export default function ProductCard({ product, index = 0 }) {
     e.preventDefault();
     e.stopPropagation();
     if (out) return;
+    if (!product.sizes?.length || !product.colors?.length) {
+      router.push(href);
+      return;
+    }
     if (!isAuthenticated) {
       router.push(`/login?next=${encodeURIComponent(href)}`);
       return;
@@ -53,12 +57,14 @@ export default function ProductCard({ product, index = 0 }) {
 
   return (
     <article className="p-card" style={{ animationDelay: `${index * 60}ms` }}>
-      <Link href={href} className="p-card__media" aria-label={product.title}>
-        <ProductImage imageUrl={product.image_url} alt={product.title} />
-        {discounted && !out && (
-          <span className="p-card__badge">-{Math.round(product.discount)}%</span>
-        )}
-        {out && <span className="p-card__badge p-card__badge--soldout">{t("common.soldOut")}</span>}
+      <div className="p-card__media">
+        <Link href={href} className="p-card__media-link" aria-label={product.title}>
+          <ProductImage imageUrl={product.image_url} alt={product.title} />
+          {discounted && !out && (
+            <span className="p-card__badge">-{Math.round(product.discount)}%</span>
+          )}
+          {out && <span className="p-card__badge p-card__badge--soldout">{t("common.soldOut")}</span>}
+        </Link>
         <span className="p-card__quick">
           <button
             type="button"
@@ -73,7 +79,7 @@ export default function ProductCard({ product, index = 0 }) {
                 : t("card.signInShop")}
           </button>
         </span>
-      </Link>
+      </div>
       <div className="p-card__body">
         <span className="p-card__cat">{product.category_name}</span>
         <Link href={href} className="p-card__title">

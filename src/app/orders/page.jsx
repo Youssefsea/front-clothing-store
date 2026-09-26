@@ -51,6 +51,8 @@ export default function OrdersPage() {
     return <div className="nav-spacer"><Loader label={t("account.checking")} /></div>;
   }
 
+  if (!isAuthenticated) return null;
+
   return (
     <div className="nav-spacer">
       <div className="container page">

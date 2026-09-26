@@ -11,6 +11,7 @@ import ProductImage from "./ProductImage";
 export default function CartDrawer() {
   const { cartOpen, closeCart, notify } = useUi();
   const { items, totals, updateQuantity, removeFromCart, mutating } = useCart();
+  const hasUnavailable = items.some((item) => item.available === false);
   const { t } = useLocale();
 
   const handleRemove = async (id, title) => {
@@ -29,12 +30,12 @@ export default function CartDrawer() {
         onClick={closeCart}
         aria-hidden="true"
       />
-      <aside className={`drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
+      <aside className={`drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen} inert={!cartOpen ? "" : undefined} role="dialog" aria-modal="true" aria-label={t("cart.title")}>
         <div className="drawer__head">
           <h3>
             {t("cart.title")} <span className="drawer__count">({totals.totalItems})</span>
           </h3>
-          <button className="icon-btn" onClick={closeCart} aria-label={t("common.close")}>
+          <button type="button" className="icon-btn" onClick={closeCart} aria-label={t("common.close")}>
             ✕
           </button>
         </div>
@@ -110,9 +111,13 @@ export default function CartDrawer() {
             <span className="label">{t("cart.subtotal")}</span>
             <span className="value">{formatPrice(totals.subtotal)}</span>
           </div>
-          <Link href="/checkout" className="btn btn--primary btn--block" onClick={closeCart}>
-            {t("cart.checkout")}
-          </Link>
+          {hasUnavailable ? (
+            <div className="form-alert form-alert--err" role="alert">{t("cart.unavailableItems")}</div>
+          ) : (
+            <Link href="/checkout" className="btn btn--primary btn--block" onClick={closeCart}>
+              {t("cart.checkout")}
+            </Link>
+          )}
           <Link
             href="/cart"
             className="btn btn--outline btn--dark-text btn--block"

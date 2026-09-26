@@ -20,6 +20,7 @@ export function normalizeCartItems(input) {
       image: item.image || item.image_url || "",
       discount: Number(item.discount) || 0,
       is_active: item.is_active !== false,
+      available: item.available !== false,
     }));
 }
 
@@ -28,10 +29,7 @@ export async function getCart() {
     const data = await api.get("/cart");
     return normalizeCartItems(data?.items || data?.cart || []);
   } catch (err) {
-    // 401 => not signed in (empty cart). 404 => empty cart.
-    if (err instanceof ApiError && (err.status === 401 || err.status === 404)) {
-      return [];
-    }
+    if (err instanceof ApiError && err.status === 404) return [];
     throw err;
   }
 }
@@ -41,9 +39,7 @@ export async function getCartCount() {
     const data = await api.get("/cart/count");
     return Number(data?.count ?? data?.total_items ?? 0);
   } catch (err) {
-    if (err instanceof ApiError && (err.status === 401 || err.status === 404)) {
-      return 0;
-    }
+    if (err instanceof ApiError && err.status === 404) return 0;
     throw err;
   }
 }
@@ -66,6 +62,6 @@ export async function updateCartItem({ product_id, delta = 0, size = "", color =
   });
 }
 
-export async function removeCartItem(cartItemId) {
-  return api.del("/cart/delete", { cart_item_id: cartItemId });
+export async function removeCartItem(product_id) {
+  return api.del("/cart/delete", { product_id });
 }

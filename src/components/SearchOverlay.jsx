@@ -12,6 +12,8 @@ export default function SearchOverlay() {
   const { searchOpen, closeSearch } = useUi();
   const { t } = useLocale();
   const inputRef = useRef(null);
+  const openerRef = useRef(null);
+  const wasOpenRef = useRef(false);
   const [value, setValue] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,18 +22,26 @@ export default function SearchOverlay() {
 
   useEffect(() => {
     if (searchOpen) {
+      openerRef.current = document.activeElement;
+      wasOpenRef.current = true;
       setValue("");
       setResults([]);
       setSearched(false);
       setMessage("");
-      setTimeout(() => inputRef.current?.focus(), 120);
-      try {
-        const onKey = (e) => {
-          if (e.key === "Escape") closeSearch();
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-      } catch {}
+      const timer = window.setTimeout(() => inputRef.current?.focus(), 120);
+      const onKey = (e) => {
+        if (e.key === "Escape") closeSearch();
+      };
+      window.addEventListener("keydown", onKey);
+      return () => {
+        window.clearTimeout(timer);
+        window.removeEventListener("keydown", onKey);
+      };
+    }
+
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      window.requestAnimationFrame(() => openerRef.current?.focus?.());
     }
   }, [searchOpen, closeSearch]);
 
@@ -67,6 +77,8 @@ export default function SearchOverlay() {
       onClick={closeSearch}
       role="dialog"
       aria-modal="true"
+      aria-hidden={!searchOpen}
+      inert={!searchOpen ? "" : undefined}
       aria-label={t("search.label")}
     >
       <div
@@ -88,7 +100,7 @@ export default function SearchOverlay() {
           ) : (
             <span className="kbd">↵</span>
           )}
-          <button className="icon-btn" onClick={closeSearch} aria-label={t("common.close")}>
+          <button type="button" className="icon-btn" onClick={closeSearch} aria-label={t("common.close")}>
             ✕
           </button>
         </form>

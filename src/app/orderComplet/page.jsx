@@ -14,7 +14,6 @@ import ProductImage from "@/components/ProductImage";
 function OrderCompletInner() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order") || "";
-  const totalQuery = Number(searchParams.get("total")) || 0;
   const { refresh } = useCart();
   const { t } = useLocale();
 
@@ -29,7 +28,7 @@ function OrderCompletInner() {
         const orders = await getMyOrders();
         if (!mounted) return;
         const match = orderId
-          ? orders.find((o) => String(o.id) === String(orderId) || String(o.id).endsWith(orderId))
+          ? orders.find((o) => String(o.id) === String(orderId))
           : null;
         setOrder(match || null);
       } catch {
@@ -78,7 +77,7 @@ function OrderCompletInner() {
             )}
             <div className="success-card__row">
               <span className="k">{t("ordered.total")}</span>
-              <span className="v">{order ? formatPrice(order.total) : formatPrice(totalQuery)}</span>
+              <span className="v">{order ? formatPrice(order.total) : "—"}</span>
             </div>
 
             {order && order.items.length > 0 && (

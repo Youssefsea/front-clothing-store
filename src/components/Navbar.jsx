@@ -153,7 +153,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!mobileOpen}>
+      <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!mobileOpen} inert={!mobileOpen ? "" : undefined}>
         <div className="nav-menu__links">
           <Link href="/" className="nav-menu__link">{t("nav.home")}</Link>
           <Link href="/shop" className="nav-menu__link">{t("nav.shop")}</Link>

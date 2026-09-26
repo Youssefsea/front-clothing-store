@@ -13,7 +13,8 @@ export function normalizeUser(u) {
     u.is_admin === true ||
     u.isAdmin === true ||
     u.user_role === "admin";
-  return { name, email, phone, isAdmin, _raw: u };
+  const role = u.role || u.user_role || (isAdmin ? "admin" : "customer");
+  return { name, email, phone, role, isAdmin, _raw: u };
 }
 
 export async function sendOtp(email, phone) {
@@ -42,7 +43,5 @@ export async function checkLoggedIn() {
   if (candidate === null || typeof candidate !== "object") {
     return null;
   }
-  // If the response only carries meta info (message/status), we still treat
-  // a 2xx as "authenticated" and probe admin separately.
   return normalizeUser(candidate);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   addProduct,
   updateProduct,
@@ -17,7 +17,7 @@ const MAX_IMAGES = 5;
 
 // Fashion size presets, expressed in canonical store order. The backend
 // sizes pattern is /^[A-Za-z0-9, ]*$/, so every value here is safe.
-const FASHION_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const FASHION_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 // 14 standard color presets. Swatch hexes only for known names — we never
 // invent hex values for arbitrary labels.
@@ -202,6 +202,7 @@ export default function AdminProductForm({
   // — that is what the existing /products/update contract accepts.
   const [files, setFiles] = useState([]);
   const [filePreviews, setFilePreviews] = useState([]);
+  const previewsRef = useRef([]);
 
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -217,31 +218,43 @@ export default function AdminProductForm({
     setFormError("");
   };
 
+  const imageLimit = mode === "edit" ? 1 : MAX_IMAGES;
   const totalImages = files.length;
-  const slotsRemaining = MAX_IMAGES - totalImages;
+  const slotsRemaining = imageLimit - totalImages;
 
   const addFiles = (list, source = "click") => {
     const incoming = Array.from(list || []);
     const allowed =
-      totalImages + incoming.length > MAX_IMAGES ? slotsRemaining : incoming.length;
+      totalImages + incoming.length > imageLimit ? slotsRemaining : incoming.length;
     if (allowed <= 0) {
-      setFormError(t("v.maxImages", { n: MAX_IMAGES }));
+      setFormError(t("v.maxImages", { n: imageLimit }));
       return;
     }
     const next = incoming.slice(0, allowed);
     setFiles((prev) => [...prev, ...next]);
-    setFilePreviews((prev) => [
-      ...prev,
-      ...next.map((f) => URL.createObjectURL(f)),
-    ]);
+    setFilePreviews((prev) => {
+      const urls = [...prev, ...next.map((f) => URL.createObjectURL(f))];
+      previewsRef.current = urls;
+      return urls;
+    });
     if (source === "drop") setDragging(false);
     setFormError("");
   };
 
   const removeFile = (i) => {
+    setFilePreviews((prev) => {
+      const url = prev[i];
+      if (url) URL.revokeObjectURL(url);
+      const urls = prev.filter((_, idx) => idx !== i);
+      previewsRef.current = urls;
+      return urls;
+    });
     setFiles((prev) => prev.filter((_, idx) => idx !== i));
-    setFilePreviews((prev) => prev.filter((_, idx) => idx !== i));
   };
+
+  useEffect(() => () => {
+    previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const moveFile = (i, dir) => {
     const j = i + dir;
@@ -272,6 +285,10 @@ export default function AdminProductForm({
   const addCustomSize = () => {
     const v = normalizeSize(sizeDraft);
     if (!v) return;
+    if (!FASHION_SIZES.includes(v.toUpperCase())) {
+      setErrors((e) => ({ ...e, sizes: t("v.sizeNotSupported") }));
+      return;
+    }
     if (!SIZES_PATTERN.test(sizeDraft)) {
       setErrors((e) => ({ ...e, sizes: t("v.sizeBadChars") }));
       return;
@@ -321,7 +338,7 @@ export default function AdminProductForm({
     try {
       await toggleProduct(product.id);
       setIsActive((v) => !v);
-      if (onError) onError(`${product.title}: ${isActive ? t("admin.live") : t("admin.hidden")}`);
+      if (onError) onError(`${product.title}: ${!isActive ? t("admin.live") : t("admin.hidden")}`);
     } catch (err) {
       if (onError) onError(err instanceof ApiError ? err.message : t("v.generic"));
     } finally {
@@ -384,7 +401,7 @@ export default function AdminProductForm({
       } else {
         await updateProduct({
           ...base,
-          product_id: product.id,
+          id: product.id,
           images: files,
         });
         onSaved && onSaved({ mode, message: t("admin.editProduct") });
@@ -767,7 +784,7 @@ export default function AdminProductForm({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              multiple
+              multiple={mode === "add"}
               style={{ display: "none" }}
               onChange={(e) => addFiles(e.target.files)}
             />

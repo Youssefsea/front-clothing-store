@@ -26,9 +26,9 @@ export default function CartPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const handleRemove = async (cartItemId, title) => {
+  const handleRemove = async (productId, title) => {
     try {
-      await removeFromCart(cartItemId);
+      await removeFromCart(productId);
       notify(t("cart.removed", { t: title }));
     } catch (err) {
       notify(err?.message || t("cart.removeFail"));
@@ -43,8 +43,9 @@ export default function CartPage() {
     );
   }
 
-  const shipping = totals.subtotal > 0 && totals.subtotal < 100 ? 6.5 : 0;
-  const grandTotal = totals.subtotal + shipping;
+  if (!isAuthenticated) return null;
+
+  const grandTotal = totals.subtotal;
 
   return (
     <div className="nav-spacer">
@@ -127,16 +128,18 @@ export default function CartPage() {
                   <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
                 </div>
-                <div className="summary__row">
-                  <span>{t("cart.shipping")}</span>
-                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
-                </div>
                 <div className="summary__row summary__row--total">
                   <span>{t("cart.total")}</span>
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
-              <Link href="/checkout" className="btn btn--primary btn--block">{t("cart.checkout")}</Link>
+              {items.some((item) => item.available === false) ? (
+  <div className="form-alert form-alert--err" role="alert">
+    {t("cart.unavailableItems")}
+  </div>
+) : (
+  <Link href="/checkout" className="btn btn--primary btn--block">{t("cart.checkout")}</Link>
+)}
               <Link href="/shop" className="btn btn--outline btn--dark-text btn--block" style={{ marginTop: 10 }}>
                 {t("cart.continue")}
               </Link>
