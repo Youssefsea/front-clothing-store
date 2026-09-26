@@ -285,6 +285,10 @@ export default function AdminProductForm({
   const addCustomSize = () => {
     const v = normalizeSize(sizeDraft);
     if (!v) return;
+    if (!FASHION_SIZES.includes(v.toUpperCase())) {
+      setErrors((e) => ({ ...e, sizes: t("v.sizeNotSupported") }));
+      return;
+    }
     if (!SIZES_PATTERN.test(sizeDraft)) {
       setErrors((e) => ({ ...e, sizes: t("v.sizeBadChars") }));
       return;
@@ -780,7 +784,7 @@ export default function AdminProductForm({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              multiple
+              multiple={mode === "add"}
               style={{ display: "none" }}
               onChange={(e) => addFiles(e.target.files)}
             />
