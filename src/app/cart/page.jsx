@@ -45,7 +45,6 @@ export default function CartPage() {
 
   if (!isAuthenticated) return null;
 
-  const shipping = 0;
   const grandTotal = totals.subtotal;
 
   return (
@@ -128,10 +127,6 @@ export default function CartPage() {
                 <div className="summary__row">
                   <span>{t("cart.subtotal")}</span>
                   <span>{formatPrice(totals.subtotal)}</span>
-                </div>
-                <div className="summary__row">
-                  <span>{t("cart.shipping")}</span>
-                  <span>{shipping === 0 ? t("cart.free") : formatPrice(shipping)}</span>
                 </div>
                 <div className="summary__row summary__row--total">
                   <span>{t("cart.total")}</span>
