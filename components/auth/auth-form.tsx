@@ -52,6 +52,6 @@ export function AuthForm({ mode }: { mode:"login"|"signup" }) {
   );
 }
 
-function Field({label,value,onChange,icon,type="text",...props}:{label:string;value:string;onChange:(v:string)=>void;icon:React.ReactNode;type?:string;[key:string]:unknown}){
+function Field({label,value,onChange,icon,type="text",...props}:{label:string;value:string;onChange:(v:string)=>void;icon:React.ReactNode;type?:string}&Omit<React.InputHTMLAttributes<HTMLInputElement>,"value"|"onChange"|"type">){
   return <div><label className="text-sm font-semibold">{label}</label><div className="relative mt-2"><span className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span><Input type={type} value={value} onChange={(e)=>onChange(e.target.value)} className="ps-10" {...props}/></div></div>;
 }
