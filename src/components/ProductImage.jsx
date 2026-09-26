@@ -21,7 +21,8 @@ export default function ProductImage({
   const images = splitImages(imageUrl);
   const [current, setCurrent] = useState(0);
   const [hovered, setHovered] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failedIndexes, setFailedIndexes] = useState(() => new Set());
+  const failed = failedIndexes.size >= Math.min(images.length, 2);
 
   if (images.length === 0 || failed) {
     return (
@@ -65,7 +66,14 @@ export default function ProductImage({
           src={src}
           alt={idx === 0 ? alt : `${alt} alternate`}
           loading={eager ? "eager" : "lazy"}
-          onError={() => idx === 0 && images.length === 1 && setFailed(true)}
+          onError={() => {
+            setFailedIndexes((prev) => {
+              const next = new Set(prev);
+              next.add(idx);
+              return next;
+            });
+            if (idx === 0 && images.length > 1) setCurrent(1);
+          }}
           style={{
             position: idx === 0 ? "relative" : "absolute",
             inset: 0,
