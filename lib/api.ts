@@ -1,5 +1,5 @@
 import { API_URL } from "@/lib/constants";
-import { ApiError } from "@/types/api";
+import { ApiError, type ApiErrorPayload } from "@/types/api";
 
 type RequestOptions = {
   method?: string;
