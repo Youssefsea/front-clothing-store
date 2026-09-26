@@ -8,7 +8,9 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+
 import { useAuth } from "./AuthContext";
+
 import {
   getCart,
   getCartCount,
@@ -16,12 +18,17 @@ import {
   updateCartItem as apiUpdate,
   removeCartItem as apiRemove,
 } from "@/lib/api/cart";
+
 import { ApiError } from "@/lib/api/client";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const {
+    isAuthenticated,
+    loading: authLoading,
+  } = useAuth();
+
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -29,26 +36,53 @@ export function CartProvider({ children }) {
   const [error, setError] = useState(null);
 
   const refresh = useCallback(async () => {
+    // Do nothing while auth state is still being resolved.
+    if (authLoading) return;
+
+    // Logged out = empty cart.
     if (!isAuthenticated) {
       setItems([]);
       setCount(0);
+      setError(null);
       return;
     }
+
     setLoading(true);
+    setError(null);
+
     try {
-      const [cartItems, cartCount] = await Promise.all([
-        getCart(),
-        getCartCount(),
-      ]);
-      setItems(cartItems);
-      setCount(cartCount);
+      // Cart items are the primary source.
+      const cartItems = await getCart();
+
+      const safeItems = Array.isArray(cartItems)
+        ? cartItems
+        : [];
+
+      setItems(safeItems);
+
+      // Count is secondary.
+      try {
+        const cartCount = await getCartCount();
+        setCount(Number(cartCount) || 0);
+      } catch {
+        // Fallback: calculate count locally.
+        const fallbackCount = safeItems.reduce(
+          (sum, item) => sum + (Number(item.quantity) || 0),
+          0
+        );
+
+        setCount(fallbackCount);
+      }
     } catch (err) {
-      // Backend is authoritative: on failure keep last known state but surface.
-      setError(err instanceof ApiError ? err.message : "Could not load cart");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not load cart"
+      );
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
     refresh();
@@ -57,7 +91,14 @@ export function CartProvider({ children }) {
   const addToCart = useCallback(
     async (productId, quantity = 1, size = "", color = "") => {
       setError(null);
-      await apiAdd({ product_id: productId, quantity, size, color });
+
+      await apiAdd({
+        product_id: productId,
+        quantity,
+        size,
+        color,
+      });
+
       await refresh();
     },
     [refresh]
@@ -65,18 +106,33 @@ export function CartProvider({ children }) {
 
   const updateQuantity = useCallback(
     async (cartItemId, delta) => {
-      const item = items.find((i) => i.cart_item_id === cartItemId);
+      const item = items.find(
+        (i) => i.cart_item_id === cartItemId
+      );
+
       if (!item) return;
-      setMutating((m) => ({ ...m, [cartItemId]: true }));
+
+      setMutating((m) => ({
+        ...m,
+        [cartItemId]: true,
+      }));
+
       const previous = items;
-      // Optimistic visual update — backend stays authoritative.
+
       setItems((list) =>
         list.map((i) =>
           i.cart_item_id === cartItemId
-            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
+            ? {
+                ...i,
+                quantity: Math.max(
+                  0,
+                  i.quantity + delta
+                ),
+              }
             : i
         )
       );
+
       try {
         await apiUpdate({
           product_id: item.product_id,
@@ -84,12 +140,21 @@ export function CartProvider({ children }) {
           size: item.size,
           color: item.color,
         });
+
         await refresh();
       } catch (err) {
         setItems(previous);
-        setError(err instanceof ApiError ? err.message : "Update failed");
+
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Update failed"
+        );
       } finally {
-        setMutating((m) => ({ ...m, [cartItemId]: false }));
+        setMutating((m) => ({
+          ...m,
+          [cartItemId]: false,
+        }));
       }
     },
     [items, refresh]
@@ -98,30 +163,63 @@ export function CartProvider({ children }) {
   const removeFromCart = useCallback(
     async (cartItemId) => {
       const previous = items;
+
       setError(null);
-      setMutating((m) => ({ ...m, [cartItemId]: true }));
-      setItems((list) => list.filter((i) => i.cart_item_id !== cartItemId));
+
+      setMutating((m) => ({
+        ...m,
+        [cartItemId]: true,
+      }));
+
+      setItems((list) =>
+        list.filter(
+          (i) => i.cart_item_id !== cartItemId
+        )
+      );
+
       try {
         await apiRemove(cartItemId);
         await refresh();
       } catch (err) {
         setItems(previous);
-        setError(err instanceof ApiError ? err.message : "Remove failed");
+
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Remove failed"
+        );
+
         throw err;
       } finally {
-        setMutating((m) => ({ ...m, [cartItemId]: false }));
+        setMutating((m) => ({
+          ...m,
+          [cartItemId]: false,
+        }));
       }
     },
     [items, refresh]
   );
 
   const totals = useMemo(() => {
-    const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-    const subtotal = items.reduce(
-      (sum, i) => sum + (i.final_price || 0) * i.quantity,
+    const totalItems = items.reduce(
+      (sum, item) =>
+        sum + (Number(item.quantity) || 0),
       0
     );
-    return { totalItems, subtotal, itemLines: items.length };
+
+    const subtotal = items.reduce(
+      (sum, item) =>
+        sum +
+        (Number(item.final_price) || 0) *
+          (Number(item.quantity) || 0),
+      0
+    );
+
+    return {
+      totalItems,
+      subtotal,
+      itemLines: items.length,
+    };
   }, [items]);
 
   const value = {
@@ -138,11 +236,21 @@ export function CartProvider({ children }) {
     ...totals,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
+
+  if (!ctx) {
+    throw new Error(
+      "useCart must be used within CartProvider"
+    );
+  }
+
   return ctx;
 }
