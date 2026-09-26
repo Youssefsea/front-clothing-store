@@ -11,6 +11,7 @@ export interface ProductsResponse{message:string;products:Product[]}
 export interface ProductResponse{message:string;product:Product[]}
 export interface LoginResponse{message:string;user:User;token:string}
 export interface SessionResponse{message:string;name:string;email:string}
+export interface ConfirmOrderResponse{message:string;order_id:number;total:string;payment_screenshot:string;items_count:number}
 export interface OrdersResponse{success?:boolean;count?:number;orders:Order[]}
 export interface AdminOrdersResponse{message:string;orders:Order[]}
 export interface AdminUsersResponse{message:string;users:User[]}

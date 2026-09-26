@@ -12,3 +12,4 @@ Real limitations intentionally preserved: only vodafone_cash and instapay paymen
 
 Setup: copy .env.example to .env.local, set NEXT_PUBLIC_API_URL, then npm install and npm run dev.
 Quality: npm run typecheck, npm run lint, npm run build.
+CI validation branch for full typecheck, lint, build and route smoke verification.
