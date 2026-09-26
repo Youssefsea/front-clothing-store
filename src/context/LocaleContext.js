@@ -39,35 +39,20 @@ const LocaleContext = createContext(null);
 
 export function LocaleProvider({ children }) {
   const [lang, setLangState] = useState(DEFAULT_LANG);
-  const [pendingLang, setPendingLang] = useState(null);
   const ready = useRef(false);
-  const skipTransition = useRef(true);
 
   useEffect(() => {
     const initial = readStoredLang();
     ready.current = true;
-    skipTransition.current = true;
     setLangState(initial);
     applyLang(initial);
     window.localStorage.setItem(STORAGE_KEY, initial);
-    // Defer enabling transitions until after the hydration sync settles.
-    const id = window.requestAnimationFrame(() => {
-      skipTransition.current = false;
-    });
-    return () => window.cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
     if (!ready.current) return;
     applyLang(lang);
     window.localStorage.setItem(STORAGE_KEY, lang);
-
-    if (skipTransition.current) return undefined;
-
-    const root = document.documentElement;
-    root.classList.add("lang-switching");
-    const t = window.setTimeout(() => root.classList.remove("lang-switching"), 380);
-    return () => window.clearTimeout(t);
   }, [lang]);
 
   const t = useCallback(
@@ -75,32 +60,25 @@ export function LocaleProvider({ children }) {
     [lang]
   );
 
-  const requestLang = useCallback((next) => {
-    if (next !== "en" && next !== "ar") return;
-    if (next === lang) return;
-    setPendingLang(next);
-  }, [lang]);
-
-  const confirmLang = useCallback(() => {
-    if (!pendingLang) return;
-    setLangState(pendingLang);
-    setPendingLang(null);
-  }, [pendingLang]);
-
-  const cancelLang = useCallback(() => {
-    setPendingLang(null);
-  }, []);
-
   const setLang = useCallback((next) => {
     if (next !== "en" && next !== "ar") return;
-    setLangState(next);
-    setPendingLang(null);
-  }, []);
+    if (next === lang) return;
+    
+    const root = document.documentElement;
+    root.classList.add("lang-wave-active");
+    
+    window.setTimeout(() => {
+      setLangState(next);
+      window.setTimeout(() => {
+        root.classList.remove("lang-wave-active");
+      }, 500);
+    }, 450);
+  }, [lang]);
 
   const toggleLang = useCallback(() => {
     const next = lang === "en" ? "ar" : "en";
-    setPendingLang(next);
-  }, [lang]);
+    setLang(next);
+  }, [lang, setLang]);
 
   const value = useMemo(
     () => ({
@@ -108,14 +86,10 @@ export function LocaleProvider({ children }) {
       dir: getLangDir(lang),
       isRtl: getLangDir(lang) === "rtl",
       setLang,
-      requestLang,
       toggleLang,
-      pendingLang,
-      confirmLang,
-      cancelLang,
       t,
     }),
-    [lang, t, setLang, requestLang, toggleLang, pendingLang, confirmLang, cancelLang]
+    [lang, t, setLang, toggleLang]
   );
 
   return (

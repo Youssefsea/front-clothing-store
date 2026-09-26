@@ -56,8 +56,7 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const heroProduct = products[0];
-  const heroImage = heroProduct ? splitImages(heroProduct.image_url)[0] : EDITORIAL.hero;
+  const heroImage = EDITORIAL.hero; // Always use premium editorial media for the hero
 
   const categories = useMemo(() => extractCategories(products), [products]);
 
@@ -67,11 +66,9 @@ export default function HomePage() {
 
   const spotlight =
     products.length > 3 ? products[3] : products[1] ?? products[0];
-  const editorialProduct =
-    products.length > 2 ? products[2] : products[1] ?? products[0];
-  const editorialImage = editorialProduct
-    ? splitImages(editorialProduct.image_url)[0]
-    : EDITORIAL.editorial;
+  
+  // Use premium editorial media to keep layout looking strictly high-end
+  const editorialImage = EDITORIAL.editorial;
 
   return (
     <div>

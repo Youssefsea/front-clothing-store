@@ -1,5 +1,4 @@
 import { Archivo, Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "@/components/Providers";
 
@@ -51,7 +50,6 @@ export default function RootLayout({ children }) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
         <Providers>{children}</Providers>
-        <SpeedInsights />
       </body>
     </html>
   );

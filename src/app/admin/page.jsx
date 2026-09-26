@@ -48,10 +48,10 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <div className="admin-bar">
+      <div className="admin-bar" style={{ marginBottom: "var(--space-9)" }}>
         <div>
           <p className="section-label">{t("admin.dashboard")}</p>
-          <h1 className="section-title" style={{ fontSize: "1.9rem" }}>{t("admin.overview")}</h1>
+          <h1 className="section-title" style={{ fontSize: "2.4rem", letterSpacing: "-0.04em" }}>{t("admin.overview")}</h1>
         </div>
         <Link href="/admin/orders" className="btn btn--outline btn--dark-text btn--sm">{t("admin.viewAllOrders")}</Link>
       </div>
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <h2 className="form-section__title" style={{ marginBottom: "var(--space-6)" }}>
+      <h2 className="form-section__title" style={{ marginBottom: "var(--space-6)", marginTop: "var(--space-10)", fontSize: "1.8rem" }}>
         {t("admin.recentOrders")}
       </h2>
 

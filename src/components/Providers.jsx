@@ -11,7 +11,6 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import SearchOverlay from "@/components/SearchOverlay";
 import Toast from "@/components/Toast";
-import LanguageConfirm from "@/components/LanguageConfirm";
 
 export default function Providers({ children }) {
   return (
@@ -28,7 +27,6 @@ export default function Providers({ children }) {
               <CartDrawer />
               <SearchOverlay />
               <Toast />
-              <LanguageConfirm />
             </UiProvider>
           </CartProvider>
         </AuthProvider>
