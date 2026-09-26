@@ -3,6 +3,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
   useCallback,
   Suspense,
@@ -16,6 +17,7 @@ import {
   fetchProductsInRange,
   extractCategories,
   extractColors,
+  extractSizes,
 } from "@/lib/api/products";
 import { ApiError } from "@/lib/api/client";
 import ProductCard from "@/components/ProductCard";
@@ -33,6 +35,8 @@ function readParams(params) {
     color: params.get("color") || "",
     min: params.get("min") ? Number(params.get("min")) : null,
     max: params.get("max") ? Number(params.get("max")) : null,
+    sizes: params.get("sizes") ? params.get("sizes").split(",").filter(Boolean) : [],
+    sort: params.get("sort") || "default",
   };
 }
 
@@ -48,14 +52,16 @@ function ShopPageInner() {
   );
 
   const [products, setProducts] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const requestSeq = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState(initial.q);
   const [category, setCategory] = useState(initial.category);
   const [colors, setColors] = useState(initial.color ? [initial.color] : []);
   const [price, setPrice] = useState(() => [initial.min ?? 0, initial.max ?? 10000]);
-  const [sizes, setSizes] = useState([]);
-  const [sort, setSort] = useState("default");
+  const [sizes, setSizes] = useState(initial.sizes);
+  const [sort, setSort] = useState(SORTS.includes(initial.sort) ? initial.sort : "default");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // ---- URL sync
@@ -68,15 +74,17 @@ function ShopPageInner() {
         color: next.color ?? (colors.length === 1 ? colors[0] : ""),
         min: next.min ?? price[0],
         max: next.max ?? price[1],
+        sizes: next.sizes ?? sizes,
+        sort: next.sort ?? sort,
       };
       Object.entries(patch).forEach(([k, v]) => {
         if (v === "" || v === null || v === undefined) sp.delete(k);
-        else sp.set(k, String(v));
+        else sp.set(k, Array.isArray(v) ? v.join(",") : String(v));
       });
       const str = sp.toString();
       router.replace(str ? `/shop?${str}` : "/shop", { scroll: false });
     },
-    [router, searchParams, category, q, colors, price]
+    [router, searchParams, category, q, colors, price, sizes, sort]
   );
 
   // ---- Data fetch using real backend filter endpoints
@@ -87,8 +95,10 @@ function ShopPageInner() {
         category: opts.category !== undefined ? opts.category : category,
         colors: opts.colors !== undefined ? opts.colors : colors,
         price: opts.price !== undefined ? opts.price : price,
+        sizes: opts.sizes !== undefined ? opts.sizes : sizes,
       };
 
+      const requestId = ++requestSeq.current;
       setLoading(true);
       setError("");
       try {
@@ -139,13 +149,15 @@ function ShopPageInner() {
           );
         }
 
+        if (requestId !== requestSeq.current) return;
         setProducts(list);
         syncUrl(current);
       } catch (err) {
+        if (requestId !== requestSeq.current) return;
         setError(err instanceof ApiError ? err.message : "Could not load products.");
         setProducts([]);
       } finally {
-        setLoading(false);
+        if (requestId === requestSeq.current) setLoading(false);
       }
     },
     [q, category, colors, price, sizes, syncUrl]
@@ -159,12 +171,18 @@ function ShopPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, category, colors, sizes, price[0], price[1]]);
 
-  // ---- All-options category/color lists come from real data
-  const allCategories = useMemo(
-    () => extractCategories(products),
-    [products]
-  );
-  const allColors = useMemo(() => extractColors(products), [products]);
+  // Keep filter choices based on the full active catalog, not the currently filtered result.
+  useEffect(() => {
+    let cancelled = false;
+    fetchProducts().then((all) => {
+      if (!cancelled) setCatalog(all.filter((p) => p.is_active !== false));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const allCategories = useMemo(() => extractCategories(catalog), [catalog]);
+  const allColors = useMemo(() => extractColors(catalog), [catalog]);
+  const allSizes = useMemo(() => extractSizes(catalog), [catalog]);
 
   const sorted = useMemo(() => {
     const list = [...products];
@@ -272,7 +290,7 @@ function ShopPageInner() {
       <div className="field">
         <label>{t("shop.size")}</label>
         <div className="chips" role="group" aria-label={t("shop.sizesAria")}>
-          {["XS", "S", "M", "L", "XL", "XXL", "XXXL"].map((s) => (
+          {allSizes.map((s) => (
             <button
               key={s}
               type="button"
