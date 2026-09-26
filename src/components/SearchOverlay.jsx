@@ -13,6 +13,7 @@ export default function SearchOverlay() {
   const { t } = useLocale();
   const inputRef = useRef(null);
   const openerRef = useRef(null);
+  const wasOpenRef = useRef(false);
   const [value, setValue] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,22 +23,25 @@ export default function SearchOverlay() {
   useEffect(() => {
     if (searchOpen) {
       openerRef.current = document.activeElement;
+      wasOpenRef.current = true;
       setValue("");
       setResults([]);
       setSearched(false);
       setMessage("");
-      setTimeout(() => inputRef.current?.focus(), 120);
-      try {
-        const onKey = (e) => {
-          if (e.key === "Escape") closeSearch();
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-      } catch {}
-      return () => {
-        const opener = openerRef.current;
-        if (!searchOpen && opener && typeof opener.focus === "function") opener.focus();
+      const timer = window.setTimeout(() => inputRef.current?.focus(), 120);
+      const onKey = (e) => {
+        if (e.key === "Escape") closeSearch();
       };
+      window.addEventListener("keydown", onKey);
+      return () => {
+        window.clearTimeout(timer);
+        window.removeEventListener("keydown", onKey);
+      };
+    }
+
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      window.requestAnimationFrame(() => openerRef.current?.focus?.());
     }
   }, [searchOpen, closeSearch]);
 
