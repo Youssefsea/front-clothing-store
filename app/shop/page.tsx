@@ -1,0 +1,1 @@
+"use client";import{ShopPage}from"../../features/shop";export default function Page(){return <ShopPage/>}
