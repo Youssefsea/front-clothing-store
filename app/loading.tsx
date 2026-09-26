@@ -1,0 +1,1 @@
+export default function Loading(){return <div className="page-section"><div className="state-block"><div className="skeleton loading-dot"/><p>Loading VANTA…</p></div></div>}

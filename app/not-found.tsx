@@ -1,0 +1,1 @@
+import Link from"next/link";export default function NotFound(){return <div className="page-section success-page"><span className="eyebrow">VANTA / 404</span><h1>Not found.</h1><p>The page you asked for does not exist.</p><Link href="/shop" className="btn btn-solid">Back to shop</Link></div>}
