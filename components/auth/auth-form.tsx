@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
@@ -12,10 +12,9 @@ import { Button } from "@/components/ui/button";
 import { ErrorBlock, SuccessNotice } from "@/components/ui/feedback";
 import type { User } from "@/types/domain";
 
-export function AuthForm({ mode }: { mode:"login"|"signup" }) {
+export function AuthForm({ mode, created = false }: { mode:"login"|"signup"; created?: boolean }) {
   const {t}=useLang();const router=useRouter();const auth=useAuth();
-  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [phone,setPhone]=useState("");const [otp,setOtp]=useState("");const [otpStage,setOtpStage]=useState(false);const [show,setShow]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
-  useEffect(()=>{if(mode==="login"&&window.location.search.includes("created=1"))setNotice(t("auth.signupSuccess"))},[mode,t]);
+  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [phone,setPhone]=useState("");const [otp,setOtp]=useState("");const [otpStage,setOtpStage]=useState(false);const [show,setShow]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState(created&&mode==="login"?t("auth.signupSuccess"):"");
 
   const submitLogin=async()=>{
     if(!email||password.length<6){setError(t("common.required"));return;}
