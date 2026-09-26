@@ -135,6 +135,10 @@ export default function ProductPage() {
 
   const handleAdd = async () => {
     if (!product || out) return;
+    if (!size || !color) {
+      notify(t("pdp.variantRequired"));
+      return;
+    }
     if (!isAuthenticated) {
       router.push(`/login?next=/product/${encodeURIComponent(title)}`);
       return;
