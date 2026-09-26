@@ -1,0 +1,1 @@
+VANTA media policy: editorial media is sourced from reputable public providers and referenced by URL. The hero uses an Unsplash image by default. Set NEXT_PUBLIC_HERO_VIDEO_URL for an optional campaign video URL you are licensed to use.

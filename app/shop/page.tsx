@@ -1,0 +1,1 @@
+import{Suspense}from"react";import{ShopPage}from"../../features/shop";export default function Page(){return <Suspense fallback={<div className="page-section"><div className="state-block">Loading VANTA…</div></div>}><ShopPage/></Suspense>}

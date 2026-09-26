@@ -1,0 +1,1 @@
+import{AdminProducts,AdminShell}from"../../../features/admin";export default function Page(){return <AdminShell><AdminProducts/></AdminShell>}

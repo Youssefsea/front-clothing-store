@@ -1,0 +1,1 @@
+import{AdminCategories,AdminShell}from"../../../features/admin";export default function Page(){return <AdminShell><AdminCategories/></AdminShell>}

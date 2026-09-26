@@ -1,0 +1,22 @@
+name: VANTA CI
+on:
+  push:
+    branches: [main, vanta-greenfield-2026]
+  pull_request:
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - name: Runtime smoke routes
+        run: |
+          npm run start > /tmp/vanta-next.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/ >/dev/null && break; sleep 1; done
+          for route in / /shop /login /signup /account /orders /cart /checkout /admin /admin/products /admin/orders /admin/users /admin/categories /product/1; do curl -fsS -o /dev/null -w "%{http_code}\n" "http://127.0.0.1:3000$route" | grep -Eq '200|307|308'; done

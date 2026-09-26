@@ -1,0 +1,1 @@
+import {api} from "./api";import type {Product} from "./types";let cache:{data:Product[];expiresAt:number}|null=null;export async function getCatalog(force=false){if(!force&&cache&&cache.expiresAt>Date.now())return cache.data;const r=await api.products.all();cache={data:r.allProducts,expiresAt:Date.now()+60000};return r.allProducts}export const invalidateCatalog=()=>{cache=null};

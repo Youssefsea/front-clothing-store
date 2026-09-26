@@ -1,0 +1,11 @@
+import type {Product} from "./types";
+export const cn=(...p:Array<string|false|null|undefined>)=>p.filter(Boolean).join(" ");
+export const splitCsv=(v?:string|null)=>v?v.split(",").map(x=>x.trim()).filter(Boolean):[];
+export const productSizes=(p:Product)=>splitCsv(p.sizes);
+export const productColors=(p:Product)=>splitCsv(p.colors);
+export const numeric=(v:number|string|null|undefined,f=0)=>{const n=Number(v);return Number.isFinite(n)?n:f};
+export const finalProductPrice=(p:Product)=>Math.max(0,numeric(p.price)*(1-numeric(p.discount)/100));
+export const imageList=(v?:string|null)=>splitCsv(v);
+export const safeJsonParse=<T,>(v:string|null,f:T):T=>{if(!v)return f;try{return JSON.parse(v) as T}catch{return f}};
+export const toIsoDate=(v?:string)=>{if(!v)return "";const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleString()};
+export const statusTone=(s?:string)=>{const x=(s||"").toLowerCase();if(["delivered","confirmed","paid","active"].includes(x))return"success";if(["cancelled","rejected","failed","inactive"].includes(x))return"danger";if(["shipped","processing"].includes(x))return"info";return"warning"};

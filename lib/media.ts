@@ -1,0 +1,2 @@
+export const heroMedia={image:"https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2400&q=88",imageAlt:"Editorial fashion portrait for VANTA",video:process.env.NEXT_PUBLIC_HERO_VIDEO_URL||"",creditHref:"https://unsplash.com/"};
+export const editorialMedia=[{src:"https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=82",alt:"Fashion retail space"},{src:"https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1400&q=82",alt:"Streetwear editorial portrait"}];
