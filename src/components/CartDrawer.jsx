@@ -29,12 +29,12 @@ export default function CartDrawer() {
         onClick={closeCart}
         aria-hidden="true"
       />
-      <aside className={`drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
+      <aside className={`drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen} inert={!cartOpen ? "" : undefined} role="dialog" aria-modal="true" aria-label={t("cart.title")}>
         <div className="drawer__head">
           <h3>
             {t("cart.title")} <span className="drawer__count">({totals.totalItems})</span>
           </h3>
-          <button className="icon-btn" onClick={closeCart} aria-label={t("common.close")}>
+          <button type="button" className="icon-btn" onClick={closeCart} aria-label={t("common.close")}>
             ✕
           </button>
         </div>
