@@ -60,8 +60,13 @@ export function getFinalPrice(price, discount) {
 }
 
 export async function fetchProducts() {
-  const data = await api.get("/products");
-  return normalizeProducts(data?.allProducts);
+  try {
+    const data = await api.get("/products");
+    return normalizeProducts(data?.allProducts);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function fetchProductByTitle(title) {
