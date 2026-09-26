@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { splitImages } from "@/lib/format";
 
 /**
@@ -23,6 +23,12 @@ export default function ProductImage({
   const [hovered, setHovered] = useState(false);
   const [failedIndexes, setFailedIndexes] = useState(() => new Set());
   const failed = failedIndexes.size >= Math.min(images.length, 2);
+
+  useEffect(() => {
+    setFailedIndexes(new Set());
+    setCurrent(0);
+    setHovered(false);
+  }, [imageUrl]);
 
   if (images.length === 0 || failed) {
     return (
