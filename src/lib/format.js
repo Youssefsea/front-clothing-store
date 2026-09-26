@@ -38,19 +38,21 @@ function resolveLocale(locale) {
   return "en-US";
 }
 
-export function formatDate(value, locale = "en") {
+export function formatDate(value, locale) {
   if (!value) return "";
+  const resolved = locale || (typeof document !== "undefined" ? document.documentElement.lang : "en");
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(resolveLocale(locale), {
+  return d.toLocaleDateString(resolveLocale(resolved), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-export function formatDateTime(value, locale = "en") {
+export function formatDateTime(value, locale) {
   if (!value) return "";
+  const resolved = locale || (typeof document !== "undefined" ? document.documentElement.lang : "en");
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString(resolveLocale(locale), {
