@@ -13,6 +13,7 @@ type CartStore = {
   status: CartStatus;
   items: CartItem[];
   total: number;
+  count: number;
   error: string | null;
   hydrate: () => Promise<void>;
   add: (input: { product_id: number; quantity: number; size: string; color: string }) => Promise<void>;
@@ -25,6 +26,7 @@ export const useCart = create<CartStore>((set) => ({
   status: "idle",
   items: [],
   total: 0,
+  count: 0,
   error: null,
 
   hydrate: async () => {
@@ -32,12 +34,13 @@ export const useCart = create<CartStore>((set) => ({
     try {
       const response = await apiRequest<{ items?: CartItem[]; total?: number }>("/cart");
       const items = Array.isArray(response.items) ? response.items : [];
-      set({ status: "ready", items, total: Number(response.total ?? 0), error: null });
+      const count = items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0), 0);
+      set({ status: "ready", items, total: Number(response.total ?? 0), count, error: null });
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
-        set({ status: "ready", items: [], total: 0, error: null });
+        set({ status: "ready", items: [], total: 0, count: 0, error: null });
       } else if (error instanceof ApiError && error.status === 401) {
-        set({ status: "idle", items: [], total: 0, error: null });
+        set({ status: "idle", items: [], total: 0, count: 0, error: null });
       } else {
         set({ status: "error", error: error instanceof Error ? error.message : "Cart failed" });
       }
@@ -59,7 +62,7 @@ export const useCart = create<CartStore>((set) => ({
     await useCart.getState().hydrate();
   },
 
-  clear: () => set({ status: "ready", items: [], total: 0, error: null })
+  clear: () => set({ status: "ready", items: [], total: 0, count: 0, error: null })
 }));
 
 export function CartBootstrap({ children }: { children: React.ReactNode }) {
