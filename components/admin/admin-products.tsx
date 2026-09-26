@@ -17,7 +17,7 @@ const empty:FormState={title:"",description:"",price:"",discount:"0",stock:"0",c
 
 export function AdminProducts(){
   const {t}=useLang();const [products,setProducts]=useState<Product[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [saving,setSaving]=useState(false);const [success,setSuccess]=useState("");const [editing,setEditing]=useState<Product|null>(null);const [form,setForm]=useState<FormState>(empty);const [open,setOpen]=useState(false);const [query,setQuery]=useState("");
-  const load=useCallback(()=>{setLoading(true);apiRequest<{allProducts?:Product[]}>("/products").then(r=>setProducts(Array.isArray(r.allProducts)?r.allProducts:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))},[t]);
+  const load=useCallback(()=>{apiRequest<{allProducts?:Product[]}>("/products").then(r=>setProducts(Array.isArray(r.allProducts)?r.allProducts:[])).catch(e=>setError(e instanceof Error?e.message:t("common.network"))).finally(()=>setLoading(false))},[t]);
   useEffect(()=>{void load()},[load]);
   const visible=useMemo(()=>products.filter(p=>p.title.toLowerCase().includes(query.toLowerCase())||p.category_name.toLowerCase().includes(query.toLowerCase())),[products,query]);
   const start=(p?:Product)=>{if(p){setEditing(p);setForm({title:p.title,description:p.description||"",price:String(p.price),discount:String(p.discount||0),stock:String(p.stock),category_name:p.category_name,sizes:parseList(p.sizes),colors:parseList(p.colors).join(","),image:null})}else{setEditing(null);setForm({...empty})}setError("");setSuccess("");setOpen(true)};
