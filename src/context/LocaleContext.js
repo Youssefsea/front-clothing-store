@@ -14,21 +14,19 @@ import { DEFAULT_LANG, LANGS, getLangDir, translate } from "@/lib/i18n";
 // Language — `vanta.lang` (en | ar) persisted in localStorage. The
 // no-flash script in layout.js sets <html lang|dir> before hydration.
 //
-// SSR-safety: the server always renders English, so the first client render
-// must also start on DEFAULT_LANG — reading the persisted/"ar" locale during
-// the initial render would make every translated text node mismatch and
-// abort hydration (#418). The real locale is applied in an effect instead;
-// the no-flash script keeps the pre-hydration direction correct, and this
-// provider swaps the strings right after hydration.
+// SSR-safety: the server always renders English, so the first client
+// render must also start on DEFAULT_LANG. Real locale is applied after
+// hydration; the no-flash script keeps pre-hydration direction correct.
 
 const STORAGE_KEY = "vanta.lang";
 
-function readInitial() {
+function readStoredLang() {
   if (typeof window === "undefined") return DEFAULT_LANG;
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (saved === "ar" || saved === "en") return saved;
   const attribute = document.documentElement.getAttribute("lang");
   if (attribute === "ar" || attribute === "en") return attribute;
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  return saved === "ar" || saved === "en" ? saved : DEFAULT_LANG;
+  return DEFAULT_LANG;
 }
 
 function applyLang(language) {
@@ -40,19 +38,36 @@ function applyLang(language) {
 const LocaleContext = createContext(null);
 
 export function LocaleProvider({ children }) {
-  const [lang, setLang] = useState(DEFAULT_LANG);
-  const didInit = useRef(false);
+  const [lang, setLangState] = useState(DEFAULT_LANG);
+  const [pendingLang, setPendingLang] = useState(null);
+  const ready = useRef(false);
+  const skipTransition = useRef(true);
 
   useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    setLang(readInitial());
+    const initial = readStoredLang();
+    ready.current = true;
+    skipTransition.current = true;
+    setLangState(initial);
+    applyLang(initial);
+    window.localStorage.setItem(STORAGE_KEY, initial);
+    // Defer enabling transitions until after the hydration sync settles.
+    const id = window.requestAnimationFrame(() => {
+      skipTransition.current = false;
+    });
+    return () => window.cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
-    if (!didInit.current) return;
+    if (!ready.current) return;
     applyLang(lang);
     window.localStorage.setItem(STORAGE_KEY, lang);
+
+    if (skipTransition.current) return undefined;
+
+    const root = document.documentElement;
+    root.classList.add("lang-switching");
+    const t = window.setTimeout(() => root.classList.remove("lang-switching"), 380);
+    return () => window.clearTimeout(t);
   }, [lang]);
 
   const t = useCallback(
@@ -60,16 +75,47 @@ export function LocaleProvider({ children }) {
     [lang]
   );
 
+  const requestLang = useCallback((next) => {
+    if (next !== "en" && next !== "ar") return;
+    if (next === lang) return;
+    setPendingLang(next);
+  }, [lang]);
+
+  const confirmLang = useCallback(() => {
+    if (!pendingLang) return;
+    setLangState(pendingLang);
+    setPendingLang(null);
+  }, [pendingLang]);
+
+  const cancelLang = useCallback(() => {
+    setPendingLang(null);
+  }, []);
+
+  const setLang = useCallback((next) => {
+    if (next !== "en" && next !== "ar") return;
+    setLangState(next);
+    setPendingLang(null);
+  }, []);
+
+  const toggleLang = useCallback(() => {
+    const next = lang === "en" ? "ar" : "en";
+    setPendingLang(next);
+  }, [lang]);
+
   const value = useMemo(
     () => ({
       lang,
       dir: getLangDir(lang),
       isRtl: getLangDir(lang) === "rtl",
       setLang,
-      toggleLang: () => setLang((l) => (l === "en" ? "ar" : "en")),
+      requestLang,
+      toggleLang,
+      pendingLang,
+      confirmLang,
+      cancelLang,
       t,
     }),
-    [lang, t]
+    [lang, t, setLang, requestLang, toggleLang, pendingLang, confirmLang, cancelLang]
   );
 
   return (

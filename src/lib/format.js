@@ -34,22 +34,27 @@ export function initials(name = "") {
     .join("");
 }
 
-export function formatDate(value) {
+function resolveLocale(locale) {
+  if (locale === "ar") return "ar";
+  return "en-US";
+}
+
+export function formatDate(value, locale = "en") {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(resolveLocale(locale), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-export function formatDateTime(value) {
+export function formatDateTime(value, locale = "en") {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(resolveLocale(locale), {
     day: "numeric",
     month: "short",
     year: "numeric",

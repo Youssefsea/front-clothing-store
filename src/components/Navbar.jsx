@@ -75,22 +75,26 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <button className="nav-link nav-link--btn" onClick={openSearch}>
+            <button type="button" className="nav-link nav-link--btn" onClick={openSearch}>
               {t("nav.search")}
             </button>
           </nav>
 
           <div className="navbar__actions">
             <button
-              className="navbar__theme"
+              type="button"
+              className={`navbar__theme ${isDark ? "is-dark" : "is-light"}`}
               onClick={toggleTheme}
               aria-label={isDark ? t("common.light") : t("common.dark")}
               title={isDark ? t("common.light") : t("common.dark")}
             >
-              {isDark ? "☀" : "☾"}
+              <span className="navbar__theme-icon" aria-hidden="true">
+                {isDark ? "☀" : "☾"}
+              </span>
             </button>
 
             <button
+              type="button"
               className="navbar__lang"
               onClick={toggleLang}
               aria-label={LANGS[nextLang].label}
@@ -99,12 +103,12 @@ export default function Navbar() {
               {LANGS[nextLang].short}
             </button>
 
-            <button className="icon-btn navbar__search" onClick={openSearch} aria-label={t("nav.search")}>
+            <button type="button" className="icon-btn navbar__search" onClick={openSearch} aria-label={t("nav.search")}>
               ⌕
             </button>
 
-            <button className="navbar__cart" onClick={openCart} aria-label={t("nav.openBag", { count })}>
-              <span className="navbar__cart-icon">◎</span>
+            <button type="button" className="navbar__cart" onClick={openCart} aria-label={t("nav.openBag", { count })}>
+              <span className="navbar__cart-icon" aria-hidden="true">◎</span>
               <span className={`navbar__cart-count ${count > 0 ? "cart-badge-pulse" : ""}`}>
                 {count}
               </span>
@@ -113,7 +117,7 @@ export default function Navbar() {
             {authLoading ? null : isAuthenticated ? (
               <>
                 {isAdmin && (
-                  <Link href="/admin" className="nav-link">
+                  <Link href="/admin" className="nav-link navbar__admin">
                     {t("nav.admin")}
                   </Link>
                 )}
@@ -133,6 +137,7 @@ export default function Navbar() {
             )}
 
             <button
+              type="button"
               className="icon-btn navbar__burger"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label={mobileOpen ? t("common.closeMenu") : t("common.openMenu")}
@@ -144,11 +149,12 @@ export default function Navbar() {
         </div>
       </header>
 
-      <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true">
+      <div className={`nav-menu ${mobileOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!mobileOpen}>
         <div className="nav-menu__links">
           <Link href="/" className="nav-menu__link">{t("nav.home")}</Link>
           <Link href="/shop" className="nav-menu__link">{t("nav.shop")}</Link>
           <button
+            type="button"
             className="nav-menu__link nav-menu__link--btn"
             onClick={() => { setMobileOpen(false); openSearch(); }}
           >
@@ -166,10 +172,10 @@ export default function Navbar() {
         </div>
         <div className="nav-menu__foot">
           <div className="nav-menu__toggles">
-            <button className="btn btn--outline btn--dark-text btn--block" onClick={toggleLang}>
+            <button type="button" className="btn btn--outline btn--dark-text btn--block" onClick={toggleLang}>
               {LANGS[nextLang].short} — {LANGS[nextLang].label}
             </button>
-            <button className="btn btn--outline btn--dark-text btn--block" onClick={toggleTheme}>
+            <button type="button" className="btn btn--outline btn--dark-text btn--block" onClick={toggleTheme}>
               {isDark ? "☀ " : "☾ "}
               {isDark ? t("theme.light") : t("theme.dark")}
             </button>
@@ -177,7 +183,7 @@ export default function Navbar() {
           {isAuthenticated ? (
             <>
               <span className="nav-menu__user">{user?.name || user?.email}</span>
-              <button className="btn btn--outline btn--dark-text btn--block" onClick={handleLogout}>
+              <button type="button" className="btn btn--outline btn--dark-text btn--block" onClick={handleLogout}>
                 {t("nav.signout")}
               </button>
             </>
@@ -192,6 +198,7 @@ export default function Navbar() {
             </>
           )}
           <button
+            type="button"
             className="btn btn--accent btn--block"
             onClick={() => { setMobileOpen(false); openCart(); }}
           >

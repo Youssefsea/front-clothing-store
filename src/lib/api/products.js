@@ -1,5 +1,19 @@
 import { api } from "./client";
 
+/** Coerce sizes/colors whether the API returns a CSV string or an array. */
+function toAttrList(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => String(v ?? "").trim())
+      .filter(Boolean);
+  }
+  if (value == null || value === "") return [];
+  return String(value)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 // Backend product shape (normalized at the edge of the API layer).
 export function normalizeProducts(input) {
   if (!Array.isArray(input)) return [];
@@ -16,14 +30,8 @@ export function normalizeProducts(input) {
       is_active: p.is_active !== false,
       created_at: p.created_at || null,
       category_name: p.category_name || "",
-      sizes: (p.sizes || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      colors: (p.colors || "")
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
+      sizes: toAttrList(p.sizes),
+      colors: toAttrList(p.colors),
       finalPrice:
         Number(p.price) -
         (Number(p.price) * (Number(p.discount) || 0)) / 100,

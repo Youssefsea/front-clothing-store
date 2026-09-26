@@ -2,29 +2,38 @@
 
 import React, { useRef } from "react";
 
+function toDigits(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 6);
+}
+
 export default function OTPInput({ value, onChange, disabled = false }) {
   const refs = useRef([]);
-  const digits = String(value || "").padEnd(6, " ").slice(0, 6).split("");
+  const raw = toDigits(value);
+  const digits = Array.from({ length: 6 }, (_, i) => raw[i] || "");
+
+  const emit = (nextDigits) => {
+    onChange(nextDigits.join("").replace(/\D/g, "").slice(0, 6));
+  };
 
   const setDigit = (idx, char) => {
     const cleaned = char.replace(/[^0-9]/g, "");
     if (!cleaned) return;
-    const next = digits.map((d) => d);
-    next[idx] = cleaned;
-    onChange(next.join(""));
+    const next = [...digits];
+    next[idx] = cleaned.slice(-1);
+    emit(next);
     if (idx < 5) refs.current[idx + 1]?.focus();
   };
 
   const handleKeyDown = (idx, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
-      const next = digits.map((d) => d);
-      if (next[idx] !== " ") {
-        next[idx] = " ";
-        onChange(next.join(""));
+      const next = [...digits];
+      if (next[idx]) {
+        next[idx] = "";
+        emit(next);
       } else if (idx > 0) {
-        next[idx - 1] = " ";
-        onChange(next.join(" "));
+        next[idx - 1] = "";
+        emit(next);
         refs.current[idx - 1]?.focus();
       }
     }
@@ -45,12 +54,14 @@ export default function OTPInput({ value, onChange, disabled = false }) {
       {digits.map((d, i) => (
         <input
           key={i}
-          ref={(el) => (refs.current[i] = el)}
-          className={`otp-cell ${d !== " " ? "filled" : ""}`}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          className={`otp-cell ${d ? "filled" : ""}`}
           inputMode="numeric"
           autoComplete={i === 0 ? "one-time-code" : "off"}
           maxLength={1}
-          value={d === " " ? "" : d}
+          value={d}
           disabled={disabled}
           onChange={(e) => setDigit(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}

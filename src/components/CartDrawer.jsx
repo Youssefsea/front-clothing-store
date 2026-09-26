@@ -16,7 +16,7 @@ export default function CartDrawer() {
   const handleRemove = async (id, title) => {
     try {
       await removeFromCart(id);
-      notify(`${title} ${t("cart.remove")}`);
+      notify(t("cart.removed", { t: title }));
     } catch (err) {
       notify(err?.message || t("cart.removeFail"));
     }

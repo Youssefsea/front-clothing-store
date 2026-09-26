@@ -396,7 +396,13 @@ function ShopPageInner() {
 
 export default function ShopPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="container page">
+          <ProductGridSkeleton count={8} />
+        </div>
+      }
+    >
       <ShopPageInner />
     </Suspense>
   );

@@ -309,7 +309,7 @@ export default function HomePage() {
                 >
                   <div>
                     <p className="section-label" style={{ color: "var(--accent)" }}>{t("home.spotlight")}</p>
-                    <h2 style={{ color: "var(--bg)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch", marginTop: "var(--space-2)" }}>
+                    <h2 style={{ color: "var(--on-dark)", fontSize: "clamp(1.6rem, 4vw, 2.6rem)", maxWidth: "18ch", marginTop: "var(--space-2)" }}>
                       {spotlight.title}
                     </h2>
                     <span className="btn btn--light btn--sm" style={{ marginTop: "var(--space-6)" }}>

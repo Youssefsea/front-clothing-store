@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +11,7 @@ import { ApiError } from "@/lib/api/client";
 import { fetchProducts } from "@/lib/api/products";
 import { splitImages } from "@/lib/format";
 import Reveal from "@/components/Reveal";
+import Loader from "@/components/Loader";
 
 function useArtImage() {
   const [img, setImg] = useState("");
@@ -94,156 +95,135 @@ function LoginInner() {
   };
 
   return (
-    <div className="nav-spacer">
-      <div className="auth-shell">
-        <div className="auth-shell__form">
-          <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
-            <Reveal>
-              <p className="section-label">{t("auth.welcomeBack")}</p>
-              <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
-                {t("nav.signin")}
-              </h1>
-              <p style={{ color: "var(--muted)", marginBottom: 34, lineHeight: 1.7 }}>
-                {t("auth.loginBody")}
-              </p>
+    <div className="auth-shell">
+      <div className="auth-shell__form">
+        <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
+          <Reveal eager>
+            <p className="section-label">{t("auth.welcomeBack")}</p>
+            <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
+              {t("nav.signin")}
+            </h1>
+            <p style={{ color: "var(--muted)", marginBottom: 34, lineHeight: 1.7 }}>
+              {t("auth.loginBody")}
+            </p>
 
-              <form onSubmit={onSubmit} noValidate>
-                <div className="field">
-                  <label htmlFor="email">{t("auth.email")}</label>
+            <form onSubmit={onSubmit} noValidate>
+              <div className="field">
+                <label htmlFor="email">{t("auth.email")}</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={form.email}
+                  onChange={onChange}
+                  className={errors.email ? "has-error" : ""}
+                />
+                {errors.email && <span className="field__error">{errors.email}</span>}
+              </div>
+
+              <div className="field">
+                <label htmlFor="password">{t("auth.password")}</label>
+                <div className="field__box">
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    value={form.email}
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={form.password}
                     onChange={onChange}
-                    className={errors.email ? "has-error" : ""}
+                    className={errors.password ? "has-error" : ""}
+                    style={{ paddingInlineEnd: 72 }}
                   />
-                  {errors.email && <span className="field__error">{errors.email}</span>}
-                </div>
-
-                <div className="field">
-                  <label htmlFor="password">{t("auth.password")}</label>
-                  <div className="field__box">
-                    <input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      value={form.password}
-                      onChange={onChange}
-                      className={errors.password ? "has-error" : ""}
-                      style={{ paddingRight: 64 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      style={{
-                        position: "absolute",
-                        right: 12,
-                        fontSize: "0.76rem",
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        color: "var(--muted)",
-                        fontFamily: "var(--display)",
-                      }}
-                      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                    >
-                      {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                    </button>
-                  </div>
-                  {errors.password && <span className="field__error">{errors.password}</span>}
-                </div>
-
-                {serverError && (
-                  <div
-                    role="alert"
-                    style={{
-                      color: "var(--err)",
-                      background: "rgba(192,57,43,0.07)",
-                      border: "1px solid rgba(192,57,43,0.2)",
-                      padding: "12px 14px",
-                      borderRadius: "var(--radius)",
-                      fontSize: "0.88rem",
-                      marginBottom: 18,
-                    }}
+                  <button
+                    type="button"
+                    className="field__toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                   >
-                    {serverError}
-                  </div>
+                    {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                  </button>
+                </div>
+                {errors.password && <span className="field__error">{errors.password}</span>}
+              </div>
+
+              {serverError && (
+                <div className="form-alert form-alert--err" role="alert">
+                  {serverError}
+                </div>
+              )}
+
+              <button className="btn btn--primary btn--block" disabled={submitting} type="submit">
+                {submitting ? (
+                  <>
+                    <span
+                      className="spin"
+                      aria-hidden="true"
+                      style={{
+                        display: "inline-block",
+                        width: 14,
+                        height: 14,
+                        border: "2px solid rgba(245,243,239,0.4)",
+                        borderTopColor: "var(--bg)",
+                        borderRadius: "50%",
+                      }}
+                    />
+                    {t("auth.signingIn")}
+                  </>
+                ) : (
+                  t("nav.signin")
                 )}
+              </button>
+            </form>
 
-                <button className="btn btn--primary btn--block" disabled={submitting} type="submit">
-                  {submitting ? (
-                    <>
-                      <span
-                        className="spin"
-                        aria-hidden="true"
-                        style={{
-                          display: "inline-block",
-                          width: 14,
-                          height: 14,
-                          border: "2px solid rgba(245,243,239,0.4)",
-                          borderTopColor: "var(--bg)",
-                          borderRadius: "50%",
-                        }}
-                      />
-                      {t("auth.signingIn")}
-                    </>
-                  ) : (
-                    t("nav.signin")
-                  )}
-                </button>
-              </form>
-
-              <p style={{ marginTop: 24, fontSize: "0.9rem", color: "var(--muted)" }}>
-                {t("auth.newPrompt")}{" "}
-                <Link href={`/signup?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                  {t("nav.createAccount")}
+            <p style={{ marginTop: 24, fontSize: "0.9rem", color: "var(--muted)" }}>
+              {t("auth.newPrompt")}{" "}
+              <Link href={`/signup?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
+                {t("nav.createAccount")}
+              </Link>
+            </p>
+            {isAdmin && (
+              <p style={{ marginTop: 10, fontSize: "0.84rem", color: "var(--muted)" }}>
+                {t("auth.adminSession")}{" "}
+                <Link href="/admin" className="u-link" style={{ color: "var(--accent)" }}>
+                  {t("auth.openAdmin")}
                 </Link>
               </p>
-              {isAdmin && (
-                <p style={{ marginTop: 10, fontSize: "0.84rem", color: "var(--muted)" }}>
-                  {t("auth.adminSession")}{" "}
-                  <Link href="/admin" className="u-link" style={{ color: "var(--accent)" }}>
-                    {t("auth.openAdmin")}
-                  </Link>
-                </p>
-              )}
-            </Reveal>
-          </div>
+            )}
+          </Reveal>
         </div>
+      </div>
 
-        <div className="auth-shell__art">
-          {art && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={art} alt="" />
-          )}
-          <div className="auth-shell__quote">
-            <p
-              style={{
-                fontSize: "1.05rem",
-                lineHeight: 1.7,
-                fontStyle: "italic",
-                color: "rgba(245,243,239,0.9)",
-              }}
-            >
-              {t("auth.quoteLogin")}
-            </p>
-            <p
-              style={{
-                marginTop: 16,
-                fontFamily: "var(--display)",
-                letterSpacing: "0.3em",
-                textTransform: "uppercase",
-                fontSize: "0.74rem",
-                color: "var(--accent)",
-              }}
-            >
-              {t("auth.quoteLoginTag")}
-            </p>
-          </div>
+      <div className="auth-shell__art">
+        {art && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={art} alt="" />
+        )}
+        <div className="auth-shell__quote">
+          <p
+            style={{
+              fontSize: "1.05rem",
+              lineHeight: 1.7,
+              fontStyle: "italic",
+              color: "rgba(245,243,239,0.9)",
+            }}
+          >
+            {t("auth.quoteLogin")}
+          </p>
+          <p
+            style={{
+              marginTop: 16,
+              fontFamily: "var(--display)",
+              letterSpacing: "0.3em",
+              textTransform: "uppercase",
+              fontSize: "0.74rem",
+              color: "var(--accent)",
+            }}
+          >
+            {t("auth.quoteLoginTag")}
+          </p>
         </div>
       </div>
     </div>
@@ -252,7 +232,7 @@ function LoginInner() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<Loader label="…" />}>
       <LoginInner />
     </Suspense>
   );

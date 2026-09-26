@@ -10,27 +10,15 @@ import {
   useState,
 } from "react";
 
-// Theme system — `vanta.theme` (light | dark | system) persisted in
-// localStorage. The <html> element is pre-themed by the no-flash script
-// in layout.js before React hydrates.
-//
-// SSR-safety: `resolveTheme()` depends on matchMedia (browser-only), so we
-// must NOT compute it during the first render — server would resolve to
-// light while the client could resolve to dark, aborting hydration (#418).
-// The provider therefore starts both sides on `resolved = "light"` and only
-// reconciles to the real preference inside an effect (already hydrated at
-// that point). The no-flash script keeps the pre-hydration paint correct.
-
 const STORAGE_KEY = "vanta.theme";
 
-function readInitial() {
+function readStoredMode() {
   if (typeof window === "undefined") return "system";
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (saved === "light" || saved === "dark" || saved === "system") return saved;
   const attribute = document.documentElement.getAttribute("data-theme");
   if (attribute === "light" || attribute === "dark") return attribute;
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  return saved === "light" || saved === "dark" || saved === "system"
-    ? saved
-    : "system";
+  return "system";
 }
 
 function systemTheme() {
@@ -41,30 +29,44 @@ function systemTheme() {
 }
 
 export function resolveTheme(mode) {
+  if (typeof window === "undefined") return "light";
   return mode === "system" ? systemTheme() : mode;
+}
+
+function pulseThemeSwitch() {
+  const root = document.documentElement;
+  root.classList.remove("theme-switching");
+  // Force reflow so re-adding the class retriggers the animation.
+  void root.offsetWidth;
+  root.classList.add("theme-switching");
+  window.setTimeout(() => root.classList.remove("theme-switching"), 420);
 }
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [mode, setMode] = useState("system");
+  const [mode, setModeState] = useState("light");
   const [resolved, setResolved] = useState("light");
-  const didInit = useRef(false);
+  const ready = useRef(false);
 
   useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    setMode(readInitial());
+    const initial = readStoredMode();
+    const next = initial === "system" ? systemTheme() : initial;
+    ready.current = true;
+    setModeState(initial);
+    setResolved(next);
+    document.documentElement.setAttribute("data-theme", next);
+    window.localStorage.setItem(STORAGE_KEY, initial);
   }, []);
 
   useEffect(() => {
-    if (!didInit.current) return;
+    if (!ready.current) return;
     const next = mode === "system" ? systemTheme() : mode;
     setResolved(next);
     document.documentElement.setAttribute("data-theme", next);
     window.localStorage.setItem(STORAGE_KEY, mode);
 
-    if (mode !== "system") return;
+    if (mode !== "system") return undefined;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
       const nr = systemTheme();
@@ -75,8 +77,16 @@ export function ThemeProvider({ children }) {
     return () => mq.removeEventListener?.("change", onChange);
   }, [mode]);
 
+  const setMode = useCallback((next) => {
+    setModeState(next);
+  }, []);
+
   const toggle = useCallback(() => {
-    setMode((m) => (m !== "system" && m === "dark" ? "light" : "dark"));
+    pulseThemeSwitch();
+    setModeState((m) => {
+      const current = m === "system" ? systemTheme() : m;
+      return current === "dark" ? "light" : "dark";
+    });
   }, []);
 
   const value = useMemo(
@@ -87,7 +97,7 @@ export function ThemeProvider({ children }) {
       toggle,
       setMode,
     }),
-    [mode, resolved, toggle]
+    [mode, resolved, toggle, setMode]
   );
 
   return (

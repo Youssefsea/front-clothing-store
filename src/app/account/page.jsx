@@ -82,9 +82,9 @@ export default function AccountPage() {
                 {isAdmin && (
                   <span
                     className="badge badge--info"
-                    style={{ marginLeft: 10 }}
+                    style={{ marginInlineStart: 10 }}
                   >
-                    Admin
+                    {t("nav.admin")}
                   </span>
                 )}
               </div>

@@ -8,12 +8,14 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUi } from "@/context/UiContext";
+import { useLocale } from "@/context/LocaleContext";
 
-export default function ProductCard({ product, index = 0, small = false }) {
+export default function ProductCard({ product, index = 0 }) {
   const router = useRouter();
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
-  const { notify, openCart, openSearch } = useUi();
+  const { notify } = useUi();
+  const { t } = useLocale();
   const [adding, setAdding] = useState(false);
 
   const out = product.stock <= 0;
@@ -24,10 +26,14 @@ export default function ProductCard({ product, index = 0, small = false }) {
     e.preventDefault();
     e.stopPropagation();
     if (out) return;
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent(href)}`);
+      return;
+    }
     setAdding(true);
     try {
       await addToCart(product.id, 1, product.sizes?.[0] || "", product.colors?.[0] || "");
-      notify("Added to your bag");
+      notify(t("card.added"));
       const badge = document.querySelector(".navbar__cart-count");
       if (badge) {
         badge.classList.remove("cart-badge-pulse");
@@ -36,9 +42,9 @@ export default function ProductCard({ product, index = 0, small = false }) {
       }
     } catch (err) {
       if (err?.status === 401 || err?.status === 403) {
-        router.push("/login");
+        router.push(`/login?next=${encodeURIComponent(href)}`);
       } else {
-        notify(err?.message || "Could not add to bag");
+        notify(err?.message || t("card.addFail"));
       }
     } finally {
       setAdding(false);
@@ -52,10 +58,19 @@ export default function ProductCard({ product, index = 0, small = false }) {
         {discounted && !out && (
           <span className="p-card__badge">-{Math.round(product.discount)}%</span>
         )}
-        {out && <span className="p-card__badge p-card__badge--soldout">Sold out</span>}
-        <span className="p-card__quick" onClick={handleQuickAdd}>
-          <button className="btn" disabled={adding || out || !isAuthenticated}>
-            {adding ? "Adding…" : isAuthenticated ? "Quick add" : "Sign in to shop"}
+        {out && <span className="p-card__badge p-card__badge--soldout">{t("common.soldOut")}</span>}
+        <span className="p-card__quick">
+          <button
+            type="button"
+            className="btn"
+            disabled={adding || out}
+            onClick={handleQuickAdd}
+          >
+            {adding
+              ? t("card.adding")
+              : isAuthenticated
+                ? t("card.quickAdd")
+                : t("card.signInShop")}
           </button>
         </span>
       </Link>
@@ -69,10 +84,10 @@ export default function ProductCard({ product, index = 0, small = false }) {
           {discounted && <span className="was">{formatPrice(product.price)}</span>}
         </div>
         {out ? (
-          <span className="p-card__stock p-card__stock--out">Out of stock</span>
+          <span className="p-card__stock p-card__stock--out">{t("common.outOfStock")}</span>
         ) : product.stock <= 5 ? (
           <span className="p-card__stock p-card__stock--low">
-            Only {product.stock} left
+            {t("common.onlyLeft", { n: product.stock })}
           </span>
         ) : null}
       </div>

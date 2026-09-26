@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { sendOtp, signup } from "@/lib/api/auth";
 import { validateName, validateEmail, validatePassword, validatePhone, validateOtp } from "@/lib/validation";
-import { ApiError, isApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/api/client";
 import { fetchProducts } from "@/lib/api/products";
 import { splitImages } from "@/lib/format";
 import { useLocale } from "@/context/LocaleContext";
 import OTPInput from "@/components/OTPInput";
 import Reveal from "@/components/Reveal";
+import Loader from "@/components/Loader";
 
 const OTP_TTL_SECONDS = 60;
 
@@ -121,7 +122,6 @@ function SignupInner() {
     setServerError("");
     try {
       await sendOtp(form.email.trim(), form.phone);
-      setOtpSent(true);
       setStep(2);
       startCountdown();
     } catch (err) {
@@ -160,222 +160,187 @@ function SignupInner() {
   };
 
   return (
-    <div className="nav-spacer">
-      <div className="auth-shell">
-        <div className="auth-shell__form">
-          <div style={{ maxWidth: 460, width: "100%", margin: "0 auto" }}>
-            <Reveal>
-              {/* Stepper */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 26 }}>
-                {STEPS.map((label, i) => {
-                  const n = i + 1;
-                  const done = step > n;
-                  const current = step === n;
-                  return (
-                    <React.Fragment key={label}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span
-                          style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: "50%",
-                            border: `1px solid ${done || current ? "var(--ink)" : "var(--line)"}`,
-                            background: done || current ? "var(--ink)" : "transparent",
-                            color: done || current ? "var(--bg)" : "var(--muted)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "0.7rem",
-                            fontWeight: 600,
-                            fontFamily: "var(--display)",
-                          }}
-                        >
-                          {done ? "✓" : n}
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: "var(--display)",
-                            fontSize: "0.72rem",
-                            letterSpacing: "0.14em",
-                            textTransform: "uppercase",
-                            color: current ? "var(--ink)" : "var(--muted)",
-                          }}
-                        >
-                          {label}
-                        </span>
-                      </div>
-                      {n < STEPS.length && (
-                        <span style={{ flex: 1, height: 1, background: done ? "var(--ink)" : "var(--line)", minWidth: 24 }} />
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-
-              {step === 3 ? (
-                <div>
-                  <p className="section-label">{t("auth.done")}</p>
-                  <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 12 }}>
-                    {t("auth.youreIn")}
-                  </h1>
-                  <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 28 }}>
-                    {t("auth.accountReady")}
-                  </p>
-                  <button className="btn btn--primary btn--block" onClick={goLogin}>
-                    {t("auth.goSignin")}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="section-label">{t("auth.newHere")}</p>
-                  <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
-                    {t("nav.createAccount")}
-                  </h1>
-                  <p style={{ color: "var(--muted)", marginBottom: 30, lineHeight: 1.7 }}>
-                    {t("auth.tellUs")}
-                  </p>
-
-                  {serverError && (
-                    <div
-                      role="alert"
-                      style={{
-                        color: "var(--err)",
-                        background: "rgba(192,57,43,0.07)",
-                        border: "1px solid rgba(192,57,43,0.2)",
-                        padding: "12px 14px",
-                        borderRadius: "var(--radius)",
-                        fontSize: "0.88rem",
-                        marginBottom: 18,
-                      }}
-                    >
-                      {serverError}
+    <div className="auth-shell">
+      <div className="auth-shell__form">
+        <div style={{ maxWidth: 460, width: "100%", margin: "0 auto" }}>
+          <Reveal eager>
+            <div className="auth-stepper" aria-hidden={step === 3}>
+              {STEPS.map((label, i) => {
+                const n = i + 1;
+                const done = step > n;
+                const current = step === n;
+                return (
+                  <React.Fragment key={label}>
+                    <div className="auth-stepper__item">
+                      <span
+                        className={`auth-stepper__dot ${done || current ? "is-on" : ""}`}
+                      >
+                        {done ? "✓" : n}
+                      </span>
+                      <span className={`auth-stepper__label ${current ? "is-on" : ""}`}>
+                        {label}
+                      </span>
                     </div>
-                  )}
-
-                  {step === 1 ? (
-                    <div>
-                      <div className="field">
-                        <label htmlFor="signup-name">{t("auth.name")}</label>
-                        <input id="signup-name" name="name" type="text" autoComplete="name" placeholder="Jordan Smith" value={form.name} onChange={onChange} className={errors.name ? "has-error" : ""} />
-                        {errors.name && <span className="field__error">{errors.name}</span>}
-                      </div>
-                      <div className="field">
-                        <label htmlFor="signup-email">{t("auth.email")}</label>
-                        <input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={onChange} className={errors.email ? "has-error" : ""} />
-                        {errors.email && <span className="field__error">{errors.email}</span>}
-                      </div>
-                      <div className="field">
-                        <label htmlFor="signup-phone">Phone</label>
-                        <input id="signup-phone" name="phone" type="tel" autoComplete="tel" placeholder="+1 555 000 1234" value={form.phone} onChange={onChange} className={errors.phone ? "has-error" : ""} />
-                        {errors.phone && <span className="field__error">{errors.phone}</span>}
-                      </div>
-                      <div className="field">
-                        <label htmlFor="signup-password">{t("auth.password")}</label>
-                        <div className="field__box">
-                          <input
-                            id="signup-password"
-                            name="password"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            placeholder="6–50 characters"
-                            value={form.password}
-                            onChange={onChange}
-                            className={errors.password ? "has-error" : ""}
-                            style={{ paddingRight: 64 }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword((v) => !v)}
-                            style={{
-                              position: "absolute",
-                              right: 12,
-                              fontSize: "0.76rem",
-                              letterSpacing: "0.1em",
-                              textTransform: "uppercase",
-                              color: "var(--muted)",
-                              fontFamily: "var(--display)",
-                            }}
-                            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                          >
-                            {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                          </button>
-                        </div>
-                        {errors.password && <span className="field__error">{errors.password}</span>}
-                      </div>
-
-                      <button className="btn btn--primary btn--block" onClick={requestOtp} disabled={sending}>
-                        {sending ? t("auth.sendingCode") : t("auth.sendCode")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p style={{ marginBottom: 18, color: "var(--muted)", lineHeight: 1.6 }}>
-                        {t("auth.otpSentTo", { email: form.email })}
-                      </p>
-                      <div className="field" style={{ textAlign: "center" }}>
-                        <OTPInput
-                          value={form.otp}
-                          onChange={(val) => {
-                            setForm((f) => ({ ...f, otp: val }));
-                            setErrors((er) => ({ ...er, otp: "" }));
-                          }}
-                        />
-                        {errors.otp && <span className="field__error">{errors.otp}</span>}
-                      </div>
-
-                      <button className="btn btn--primary btn--block" onClick={submitSignup} disabled={submitting}>
-                        {submitting ? t("auth.creatingAccount") : t("auth.submitSignup")}
-                      </button>
-
-                      <div style={{ marginTop: 18, textAlign: "center", fontSize: "0.86rem", color: "var(--muted)" }}>
-                        {countdown > 0 ? (
-                          <span>{t("auth.resendIn", { n: countdown })}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={requestOtp}
-                            disabled={sending}
-                            className="u-link"
-                            style={{ color: "var(--ink)", fontWeight: 600 }}
-                          >
-                            {t("auth.resendCode")}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <p style={{ marginTop: 22, fontSize: "0.9rem", color: "var(--muted)" }}>
-                    {step === 1 ? (
-                      <>
-                        {t("auth.haveAccount")}{" "}
-                        <Link href={`/login?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                          {t("nav.signin")}
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        {t("auth.otherEmail")}{" "}
-                        <button type="button" onClick={() => { setOtpSent(false); setStep(1); setForm((f) => ({ ...f, otp: "" })); }} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                          {t("auth.goBack")}
-                        </button>
-                      </>
+                    {n < STEPS.length && (
+                      <span className={`auth-stepper__line ${done ? "is-on" : ""}`} />
                     )}
-                  </p>
-                </>
-              )}
-            </Reveal>
-          </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {step === 3 ? (
+              <div>
+                <p className="section-label">{t("auth.done")}</p>
+                <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 12 }}>
+                  {t("auth.youreIn")}
+                </h1>
+                <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 28 }}>
+                  {t("auth.accountReady")}
+                </p>
+                <button className="btn btn--primary btn--block" onClick={goLogin}>
+                  {t("auth.goSignin")}
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="section-label">{t("auth.newHere")}</p>
+                <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.8rem)", marginBottom: 10 }}>
+                  {t("nav.createAccount")}
+                </h1>
+                <p style={{ color: "var(--muted)", marginBottom: 30, lineHeight: 1.7 }}>
+                  {t("auth.tellUs")}
+                </p>
+
+                {serverError && (
+                  <div className="form-alert form-alert--err" role="alert">
+                    {serverError}
+                  </div>
+                )}
+
+                {step === 1 ? (
+                  <div>
+                    <div className="field">
+                      <label htmlFor="signup-name">{t("auth.name")}</label>
+                      <input id="signup-name" name="name" type="text" autoComplete="name" placeholder="Jordan Smith" value={form.name} onChange={onChange} className={errors.name ? "has-error" : ""} />
+                      {errors.name && <span className="field__error">{errors.name}</span>}
+                    </div>
+                    <div className="field">
+                      <label htmlFor="signup-email">{t("auth.email")}</label>
+                      <input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={onChange} className={errors.email ? "has-error" : ""} />
+                      {errors.email && <span className="field__error">{errors.email}</span>}
+                    </div>
+                    <div className="field">
+                      <label htmlFor="signup-phone">{t("auth.phone")}</label>
+                      <input id="signup-phone" name="phone" type="tel" autoComplete="tel" placeholder="+1 555 000 1234" value={form.phone} onChange={onChange} className={errors.phone ? "has-error" : ""} />
+                      {errors.phone && <span className="field__error">{errors.phone}</span>}
+                    </div>
+                    <div className="field">
+                      <label htmlFor="signup-password">{t("auth.password")}</label>
+                      <div className="field__box">
+                        <input
+                          id="signup-password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder="6–50 characters"
+                          value={form.password}
+                          onChange={onChange}
+                          className={errors.password ? "has-error" : ""}
+                          style={{ paddingInlineEnd: 72 }}
+                        />
+                        <button
+                          type="button"
+                          className="field__toggle"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                        >
+                          {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                        </button>
+                      </div>
+                      {errors.password && <span className="field__error">{errors.password}</span>}
+                    </div>
+
+                    <button className="btn btn--primary btn--block" onClick={requestOtp} disabled={sending}>
+                      {sending ? t("auth.sendingCode") : t("auth.sendCode")}
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ marginBottom: 18, color: "var(--muted)", lineHeight: 1.6 }}>
+                      {t("auth.otpSentTo", { email: form.email })}
+                    </p>
+                    <div className="field" style={{ textAlign: "center" }}>
+                      <OTPInput
+                        value={form.otp}
+                        onChange={(val) => {
+                          setForm((f) => ({ ...f, otp: val }));
+                          setErrors((er) => ({ ...er, otp: "" }));
+                        }}
+                      />
+                      {errors.otp && <span className="field__error">{errors.otp}</span>}
+                    </div>
+
+                    <button className="btn btn--primary btn--block" onClick={submitSignup} disabled={submitting}>
+                      {submitting ? t("auth.creatingAccount") : t("auth.submitSignup")}
+                    </button>
+
+                    <div style={{ marginTop: 18, textAlign: "center", fontSize: "0.86rem", color: "var(--muted)" }}>
+                      {countdown > 0 ? (
+                        <span>{t("auth.resendIn", { n: countdown })}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={requestOtp}
+                          disabled={sending}
+                          className="u-link"
+                          style={{ color: "var(--ink)", fontWeight: 600 }}
+                        >
+                          {t("auth.resendCode")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <p style={{ marginTop: 22, fontSize: "0.9rem", color: "var(--muted)" }}>
+                  {step === 1 ? (
+                    <>
+                      {t("auth.haveAccount")}{" "}
+                      <Link href={`/login?next=${encodeURIComponent(next)}`} className="u-link" style={{ color: "var(--ink)", fontWeight: 600 }}>
+                        {t("nav.signin")}
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      {t("auth.otherEmail")}{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep(1);
+                          setForm((f) => ({ ...f, otp: "" }));
+                        }}
+                        className="u-link"
+                        style={{ color: "var(--ink)", fontWeight: 600 }}
+                      >
+                        {t("auth.goBack")}
+                      </button>
+                    </>
+                  )}
+                </p>
+              </>
+            )}
+          </Reveal>
         </div>
-        <AuthArt t={t} />
       </div>
+      <AuthArt t={t} />
     </div>
   );
 }
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="nav-spacer" />}>
+    <Suspense fallback={<Loader label="…" />}>
       <SignupInner />
     </Suspense>
   );
