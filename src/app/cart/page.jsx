@@ -26,9 +26,9 @@ export default function CartPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const handleRemove = async (cartItemId, title) => {
+  const handleRemove = async (productId, title) => {
     try {
-      await removeFromCart(cartItemId);
+      await removeFromCart(productId);
       notify(t("cart.removed", { t: title }));
     } catch (err) {
       notify(err?.message || t("cart.removeFail"));
@@ -43,8 +43,10 @@ export default function CartPage() {
     );
   }
 
-  const shipping = totals.subtotal > 0 && totals.subtotal < 100 ? 6.5 : 0;
-  const grandTotal = totals.subtotal + shipping;
+  if (!isAuthenticated) return null;
+
+  const shipping = 0;
+  const grandTotal = totals.subtotal;
 
   return (
     <div className="nav-spacer">
