@@ -1,4 +1,12 @@
-import { api } from "./client";
+import { api, ApiError } from "./client";
+
+async function readProductList(request) {
+  try { return await request(); }
+  catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
+}
 
 /** Coerce sizes/colors whether the API returns a CSV string or an array. */
 function toAttrList(value) {
@@ -71,21 +79,27 @@ export async function fetchProductById(id) {
 }
 
 export async function fetchProductsByCategory(categoryName) {
-  const data = await api.post("/products/byCategory", { category_name: categoryName });
-  return normalizeProducts(data?.products);
+  return readProductList(async () => {
+    const data = await api.post("/products/byCategory", { category_name: categoryName });
+    return normalizeProducts(data?.products);
+  });
 }
 
 export async function fetchProductsInRange(minPrice, maxPrice) {
-  const data = await api.post("/products/inRange", {
-    minPrice: Number(minPrice),
-    maxPrice: Number(maxPrice),
+  return readProductList(async () => {
+    const data = await api.post("/products/inRange", {
+      minPrice: Number(minPrice),
+      maxPrice: Number(maxPrice),
+    });
+    return normalizeProducts(data?.products);
   });
-  return normalizeProducts(data?.products);
 }
 
 export async function fetchProductsByColor(color) {
-  const data = await api.post("/products/byColor", { color });
-  return normalizeProducts(data?.products);
+  return readProductList(async () => {
+    const data = await api.post("/products/byColor", { color });
+    return normalizeProducts(data?.products);
+  });
 }
 
 // Unique, real categories derived from product data (never invented).
