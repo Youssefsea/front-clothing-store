@@ -1,1 +1,1 @@
-import{LoginForm}from"../../features/auth";export default function Page(){return <LoginForm/>}
+import{Suspense}from"react";import{LoginForm}from"../../features/auth";export default function Page(){return <Suspense fallback={<div className="page-section"><div className="state-block">Loading VANTA…</div></div>}><LoginForm/></Suspense>}
