@@ -6,6 +6,9 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: https://backend-clothing-store2.obl.ee
+      BASE_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,6 +18,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser hydration and UX smoke
+        run: node scripts/browser-smoke.mjs
       - name: Runtime smoke routes
         run: |
           npm run start > /tmp/vanta-next.log 2>&1 &
