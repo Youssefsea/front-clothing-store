@@ -94,7 +94,7 @@ export default function AdminUsers() {
         </select>
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => setQuery(mode === "phone" ? e.target.value.replace(/\D/g, "").slice(0, 15) : e.target.value)}
           placeholder={mode === "email" ? t("admin.emailPlaceholder") : t("admin.phonePlaceholder")}
           aria-label={t("admin.searchUsers")}
         />
