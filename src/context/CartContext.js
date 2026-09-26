@@ -36,8 +36,10 @@ export function CartProvider({ children }) {
   const [error, setError] = useState(null);
 
   const refresh = useCallback(async () => {
-    // Do nothing while auth state is still being resolved.
-    if (authLoading) return;
+    // Do not touch cart state until authentication is resolved.
+    if (authLoading) {
+      return;
+    }
 
     // Logged out = empty cart.
     if (!isAuthenticated) {
@@ -51,27 +53,37 @@ export function CartProvider({ children }) {
     setError(null);
 
     try {
-      // Cart items are the primary source.
-      const cartItems = await getCart();
+      const [cartResult, countResult] = await Promise.allSettled([
+        getCart(),
+        getCartCount(),
+      ]);
 
-      const safeItems = Array.isArray(cartItems)
-        ? cartItems
-        : [];
+      let firstError = null;
 
-      setItems(safeItems);
+      if (cartResult.status === "fulfilled") {
+        const cartItems = cartResult.value;
 
-      // Count is secondary.
-      try {
-        const cartCount = await getCartCount();
-        setCount(Number(cartCount) || 0);
-      } catch {
-        // Fallback: calculate count locally.
-        const fallbackCount = safeItems.reduce(
-          (sum, item) => sum + (Number(item.quantity) || 0),
-          0
+        setItems(
+          Array.isArray(cartItems)
+            ? cartItems
+            : []
         );
+      } else {
+        firstError = cartResult.reason;
+      }
 
-        setCount(fallbackCount);
+      if (countResult.status === "fulfilled") {
+        setCount(Number(countResult.value) || 0);
+      } else if (!firstError) {
+        firstError = countResult.reason;
+      }
+
+      if (firstError) {
+        setError(
+          firstError instanceof ApiError
+            ? firstError.message
+            : "Could not fully load cart"
+        );
       }
     } catch (err) {
       setError(
@@ -85,11 +97,18 @@ export function CartProvider({ children }) {
   }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (!authLoading) {
+      refresh();
+    }
+  }, [authLoading, refresh]);
 
   const addToCart = useCallback(
-    async (productId, quantity = 1, size = "", color = "") => {
+    async (
+      productId,
+      quantity = 1,
+      size = "",
+      color = ""
+    ) => {
       setError(null);
 
       await apiAdd({
@@ -202,16 +221,13 @@ export function CartProvider({ children }) {
 
   const totals = useMemo(() => {
     const totalItems = items.reduce(
-      (sum, item) =>
-        sum + (Number(item.quantity) || 0),
+      (sum, i) => sum + i.quantity,
       0
     );
 
     const subtotal = items.reduce(
-      (sum, item) =>
-        sum +
-        (Number(item.final_price) || 0) *
-          (Number(item.quantity) || 0),
+      (sum, i) =>
+        sum + (i.final_price || 0) * i.quantity,
       0
     );
 
