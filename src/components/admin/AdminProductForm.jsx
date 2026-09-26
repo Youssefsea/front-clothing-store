@@ -202,6 +202,7 @@ export default function AdminProductForm({
   // — that is what the existing /products/update contract accepts.
   const [files, setFiles] = useState([]);
   const [filePreviews, setFilePreviews] = useState([]);
+  const previewsRef = useRef([]);
 
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -231,10 +232,11 @@ export default function AdminProductForm({
     }
     const next = incoming.slice(0, allowed);
     setFiles((prev) => [...prev, ...next]);
-    setFilePreviews((prev) => [
-      ...prev,
-      ...next.map((f) => URL.createObjectURL(f)),
-    ]);
+    setFilePreviews((prev) => {
+      const urls = [...prev, ...next.map((f) => URL.createObjectURL(f))];
+      previewsRef.current = urls;
+      return urls;
+    });
     if (source === "drop") setDragging(false);
     setFormError("");
   };
@@ -243,14 +245,16 @@ export default function AdminProductForm({
     setFilePreviews((prev) => {
       const url = prev[i];
       if (url) URL.revokeObjectURL(url);
-      return prev.filter((_, idx) => idx !== i);
+      const urls = prev.filter((_, idx) => idx !== i);
+      previewsRef.current = urls;
+      return urls;
     });
     setFiles((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   useEffect(() => () => {
-    filePreviews.forEach((url) => URL.revokeObjectURL(url));
-  }, [filePreviews]);
+    previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const moveFile = (i, dir) => {
     const j = i + dir;
