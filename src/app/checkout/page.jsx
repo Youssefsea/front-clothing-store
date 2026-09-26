@@ -81,6 +81,10 @@ export default function CheckoutPage() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (hasUnavailable) {
+      notify(t("cart.unavailableItems"));
+      return;
+    }
     let bad = false;
     if (!address.trim() || address.trim().length < 10) {
       setAddressError(t("checkout.addressTooShort"));
