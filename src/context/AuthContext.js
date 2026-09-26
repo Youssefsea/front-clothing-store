@@ -13,7 +13,7 @@ import {
   logout as apiLogout,
   normalizeUser,
 } from "@/lib/api/auth";
-import { ApiError, isApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
 
 const AuthContext = createContext(null);
 const SESSION_USER_KEY = "vanta.sessionUser";
