@@ -1,8 +1,7 @@
 export function formatPrice(value) {
   const num = Number(value);
-  if (Number.isNaN(num)) return "$0.00";
-  if (Number.isInteger(num)) return `$${num.toFixed(2)}`;
-  return `$${num.toFixed(2)}`;
+  if (!Number.isFinite(num)) return "EGP 0.00";
+  return "EGP " + num.toFixed(2);
 }
 
 export function splitImages(imageUrl) {
