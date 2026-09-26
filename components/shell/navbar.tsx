@@ -16,8 +16,7 @@ export function Navbar() {
   const { theme, switchTheme, switching: themeSwitching } = useTheme();
   const auth=useAuth();const cart=useCart();const pathname=usePathname();const router=useRouter();
   const [scrolled,setScrolled]=useState(false);const [searchOpen,setSearchOpen]=useState(false);const [query,setQuery]=useState("");const [menuOpen,setMenuOpen]=useState(false);
-  useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>24);onScroll();window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll)},[]);
-  useEffect(()=>{setSearchOpen(false);setMenuOpen(false)},[pathname]);
+  useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>24);window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll)},[]);
   useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape"){setSearchOpen(false);setMenuOpen(false)}};document.addEventListener("keydown",onKey);return()=>document.removeEventListener("keydown",onKey)},[]);
   useEffect(()=>{document.body.style.overflow=menuOpen||searchOpen?"hidden":"";return()=>{document.body.style.overflow=""}},[menuOpen,searchOpen]);
 
