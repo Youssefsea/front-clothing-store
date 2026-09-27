@@ -1,0 +1,8 @@
+"use client";
+import {AlertCircle,LoaderCircle,Inbox} from "lucide-react";
+import {useLocale} from "@/components/locale-provider";
+export function Button({variant="primary",className="",...props}:React.ButtonHTMLAttributes<HTMLButtonElement>&{variant?: "primary"|"secondary"|"ghost"}){const s={primary:"bg-[var(--primary)] text-[var(--primary-fg)]",secondary:"bg-[var(--surface-2)] text-[var(--fg)]",ghost:"border border-[var(--border)] hover:bg-[var(--surface-2)]"};return <button {...props} className={"inline-flex min-h-11 items-center justify-center gap-2 px-5 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 "+s[variant]+" "+className}/>;}
+export function Spinner(){const {t}=useLocale();return <span className="inline-flex items-center gap-2 text-sm text-[var(--muted)]" role="status"><LoaderCircle className="animate-spin" size={17}/>{t("common.loading")}</span>}
+export function Skeleton({className=""}:{className?:string}){return <div aria-hidden="true" className={"animate-pulse bg-[var(--surface-2)] "+className}/>;}
+export function ErrorState({message,retry}:{message:string;retry?:()=>void}){const {t}=useLocale();return <section className="card flex flex-col items-center gap-4 p-8 text-center"><AlertCircle size={26}/><p className="max-w-xl text-sm leading-6">{message}</p>{retry&&<Button variant="secondary" onClick={retry}>{t("common.retry")}</Button>}</section>}
+export function EmptyState({message,action}:{message:string;action?:React.ReactNode}){return <section className="card flex flex-col items-center gap-4 p-8 text-center"><Inbox size={26}/><p className="text-sm text-[var(--muted)]">{message}</p>{action}</section>}
