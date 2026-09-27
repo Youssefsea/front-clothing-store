@@ -1,0 +1,1 @@
+import {Suspense} from "react"; import {ShopPage} from "@/components/shop-page"; export default function Page(){return <Suspense fallback={<div className="container-vanta py-12">Loading…</div>}><ShopPage/></Suspense>}
