@@ -1,0 +1,1 @@
+import {AdminUsersPage} from "@/components/admin-pages"; export default function Page(){return <AdminUsersPage/>}
