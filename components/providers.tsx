@@ -50,7 +50,7 @@ export function AppProviders({children,initialLocale,initialTheme}:{children:Rea
   },[]);
   useEffect(()=>{void refresh()},[refresh]);
 
-  const login=useCallback(async(email:string,password:string)=>{const response=await api.auth.login(email,password);setUser(response.user);setError(null);setStatus("authenticated");await useCartStore.getState().sync();return response.user};
+  const login=useCallback(async(email:string,password:string)=>{const response=await api.auth.login(email,password);setUser(response.user);setError(null);setStatus("authenticated");await useCartStore.getState().sync();return response.user},[]);
   const logout=useCallback(async()=>{try{await api.auth.logout()}finally{setUserState(null);sessionStorage.removeItem("vanta_session");useCartStore.getState().clear();setError(null);setStatus("unauthenticated")}},[]);
 
   const t=useCallback((key:string)=>translate(locale,key),[locale]);
