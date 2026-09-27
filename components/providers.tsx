@@ -36,7 +36,7 @@ export function AppProviders({children,initialLocale,initialTheme}:{children:Rea
   const toggleTheme=(point:Point={x:window.innerWidth-70,y:52})=>{if(themeTransitioning)return;setThemeTransitioning(true);const next=theme==="light"?"dark":"light";animateToggle("vanta-theme-wave",point,220,()=>setTheme(next),()=>setThemeTransitioning(false))};
 
   const setUser=(next:User)=>{setUserState(next);sessionStorage.setItem("vanta_session",JSON.stringify(next))};
-  const refresh=async()=>{
+  const refresh=useCallback(async()=>{
     try{
       const session=await api.auth.session();
       const stored=safeJsonParse<User|null>(sessionStorage.getItem("vanta_session"),null);
