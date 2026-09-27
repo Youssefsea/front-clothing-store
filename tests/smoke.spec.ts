@@ -31,11 +31,13 @@ test.describe("VANTA hydrated route stability",()=>{
     const theme=page.getByTestId("theme-switch");
     await language.click();
     await page.waitForFunction(()=>document.documentElement.lang==="ar"&&document.documentElement.dir==="rtl");
+    await page.waitForTimeout(800);
     await language.click();
     await page.waitForFunction(()=>document.documentElement.lang==="en"&&document.documentElement.dir==="ltr");
     const before=await page.locator("html").getAttribute("data-theme");
     await theme.click();
     await page.waitForFunction(prev=>document.documentElement.dataset.theme!==prev,before);
+    await page.waitForTimeout(800);
     await theme.click();
     await page.waitForTimeout(900);
     const after=await page.locator("html").getAttribute("data-theme");
