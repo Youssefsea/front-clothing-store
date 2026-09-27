@@ -1,0 +1,1 @@
+"use client"; export default function GlobalError(){return <html><body style={{margin:0,padding:"2rem",fontFamily:"system-ui",background:"#111",color:"#fff"}}><h1>VANTA</h1><p>Critical rendering error.</p></body></html>}
