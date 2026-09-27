@@ -1,0 +1,1 @@
+import {Skeleton} from "@/components/ui"; export default function Loading(){return <div className="container-vanta py-12"><Skeleton className="h-[60vh]"/><div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">{[1,2,3,4].map(i=><Skeleton key={i} className="aspect-[3/4]"/>)}</div></div>}
