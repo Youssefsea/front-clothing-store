@@ -7,16 +7,16 @@ test.describe("VANTA hydrated route stability",()=>{
     test(`renders ${route} without a browser exception`,async({page})=>{
       const pageErrors:Error[]=[];
       page.on("pageerror",e=>pageErrors.push(e));
-      await page.goto(route,{waitUntil:"networkidle"});
+      await page.goto(route,{waitUntil:"domcontentloaded"});
       await expect(page.locator("body")).toBeVisible();
-      await page.waitForTimeout(900);
+      await page.waitForTimeout(1200);
       expect(pageErrors,route+" produced page errors").toEqual([]);
     });
   }
 
   test("navigation survives client navigation, back, and forward",async({page})=>{
     const errors:Error[]=[]; page.on("pageerror",e=>errors.push(e));
-    await page.goto("/",{waitUntil:"networkidle"});
+    await page.goto("/",{waitUntil:"domcontentloaded"});
     await page.getByRole("link",{name:/Shop/i}).first().click();
     await expect(page).toHaveURL(/\/shop/);
     await page.goBack(); await expect(page).toHaveURL(/\/$/);
@@ -26,7 +26,7 @@ test.describe("VANTA hydrated route stability",()=>{
   });
 
   test("language and theme transitions update document state in one click",async({page})=>{
-    await page.goto("/",{waitUntil:"networkidle"});
+    await page.goto("/",{waitUntil:"domcontentloaded"});
     const language=page.getByTestId("language-switch");
     const theme=page.getByTestId("theme-switch");
     await language.click();
@@ -46,7 +46,7 @@ test.describe("VANTA hydrated route stability",()=>{
     const context=await browser.newContext({viewport:{width:390,height:844}});
     const page=await context.newPage();
     const errors:Error[]=[]; page.on("pageerror",e=>errors.push(e));
-    await page.goto("/",{waitUntil:"networkidle"});
+    await page.goto("/",{waitUntil:"domcontentloaded"});
     await page.getByTestId("mobile-menu").click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
