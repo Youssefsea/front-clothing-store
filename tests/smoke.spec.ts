@@ -2,7 +2,7 @@ import {test,expect} from "@playwright/test";
 
 const routes=["/","/shop","/login","/signup","/account","/orders","/cart","/checkout","/admin","/admin/products","/admin/orders","/admin/users","/admin/categories","/product/1"];
 
-test.describe("VANTA hydrated route stability",{timeout:60000},()=>{
+test.describe("VANTA hydrated route stability",()=>{
   for(const route of routes){
     test(`renders ${route} without a browser exception`,async({page})=>{
       const pageErrors:Error[]=[];
