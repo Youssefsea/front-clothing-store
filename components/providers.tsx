@@ -47,8 +47,8 @@ export function AppProviders({children,initialLocale,initialTheme}:{children:Rea
       if(e instanceof ApiError&&e.status===401){setUserState(null);sessionStorage.removeItem("vanta_session");useCartStore.getState().clear();setError(null);setStatus("unauthenticated")}
       else {setError(e instanceof Error?e.message:"Could not verify your session.");setStatus("error")}
     }
-  };
-  useEffect(()=>{void refresh()},[]);
+  },[]);
+  useEffect(()=>{void refresh()},[refresh]);
 
   const login=async(email:string,password:string)=>{const response=await api.auth.login(email,password);setUser(response.user);setError(null);setStatus("authenticated");await useCartStore.getState().sync();return response.user};
   const logout=async()=>{try{await api.auth.logout()}finally{setUserState(null);sessionStorage.removeItem("vanta_session");useCartStore.getState().clear();setError(null);setStatus("unauthenticated")}};
