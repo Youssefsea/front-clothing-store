@@ -35,7 +35,7 @@ export function AppProviders({children,initialLocale,initialTheme}:{children:Rea
   const switchLocale=(point:Point={x:window.innerWidth/2,y:52})=>{if(localeTransitioning)return;setLocaleTransitioning(true);const next=locale==="en"?"ar":"en";animateToggle("vanta-locale-wave",point,250,()=>setLocale(next),()=>setLocaleTransitioning(false))};
   const toggleTheme=(point:Point={x:window.innerWidth-70,y:52})=>{if(themeTransitioning)return;setThemeTransitioning(true);const next=theme==="light"?"dark":"light";animateToggle("vanta-theme-wave",point,220,()=>setTheme(next),()=>setThemeTransitioning(false))};
 
-  const setUser=(next:User)=>{setUserState(next);sessionStorage.setItem("vanta_session",JSON.stringify(next))};
+  const setUser=useCallback((next:User)=>{setUserState(next);sessionStorage.setItem("vanta_session",JSON.stringify(next))},[]);
   const refresh=useCallback(async()=>{
     try{
       const session=await api.auth.session();
@@ -50,12 +50,13 @@ export function AppProviders({children,initialLocale,initialTheme}:{children:Rea
   },[]);
   useEffect(()=>{void refresh()},[refresh]);
 
-  const login=async(email:string,password:string)=>{const response=await api.auth.login(email,password);setUser(response.user);setError(null);setStatus("authenticated");await useCartStore.getState().sync();return response.user};
-  const logout=async()=>{try{await api.auth.logout()}finally{setUserState(null);sessionStorage.removeItem("vanta_session");useCartStore.getState().clear();setError(null);setStatus("unauthenticated")}};
+  const login=useCallback(async(email:string,password:string)=>{const response=await api.auth.login(email,password);setUser(response.user);setError(null);setStatus("authenticated");await useCartStore.getState().sync();return response.user};
+  const logout=useCallback(async()=>{try{await api.auth.logout()}finally{setUserState(null);sessionStorage.removeItem("vanta_session");useCartStore.getState().clear();setError(null);setStatus("unauthenticated")}},[]);
 
-  const localeValue:LocaleValue={locale,direction:locale==="ar"?"rtl":"ltr",t:(key)=>translate(locale,key),switchLocale,transitioning:localeTransitioning};
-  const themeValue:ThemeValue={theme,toggleTheme,transitioning:themeTransitioning};
-  const authValue:AuthValue={user,status,error,refresh,login,logout,setUser};
+  const t=useCallback((key:string)=>translate(locale,key),[locale]);
+  const localeValue:LocaleValue=useMemo(()=>({locale,direction:locale==="ar"?"rtl":"ltr",t,switchLocale,transitioning:localeTransitioning}),[locale,t,switchLocale,localeTransitioning]);
+  const themeValue:ThemeValue=useMemo(()=>({theme,toggleTheme,transitioning:themeTransitioning}),[theme,toggleTheme,themeTransitioning]);
+  const authValue:AuthValue=useMemo(()=>({user,status,error,refresh,login,logout,setUser}),[user,status,error,refresh,login,logout,setUser]);
   return <LocaleCtx.Provider value={localeValue}><ThemeCtx.Provider value={themeValue}><AuthCtx.Provider value={authValue}>{children}</AuthCtx.Provider></ThemeCtx.Provider></LocaleCtx.Provider>;
 }
 export function useI18n(){const value=useContext(LocaleCtx);if(!value)throw new Error("useI18n must be used within AppProviders");return value}
