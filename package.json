@@ -1,1 +1,35 @@
-{"name":"vanta","version":"1.0.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"eslint .","typecheck":"tsc --noEmit"},"dependencies":{"lucide-react":"^1.48.0","motion":"^13.4.3","next":"^16.3.3","react":"^19.3.0","react-dom":"^19.3.0","zustand":"^5.0.15"},"devDependencies":{"@tailwindcss/postcss":"^4.3.0","@types/node":"^25.9.1","@types/react":"^19.2.15","@types/react-dom":"^19.2.3","eslint":"^9.39.4","eslint-config-next":"^16.3.3","tailwindcss":"^4.3.0","typescript":"^6.0.3"},"engines":{"node":">=20.0.0"}}
+{
+  "name": "vanta",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.3",
+    "next": "^16.3.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.3.3",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "@playwright/test": "1.63.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
