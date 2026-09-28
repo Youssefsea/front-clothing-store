@@ -1,3 +1,4 @@
+ tsx
 /* eslint-disable react-hooks/set-state-in-effect -- async remote-state lifecycle is intentional in this client feature */
 
 "use client";
@@ -13,13 +14,34 @@ import {
   Trash2,
   UsersRound,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
 import { api, ApiError } from "../lib/api";
-import { getCatalog, invalidateCatalog } from "../lib/catalog";
-import type { Order, Product, User } from "../lib/types";
-import { finalProductPrice, numeric } from "../lib/utils";
-import { useAuth, useI18n } from "../components/providers";
+import {
+  getCatalog,
+  invalidateCatalog,
+} from "../lib/catalog";
+import type {
+  Order,
+  Product,
+  User,
+} from "../lib/types";
+import {
+  finalProductPrice,
+  numeric,
+} from "../lib/utils";
+import {
+  useAuth,
+  useI18n,
+} from "../components/providers";
 import {
   Button,
   EmptyState,
@@ -96,7 +118,14 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const path = usePathname();
-  const { user, status, verified, checking, error, t } = useAdminGuard();
+  const {
+    user,
+    status,
+    verified,
+    checking,
+    error,
+    t,
+  } = useAdminGuard();
   const router = useRouter();
 
   if (status === "checking" || checking) {
@@ -116,7 +145,8 @@ export function AdminShell({
             <Button
               onClick={() =>
                 router.replace(
-                  "/login?next=" + encodeURIComponent(path),
+                  "/login?next=" +
+                    encodeURIComponent(path),
                 )
               }
             >
@@ -322,12 +352,18 @@ export function AdminDashboard() {
           <SectionTitle title={t("admin.latest")} />
 
           {orders.slice(0, 8).map((o) => (
-            <div className="mini-row" key={o.id}>
+            <div
+              className="mini-row"
+              key={o.id}
+            >
               <span># {o.id}</span>
               <strong>{o.customer_name}</strong>
               <StatusBadge status={o.status} />
               <span>
-                EGP {numeric(o.total).toLocaleString()}
+                EGP{" "}
+                {numeric(
+                  o.total,
+                ).toLocaleString()}
               </span>
             </div>
           ))}
@@ -392,11 +428,15 @@ function ProductForm({
 
   const [v, setV] = useState({
     title: product?.title || "",
-    description: product?.description || "",
+    description:
+      product?.description || "",
     price: String(product?.price || ""),
-    discount: String(product?.discount || 0),
+    discount: String(
+      product?.discount || 0,
+    ),
     stock: String(product?.stock || 0),
-    category_name: product?.category_name || "",
+    category_name:
+      product?.category_name || "",
     sizes: product?.sizes || "",
     colors: product?.colors || "",
   });
@@ -404,7 +444,8 @@ function ProductForm({
   const [files, setFiles] =
     useState<FileList | null>(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
   const set = (
     k: keyof typeof v,
@@ -421,22 +462,32 @@ function ProductForm({
     try {
       const f = new FormData();
 
-      Object.entries(v).forEach(([k, x]) => {
-        f.append(k, x);
-      });
+      Object.entries(v).forEach(
+        ([k, x]) => {
+          f.append(k, x);
+        },
+      );
 
       if (product) {
-        f.append("id", String(product.id));
+        f.append(
+          "id",
+          String(product.id),
+        );
 
         if (files?.[0]) {
           f.append("image", files[0]);
         } else if (product.image_url) {
-          f.append("image_url", product.image_url);
+          f.append(
+            "image_url",
+            product.image_url,
+          );
         }
 
         f.append(
           "is_active",
-          product.is_active === false ? "0" : "1",
+          product.is_active === false
+            ? "0"
+            : "1",
         );
 
         await api.products.update(f);
@@ -458,7 +509,10 @@ function ProductForm({
 
       invalidateCatalog();
 
-      notify(t("admin.saved"), "success");
+      notify(
+        t("admin.saved"),
+        "success",
+      );
 
       onSaved();
       onClose();
@@ -481,7 +535,10 @@ function ProductForm({
           label={t("admin.titleField")}
           value={v.title}
           onChange={(e) =>
-            set("title", e.target.value)
+            set(
+              "title",
+              e.target.value,
+            )
           }
         />
 
@@ -489,7 +546,10 @@ function ProductForm({
           label={t("admin.price")}
           value={v.price}
           onChange={(e) =>
-            set("price", e.target.value)
+            set(
+              "price",
+              e.target.value,
+            )
           }
         />
 
@@ -497,7 +557,10 @@ function ProductForm({
           label={t("admin.discount")}
           value={v.discount}
           onChange={(e) =>
-            set("discount", e.target.value)
+            set(
+              "discount",
+              e.target.value,
+            )
           }
         />
 
@@ -505,7 +568,10 @@ function ProductForm({
           label={t("admin.stock")}
           value={v.stock}
           onChange={(e) =>
-            set("stock", e.target.value)
+            set(
+              "stock",
+              e.target.value,
+            )
           }
         />
 
@@ -524,7 +590,10 @@ function ProductForm({
           label={t("admin.sizes")}
           value={v.sizes}
           onChange={(e) =>
-            set("sizes", e.target.value)
+            set(
+              "sizes",
+              e.target.value,
+            )
           }
         />
 
@@ -532,7 +601,10 @@ function ProductForm({
           label={t("admin.colors")}
           value={v.colors}
           onChange={(e) =>
-            set("colors", e.target.value)
+            set(
+              "colors",
+              e.target.value,
+            )
           }
         />
 
@@ -557,7 +629,10 @@ function ProductForm({
         label={t("admin.description")}
         value={v.description}
         onChange={(e) =>
-          set("description", e.target.value)
+          set(
+            "description",
+            e.target.value,
+          )
         }
         rows={5}
       />
@@ -583,7 +658,9 @@ function ProductForm({
 
 export function AdminProducts() {
   const { t } = useI18n();
-  const notify = useUiStore((s) => s.notify);
+  const notify = useUiStore(
+    (s) => s.notify,
+  );
 
   const [products, setProducts] =
     useState<Product[]>([]);
@@ -591,16 +668,22 @@ export function AdminProducts() {
   const [state, setState] =
     useState("loading");
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] =
+    useState("");
 
   const [editor, setEditor] =
-    useState<Product | "new" | null>(null);
+    useState<Product | "new" | null>(
+      null,
+    );
 
   const load = useCallback(async () => {
     try {
-      setProducts(await getCatalog(true));
+      setProducts(
+        await getCatalog(true),
+      );
       setState("ready");
     } catch (e) {
       setError(
@@ -616,15 +699,24 @@ export function AdminProducts() {
     void load();
   }, [load]);
 
-  const filtered = products.filter((p) =>
-    (p.title + " " + p.category_name)
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  const filtered = products.filter(
+    (p) =>
+      (
+        p.title +
+        " " +
+        p.category_name
+      )
+        .toLowerCase()
+        .includes(
+          query.toLowerCase(),
+        ),
   );
 
   async function toggle(p: Product) {
     try {
-      await api.products.toggle(p.id);
+      await api.products.toggle(
+        p.id,
+      );
 
       invalidateCatalog();
 
@@ -647,7 +739,9 @@ export function AdminProducts() {
   if (state === "loading") {
     return (
       <div className="admin-section">
-        <SectionTitle title={t("admin.products")} />
+        <SectionTitle
+          title={t("admin.products")}
+        />
         <div className="skeleton table-skeleton" />
       </div>
     );
@@ -691,9 +785,13 @@ export function AdminProducts() {
           <input
             value={query}
             onChange={(e) =>
-              setQuery(e.target.value)
+              setQuery(
+                e.target.value,
+              )
             }
-            placeholder={t("admin.search")}
+            placeholder={t(
+              "admin.search",
+            )}
           />
         </label>
       </div>
@@ -702,11 +800,25 @@ export function AdminProducts() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t("admin.titleField")}</th>
-              <th>{t("admin.price")}</th>
-              <th>{t("admin.stock")}</th>
-              <th>{t("admin.categoryField")}</th>
-              <th>{t("admin.active")}</th>
+              <th>
+                {t(
+                  "admin.titleField",
+                )}
+              </th>
+              <th>
+                {t("admin.price")}
+              </th>
+              <th>
+                {t("admin.stock")}
+              </th>
+              <th>
+                {t(
+                  "admin.categoryField",
+                )}
+              </th>
+              <th>
+                {t("admin.active")}
+              </th>
               <th />
             </tr>
           </thead>
@@ -715,24 +827,33 @@ export function AdminProducts() {
             {filtered.map((p) => (
               <tr key={p.id}>
                 <td>
-                  <strong>{p.title}</strong>
+                  <strong>
+                    {p.title}
+                  </strong>
                 </td>
 
                 <td>
                   <Price
-                    value={finalProductPrice(p)}
-                    discount={p.discount || 0}
+                    value={finalProductPrice(
+                      p,
+                    )}
+                    discount={
+                      p.discount || 0
+                    }
                   />
                 </td>
 
                 <td>{p.stock}</td>
 
-                <td>{p.category_name}</td>
+                <td>
+                  {p.category_name}
+                </td>
 
                 <td>
                   <StatusBadge
                     status={
-                      p.is_active === false
+                      p.is_active ===
+                      false
                         ? "inactive"
                         : "active"
                     }
@@ -746,7 +867,9 @@ export function AdminProducts() {
                       setEditor(p)
                     }
                   >
-                    {t("admin.editProduct")}
+                    {t(
+                      "admin.editProduct",
+                    )}
                   </Button>
 
                   <Button
@@ -755,9 +878,14 @@ export function AdminProducts() {
                       void toggle(p)
                     }
                   >
-                    {p.is_active === false
-                      ? t("admin.active")
-                      : t("admin.inactive")}
+                    {p.is_active ===
+                    false
+                      ? t(
+                          "admin.active",
+                        )
+                      : t(
+                          "admin.inactive",
+                        )}
                   </Button>
                 </td>
               </tr>
@@ -773,14 +901,19 @@ export function AdminProducts() {
         }
         title={
           editor === "new"
-            ? t("admin.addProduct")
-            : t("admin.editProduct")
+            ? t(
+                "admin.addProduct",
+              )
+            : t(
+                "admin.editProduct",
+              )
         }
         wide
       >
         <ProductForm
           product={
-            editor && editor !== "new"
+            editor &&
+            editor !== "new"
               ? editor
               : undefined
           }
@@ -796,7 +929,9 @@ export function AdminProducts() {
 
 export function AdminOrders() {
   const { t } = useI18n();
-  const notify = useUiStore((s) => s.notify);
+  const notify = useUiStore(
+    (s) => s.notify,
+  );
 
   const [orders, setOrders] =
     useState<Order[]>([]);
@@ -804,19 +939,21 @@ export function AdminOrders() {
   const [state, setState] =
     useState("loading");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] =
+    useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  // Payment screenshot currently opened in the modal
   const [paymentImage, setPaymentImage] =
     useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setOrders(
-        (await api.admin.orders()).orders ||
-          [],
+        (
+          await api.admin.orders()
+        ).orders || [],
       );
 
       setState("ready");
@@ -872,13 +1009,18 @@ export function AdminOrders() {
       o.status
     )
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(
+        query.toLowerCase(),
+      ),
   );
 
   if (state === "loading") {
     return (
       <div className="admin-section">
-        <SectionTitle title={t("admin.orders")} />
+        <SectionTitle
+          title={t("admin.orders")}
+        />
+
         <div className="skeleton table-skeleton" />
       </div>
     );
@@ -900,7 +1042,9 @@ export function AdminOrders() {
 
   return (
     <div className="admin-section">
-      <SectionTitle title={t("admin.orders")} />
+      <SectionTitle
+        title={t("admin.orders")}
+      />
 
       <div className="admin-toolbar">
         <label className="search-field">
@@ -909,9 +1053,13 @@ export function AdminOrders() {
           <input
             value={query}
             onChange={(e) =>
-              setQuery(e.target.value)
+              setQuery(
+                e.target.value,
+              )
             }
-            placeholder={t("admin.search")}
+            placeholder={t(
+              "admin.search",
+            )}
           />
         </label>
       </div>
@@ -922,22 +1070,31 @@ export function AdminOrders() {
             <tr>
               <th>ID</th>
               <th>Customer</th>
-              <th>{t("orders.date")}</th>
-              <th>{t("orders.total")}</th>
+              <th>
+                {t("orders.date")}
+              </th>
+              <th>
+                {t("orders.total")}
+              </th>
               <th>Payment</th>
-              <th>{t("orders.status")}</th>
+              <th>
+                {t("orders.status")}
+              </th>
             </tr>
           </thead>
 
           <tbody>
             {rows.map((o) => (
               <tr key={o.id}>
-                <td>#{o.id}</td>
+                <td>
+                  #{o.id}
+                </td>
 
                 <td>
                   <strong>
                     {o.customer_name}
                   </strong>
+
                   <small>
                     {o.customer_email}
                   </small>
@@ -962,11 +1119,15 @@ export function AdminOrders() {
                   {o.payment_screenshot ? (
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        setPaymentImage(
-                          o.payment_screenshot,
-                        )
-                      }
+                      onClick={() => {
+                        if (
+                          o.payment_screenshot
+                        ) {
+                          setPaymentImage(
+                            o.payment_screenshot,
+                          );
+                        }
+                      }}
                     >
                       View Payment
                     </Button>
@@ -984,7 +1145,8 @@ export function AdminOrders() {
                     <select
                       className="mini-select"
                       value={
-                        o.status || "pending"
+                        o.status ||
+                        "pending"
                       }
                       onChange={(e) =>
                         void update(
@@ -993,11 +1155,15 @@ export function AdminOrders() {
                         )
                       }
                     >
-                      {statuses.map((s) => (
-                        <option key={s}>
-                          {s}
-                        </option>
-                      ))}
+                      {statuses.map(
+                        (s) => (
+                          <option
+                            key={s}
+                          >
+                            {s}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </div>
                 </td>
@@ -1019,7 +1185,8 @@ export function AdminOrders() {
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection:
+                "column",
               gap: "16px",
             }}
           >
@@ -1027,23 +1194,33 @@ export function AdminOrders() {
               style={{
                 width: "100%",
                 display: "flex",
-                justifyContent: "center",
-                background: "#f5f5f5",
-                borderRadius: "12px",
+                justifyContent:
+                  "center",
+                background:
+                  "#f5f5f5",
+                borderRadius:
+                  "12px",
                 padding: "16px",
-                overflow: "hidden",
+                overflow:
+                  "hidden",
               }}
             >
               <img
                 src={paymentImage}
                 alt="Payment screenshot"
                 style={{
-                  display: "block",
-                  width: "100%",
-                  height: "auto",
-                  maxHeight: "75vh",
-                  objectFit: "contain",
-                  borderRadius: "8px",
+                  display:
+                    "block",
+                  width:
+                    "100%",
+                  height:
+                    "auto",
+                  maxHeight:
+                    "75vh",
+                  objectFit:
+                    "contain",
+                  borderRadius:
+                    "8px",
                 }}
               />
             </div>
@@ -1064,7 +1241,9 @@ export function AdminOrders() {
 
               <Button
                 onClick={() =>
-                  setPaymentImage(null)
+                  setPaymentImage(
+                    null,
+                  )
                 }
               >
                 {t("admin.cancel")}
@@ -1079,7 +1258,9 @@ export function AdminOrders() {
 
 export function AdminUsers() {
   const { t } = useI18n();
-  const notify = useUiStore((s) => s.notify);
+  const notify = useUiStore(
+    (s) => s.notify,
+  );
 
   const [users, setUsers] =
     useState<User[]>([]);
@@ -1087,15 +1268,18 @@ export function AdminUsers() {
   const [state, setState] =
     useState("loading");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] =
+    useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
   const load = useCallback(async () => {
     try {
       setUsers(
-        (await api.admin.users()).users ||
-          [],
+        (
+          await api.admin.users()
+        ).users || [],
       );
 
       setState("ready");
@@ -1117,7 +1301,9 @@ export function AdminUsers() {
   async function remove(u: User) {
     if (
       !window.confirm(
-        t("admin.confirmDelete") +
+        t(
+          "admin.confirmDelete",
+        ) +
           " " +
           u.name +
           "?",
@@ -1127,7 +1313,9 @@ export function AdminUsers() {
     }
 
     try {
-      await api.admin.deleteUser(u.id);
+      await api.admin.deleteUser(
+        u.id,
+      );
 
       notify(
         t("admin.userDeleted"),
@@ -1154,13 +1342,18 @@ export function AdminUsers() {
       (u.phone || "")
     )
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(
+        query.toLowerCase(),
+      ),
   );
 
   if (state === "loading") {
     return (
       <div className="admin-section">
-        <SectionTitle title={t("admin.users")} />
+        <SectionTitle
+          title={t("admin.users")}
+        />
+
         <div className="skeleton table-skeleton" />
       </div>
     );
@@ -1182,7 +1375,9 @@ export function AdminUsers() {
 
   return (
     <div className="admin-section">
-      <SectionTitle title={t("admin.users")} />
+      <SectionTitle
+        title={t("admin.users")}
+      />
 
       <div className="admin-toolbar">
         <label className="search-field">
@@ -1191,9 +1386,13 @@ export function AdminUsers() {
           <input
             value={query}
             onChange={(e) =>
-              setQuery(e.target.value)
+              setQuery(
+                e.target.value,
+              )
             }
-            placeholder={t("admin.search")}
+            placeholder={t(
+              "admin.search",
+            )}
           />
         </label>
       </div>
@@ -1202,10 +1401,18 @@ export function AdminUsers() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t("auth.name")}</th>
-              <th>{t("auth.email")}</th>
-              <th>{t("auth.phone")}</th>
-              <th>{t("admin.role")}</th>
+              <th>
+                {t("auth.name")}
+              </th>
+              <th>
+                {t("auth.email")}
+              </th>
+              <th>
+                {t("auth.phone")}
+              </th>
+              <th>
+                {t("admin.role")}
+              </th>
               <th />
             </tr>
           </thead>
@@ -1214,7 +1421,9 @@ export function AdminUsers() {
             {rows.map((u) => (
               <tr key={u.id}>
                 <td>
-                  <strong>{u.name}</strong>
+                  <strong>
+                    {u.name}
+                  </strong>
                 </td>
 
                 <td>{u.email}</td>
@@ -1231,7 +1440,9 @@ export function AdminUsers() {
                     }
                   >
                     <Trash2 className="icon" />
-                    {t("admin.delete")}
+                    {t(
+                      "admin.delete",
+                    )}
                   </Button>
                 </td>
               </tr>
@@ -1281,7 +1492,8 @@ export function AdminCategories() {
     });
 
     return [...m.entries()].sort(
-      (a, b) => b[1] - a[1],
+      (a, b) =>
+        b[1] - a[1],
     );
   }, [products, t]);
 
@@ -1289,7 +1501,9 @@ export function AdminCategories() {
     return (
       <div className="admin-section">
         <SectionTitle
-          title={t("admin.categories")}
+          title={t(
+            "admin.categories",
+          )}
         />
 
         <div className="skeleton table-skeleton" />
@@ -1301,7 +1515,9 @@ export function AdminCategories() {
     return (
       <div className="admin-section">
         <ErrorState
-          message={t("common.error")}
+          message={t(
+            "common.error",
+          )}
         />
       </div>
     );
@@ -1310,32 +1526,43 @@ export function AdminCategories() {
   return (
     <div className="admin-section">
       <SectionTitle
-        title={t("admin.categories")}
+        title={t(
+          "admin.categories",
+        )}
       />
 
       <div className="form-hint">
-        {t("admin.readOnlyCategories")}
+        {t(
+          "admin.readOnlyCategories",
+        )}
       </div>
 
       <div className="category-admin-grid">
-        {cats.map(([name, count]) => (
-          <div
-            className="category-admin-card"
-            key={name}
-          >
-            <span className="eyebrow">
-              {t("admin.categoryLabel")}
-            </span>
+        {cats.map(
+          ([name, count]) => (
+            <div
+              className="category-admin-card"
+              key={name}
+            >
+              <span className="eyebrow">
+                {t(
+                  "admin.categoryLabel",
+                )}
+              </span>
 
-            <strong>{name}</strong>
+              <strong>{name}</strong>
 
-            <span>
-              {count}{" "}
-              {t("admin.productCount")}
-            </span>
-          </div>
-        ))}
+              <span>
+                {count}{" "}
+                {t(
+                  "admin.productCount",
+                )}
+              </span>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
 }
+ 
