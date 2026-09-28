@@ -1,11 +1,1341 @@
 /* eslint-disable react-hooks/set-state-in-effect -- async remote-state lifecycle is intentional in this client feature */
-"use client";import Link from"next/link";import{BarChart3,Boxes,ClipboardList,FolderTree,Plus,Search,Trash2,UsersRound}from"lucide-react";import{useCallback,useEffect,useMemo,useState}from"react";import{usePathname,useRouter}from"next/navigation";import{api,ApiError}from"../lib/api";import{getCatalog,invalidateCatalog}from"../lib/catalog";import type{Order,Product,User}from"../lib/types";import{finalProductPrice,numeric}from"../lib/utils";import{useAuth,useI18n}from"../components/providers";import{Button,EmptyState,ErrorState,Field,LoadingState,Modal,Price,SectionTitle,StatusBadge,Textarea}from"../components/ui";import{useUiStore}from"../stores/store";
-const statuses=["pending","confirmed","processing","shipped","delivered","cancelled"];
-function useAdminGuard(){const{user,status,setUser}=useAuth();const{t}=useI18n();const[verified,setVerified]=useState(false);const[checking,setChecking]=useState(true);const[error,setError]=useState("");useEffect(()=>{if(status!=="authenticated")return;api.admin.users().then(()=>{if(user)setUser({...user,role:"admin"});setVerified(true);setChecking(false)}).catch(e=>{setChecking(false);setError(e instanceof ApiError&&e.status===403?t("common.forbidden"):e instanceof Error?e.message:t("common.error"))})},[status,user?.email,t,setUser]);return{user,status,verified,checking,error,t}}
-export function AdminShell({children}:{children:React.ReactNode}){const path=usePathname();const{user,status,verified,checking,error,t}=useAdminGuard();const router=useRouter();if(status==="checking"||checking)return <div className="page-section"><LoadingState/></div>;if(!user)return <div className="page-section"><EmptyState title={t("common.signInRequired")} action={<Button onClick={()=>router.replace("/login?next="+encodeURIComponent(path))}>{t("auth.login")}</Button>}/></div>;if(!verified)return <div className="page-section"><ErrorState message={error||t("common.forbidden")}/></div>;return <div className="admin-page"><aside className="admin-sidebar"><div className="admin-logo">VANTA <span>ADMIN</span></div><nav><Link className={path==="/admin"?"admin-link active":"admin-link"} href="/admin"><BarChart3 className="icon"/>{t("admin.dashboard")}</Link><Link className={path.startsWith("/admin/products")?"admin-link active":"admin-link"} href="/admin/products"><Boxes className="icon"/>{t("admin.products")}</Link><Link className={path.startsWith("/admin/orders")?"admin-link active":"admin-link"} href="/admin/orders"><ClipboardList className="icon"/>{t("admin.orders")}</Link><Link className={path.startsWith("/admin/users")?"admin-link active":"admin-link"} href="/admin/users"><UsersRound className="icon"/>{t("admin.users")}</Link><Link className={path.startsWith("/admin/categories")?"admin-link active":"admin-link"} href="/admin/categories"><FolderTree className="icon"/>{t("admin.categories")}</Link></nav></aside><section className="admin-content">{children}</section></div>}
-export function AdminDashboard(){const{t}=useI18n();const[orders,setOrders]=useState<Order[]>([]),[users,setUsers]=useState<User[]>([]),[products,setProducts]=useState<Product[]>([]),[state,setState]=useState("loading"),[error,setError]=useState("");const load=useCallback(async()=>{try{const[o,u,p]=await Promise.all([api.admin.orders(),api.admin.users(),getCatalog(true)]);setOrders(o.orders||[]);setUsers(u.users||[]);setProducts(p);setState("ready")}catch(e){setError(e instanceof Error?e.message:t("common.error"));setState("error")}},[t]);useEffect(()=>{void load()},[load]);if(state==="loading")return <div className="admin-section"><SectionTitle title={t("admin.dashboard")}/><div className="stats-grid">{[1,2,3,4].map(i=><div className="stat-card skeleton" key={i}/>)}</div></div>;if(state==="error")return <div className="admin-section"><ErrorState message={error} onRetry={()=>{setState("loading");void load()}}/></div>;const revenue=orders.reduce((s,o)=>s+numeric(o.total),0);return <div className="admin-section"><SectionTitle eyebrow="VANTA / ADMIN" title={t("admin.dashboard")}/><div className="stats-grid"><div className="stat-card"><span>{t("admin.totalOrders")}</span><strong>{orders.length}</strong></div><div className="stat-card"><span>{t("admin.totalUsers")}</span><strong>{users.length}</strong></div><div className="stat-card"><span>{t("admin.catalog")}</span><strong>{products.length}</strong></div><div className="stat-card"><span>{t("admin.revenue")}</span><strong>EGP {revenue.toLocaleString()}</strong></div></div><div className="admin-panels"><div className="admin-panel"><SectionTitle title={t("admin.latest")}/>{orders.slice(0,8).map(o=><div className="mini-row" key={o.id}><span># {o.id}</span><strong>{o.customer_name}</strong><StatusBadge status={o.status}/><span>EGP {numeric(o.total).toLocaleString()}</span></div>)}</div><div className="admin-panel"><SectionTitle title={t("admin.health")}/><div className="health-list"><div><span>{t("admin.inStock")}</span><strong>{products.filter(p=>numeric(p.stock)>0).length}</strong></div><div><span>{t("admin.discounted")}</span><strong>{products.filter(p=>numeric(p.discount)>0).length}</strong></div><div><span>{t("admin.categories")}</span><strong>{new Set(products.map(p=>p.category_name).filter(Boolean)).size}</strong></div></div></div></div></div>}
-function ProductForm({product,onClose,onSaved}:{product?:Product;onClose:()=>void;onSaved:()=>void}){const{t}=useI18n();const notify=useUiStore(s=>s.notify);const[v,setV]=useState({title:product?.title||"",description:product?.description||"",price:String(product?.price||""),discount:String(product?.discount||0),stock:String(product?.stock||0),category_name:product?.category_name||"",sizes:product?.sizes||"",colors:product?.colors||""});const[files,setFiles]=useState<FileList|null>(null),[loading,setLoading]=useState(false);const set=(k:keyof typeof v,x:string)=>setV(s=>({...s,[k]:x}));async function save(){setLoading(true);try{const f=new FormData();Object.entries(v).forEach(([k,x])=>f.append(k,x));if(product){f.append("id",String(product.id));if(files?.[0])f.append("image",files[0]);else if(product.image_url)f.append("image_url",product.image_url);f.append("is_active",product.is_active===false?"0":"1");await api.products.update(f)}else{if(!files?.length)throw new Error(t("admin.imageRequired"));Array.from(files).slice(0,5).forEach(x=>f.append("images",x));await api.products.add(f)}invalidateCatalog();notify(t("admin.saved"),"success");onSaved();onClose()}catch(e){notify(e instanceof Error?e.message:t("admin.saveFailed"),"error")}finally{setLoading(false)}}return <div className="stack-lg"><div className="admin-form-grid"><Field label={t("admin.titleField")} value={v.title} onChange={e=>set("title",e.target.value)}/><Field label={t("admin.price")} value={v.price} onChange={e=>set("price",e.target.value)}/><Field label={t("admin.discount")} value={v.discount} onChange={e=>set("discount",e.target.value)}/><Field label={t("admin.stock")} value={v.stock} onChange={e=>set("stock",e.target.value)}/><Field label={t("admin.categoryField")} value={v.category_name} onChange={e=>set("category_name",e.target.value)}/><Field label={t("admin.sizes")} value={v.sizes} onChange={e=>set("sizes",e.target.value)}/><Field label={t("admin.colors")} value={v.colors} onChange={e=>set("colors",e.target.value)}/><label className="field"><span className="field-label">{t("admin.images")}</span><input className="input" type="file" accept="image/*" multiple={!product} onChange={e=>setFiles(e.target.files)}/></label></div><Textarea label={t("admin.description")} value={v.description} onChange={e=>set("description",e.target.value)} rows={5}/><div className="modal-actions"><Button variant="outline" onClick={onClose}>{t("admin.cancel")}</Button><Button loading={loading} onClick={save}>{t("admin.save")}</Button></div></div>}
-export function AdminProducts(){const{t}=useI18n();const notify=useUiStore(s=>s.notify);const[products,setProducts]=useState<Product[]>([]),[state,setState]=useState("loading"),[error,setError]=useState(""),[query,setQuery]=useState(""),[editor,setEditor]=useState<Product|"new"|null>(null);const load=useCallback(async()=>{try{setProducts(await getCatalog(true));setState("ready")}catch(e){setError(e instanceof Error?e.message:t("common.error"));setState("error")}},[t]);useEffect(()=>{void load()},[load]);const filtered=products.filter(p=>(p.title+" "+p.category_name).toLowerCase().includes(query.toLowerCase()));async function toggle(p:Product){try{await api.products.toggle(p.id);invalidateCatalog();notify(t("admin.statusUpdated"),"success");await load()}catch(e){notify(e instanceof Error?e.message:t("admin.updateFailed"),"error")}}if(state==="loading")return <div className="admin-section"><SectionTitle title={t("admin.products")}/><div className="skeleton table-skeleton"/></div>;if(state==="error")return <div className="admin-section"><ErrorState message={error} onRetry={()=>{setState("loading");void load()}}/></div>;return <div className="admin-section"><SectionTitle eyebrow="VANTA / ADMIN" title={t("admin.products")} action={<Button onClick={()=>setEditor("new")}><Plus className="icon"/>{t("admin.addProduct")}</Button>}/><div className="admin-toolbar"><label className="search-field"><Search className="icon"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("admin.search")}/></label></div><div className="table-wrap"><table className="data-table"><thead><tr><th>{t("admin.titleField")}</th><th>{t("admin.price")}</th><th>{t("admin.stock")}</th><th>{t("admin.categoryField")}</th><th>{t("admin.active")}</th><th/></tr></thead><tbody>{filtered.map(p=><tr key={p.id}><td><strong>{p.title}</strong></td><td><Price value={finalProductPrice(p)} discount={p.discount||0}/></td><td>{p.stock}</td><td>{p.category_name}</td><td><StatusBadge status={p.is_active===false?"inactive":"active"}/></td><td className="table-actions"><Button variant="ghost" onClick={()=>setEditor(p)}>{t("admin.editProduct")}</Button><Button variant="outline" onClick={()=>void toggle(p)}>{p.is_active===false?t("admin.active"):t("admin.inactive")}</Button></td></tr>)}</tbody></table></div><Modal open={!!editor} onClose={()=>setEditor(null)} title={editor==="new"?t("admin.addProduct"):t("admin.editProduct")} wide><ProductForm product={editor&&editor!=="new"?editor:undefined} onClose={()=>setEditor(null)} onSaved={load}/></Modal></div>}
-export function AdminOrders(){const{t}=useI18n();const notify=useUiStore(s=>s.notify);const[orders,setOrders]=useState<Order[]>([]),[state,setState]=useState("loading"),[query,setQuery]=useState(""),[error,setError]=useState("");const load=useCallback(async()=>{try{setOrders((await api.admin.orders()).orders||[]);setState("ready")}catch(e){setError(e instanceof Error?e.message:t("common.error"));setState("error")}},[t]);useEffect(()=>{void load()},[load]);async function update(o:Order,s:string){try{await api.admin.updateOrderStatus(o.id,s);notify(t("admin.orderUpdated"),"success");await load()}catch(e){notify(e instanceof Error?e.message:t("common.error"),"error")}}const rows=orders.filter(o=>(String(o.id)+" "+o.customer_name+" "+o.customer_email+" "+o.status).toLowerCase().includes(query.toLowerCase()));if(state==="loading")return <div className="admin-section"><SectionTitle title={t("admin.orders")}/><div className="skeleton table-skeleton"/></div>;if(state==="error")return <div className="admin-section"><ErrorState message={error} onRetry={()=>{setState("loading");void load()}}/></div>;return <div className="admin-section"><SectionTitle title={t("admin.orders")}/><div className="admin-toolbar"><label className="search-field"><Search className="icon"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("admin.search")}/></label></div><div className="table-wrap"><table className="data-table"><thead><tr><th>ID</th><th>Customer</th><th>{t("orders.date")}</th><th>{t("orders.total")}</th><th>{t("orders.status")}</th></tr></thead><tbody>{rows.map(o=><tr key={o.id}><td>#{o.id}</td><td><strong>{o.customer_name}</strong><small>{o.customer_email}</small></td><td>{o.created_at?new Date(o.created_at).toLocaleString():"—"}</td><td>EGP {numeric(o.total).toLocaleString()}</td><td><div className="status-editor"><StatusBadge status={o.status}/><select className="mini-select" value={o.status||"pending"} onChange={e=>void update(o,e.target.value)}>{statuses.map(s=><option key={s}>{s}</option>)}</select></div></td></tr>)}</tbody></table></div></div>}
-export function AdminUsers(){const{t}=useI18n();const notify=useUiStore(s=>s.notify);const[users,setUsers]=useState<User[]>([]),[state,setState]=useState("loading"),[query,setQuery]=useState(""),[error,setError]=useState("");const load=useCallback(async()=>{try{setUsers((await api.admin.users()).users||[]);setState("ready")}catch(e){setError(e instanceof Error?e.message:t("common.error"));setState("error")}},[t]);useEffect(()=>{void load()},[load]);async function remove(u:User){if(!window.confirm(t("admin.confirmDelete")+" "+u.name+"?"))return;try{await api.admin.deleteUser(u.id);notify(t("admin.userDeleted"),"success");await load()}catch(e){notify(e instanceof Error?e.message:t("common.error"),"error")}}const rows=users.filter(u=>(u.name+" "+u.email+" "+(u.phone||"")).toLowerCase().includes(query.toLowerCase()));if(state==="loading")return <div className="admin-section"><SectionTitle title={t("admin.users")}/><div className="skeleton table-skeleton"/></div>;if(state==="error")return <div className="admin-section"><ErrorState message={error} onRetry={()=>{setState("loading");void load()}}/></div>;return <div className="admin-section"><SectionTitle title={t("admin.users")}/><div className="admin-toolbar"><label className="search-field"><Search className="icon"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("admin.search")}/></label></div><div className="table-wrap"><table className="data-table"><thead><tr><th>{t("auth.name")}</th><th>{t("auth.email")}</th><th>{t("auth.phone")}</th><th>{t("admin.role")}</th><th/></tr></thead><tbody>{rows.map(u=><tr key={u.id}><td><strong>{u.name}</strong></td><td>{u.email}</td><td>{u.phone}</td><td>{u.role}</td><td><Button variant="danger" onClick={()=>void remove(u)}><Trash2 className="icon"/>{t("admin.delete")}</Button></td></tr>)}</tbody></table></div></div>}
-export function AdminCategories(){const{t}=useI18n();const[products,setProducts]=useState<Product[]>([]);const[state,setState]=useState("loading");useEffect(()=>{getCatalog(true).then(v=>{setProducts(v);setState("ready")}).catch(()=>setState("error"))},[]);const cats=useMemo(()=>{const m=new Map<string,number>();products.forEach(p=>{const k=p.category_name||t("admin.uncategorized");m.set(k,(m.get(k)||0)+1)});return [...m.entries()].sort((a,b)=>b[1]-a[1])},[products]);if(state==="loading")return <div className="admin-section"><SectionTitle title={t("admin.categories")}/><div className="skeleton table-skeleton"/></div>;if(state==="error")return <div className="admin-section"><ErrorState message={t("common.error")}/></div>;return <div className="admin-section"><SectionTitle title={t("admin.categories")}/><div className="form-hint">{t("admin.readOnlyCategories")}</div><div className="category-admin-grid">{cats.map(([name,count])=><div className="category-admin-card" key={name}><span className="eyebrow">{t("admin.categoryLabel")}</span><strong>{name}</strong><span>{count} {t("admin.productCount")}</span></div>)}</div></div>}
+
+"use client";
+
+import Link from "next/link";
+import {
+  BarChart3,
+  Boxes,
+  ClipboardList,
+  FolderTree,
+  Plus,
+  Search,
+  Trash2,
+  UsersRound,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { api, ApiError } from "../lib/api";
+import { getCatalog, invalidateCatalog } from "../lib/catalog";
+import type { Order, Product, User } from "../lib/types";
+import { finalProductPrice, numeric } from "../lib/utils";
+import { useAuth, useI18n } from "../components/providers";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Field,
+  LoadingState,
+  Modal,
+  Price,
+  SectionTitle,
+  StatusBadge,
+  Textarea,
+} from "../components/ui";
+import { useUiStore } from "../stores/store";
+
+const statuses = [
+  "pending",
+  "confirmed",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
+function useAdminGuard() {
+  const { user, status, setUser } = useAuth();
+  const { t } = useI18n();
+
+  const [verified, setVerified] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    api.admin
+      .users()
+      .then(() => {
+        if (user) {
+          setUser({
+            ...user,
+            role: "admin",
+          });
+        }
+
+        setVerified(true);
+        setChecking(false);
+      })
+      .catch((e) => {
+        setChecking(false);
+
+        setError(
+          e instanceof ApiError && e.status === 403
+            ? t("common.forbidden")
+            : e instanceof Error
+              ? e.message
+              : t("common.error"),
+        );
+      });
+  }, [status, user?.email, t, setUser]);
+
+  return {
+    user,
+    status,
+    verified,
+    checking,
+    error,
+    t,
+  };
+}
+
+export function AdminShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const path = usePathname();
+  const { user, status, verified, checking, error, t } = useAdminGuard();
+  const router = useRouter();
+
+  if (status === "checking" || checking) {
+    return (
+      <div className="page-section">
+        <LoadingState />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="page-section">
+        <EmptyState
+          title={t("common.signInRequired")}
+          action={
+            <Button
+              onClick={() =>
+                router.replace(
+                  "/login?next=" + encodeURIComponent(path),
+                )
+              }
+            >
+              {t("auth.login")}
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!verified) {
+    return (
+      <div className="page-section">
+        <ErrorState
+          message={error || t("common.forbidden")}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-page">
+      <aside className="admin-sidebar">
+        <div className="admin-logo">
+          VANTA <span>ADMIN</span>
+        </div>
+
+        <nav>
+          <Link
+            className={
+              path === "/admin"
+                ? "admin-link active"
+                : "admin-link"
+            }
+            href="/admin"
+          >
+            <BarChart3 className="icon" />
+            {t("admin.dashboard")}
+          </Link>
+
+          <Link
+            className={
+              path.startsWith("/admin/products")
+                ? "admin-link active"
+                : "admin-link"
+            }
+            href="/admin/products"
+          >
+            <Boxes className="icon" />
+            {t("admin.products")}
+          </Link>
+
+          <Link
+            className={
+              path.startsWith("/admin/orders")
+                ? "admin-link active"
+                : "admin-link"
+            }
+            href="/admin/orders"
+          >
+            <ClipboardList className="icon" />
+            {t("admin.orders")}
+          </Link>
+
+          <Link
+            className={
+              path.startsWith("/admin/users")
+                ? "admin-link active"
+                : "admin-link"
+            }
+            href="/admin/users"
+          >
+            <UsersRound className="icon" />
+            {t("admin.users")}
+          </Link>
+
+          <Link
+            className={
+              path.startsWith("/admin/categories")
+                ? "admin-link active"
+                : "admin-link"
+            }
+            href="/admin/categories"
+          >
+            <FolderTree className="icon" />
+            {t("admin.categories")}
+          </Link>
+        </nav>
+      </aside>
+
+      <section className="admin-content">
+        {children}
+      </section>
+    </div>
+  );
+}
+
+export function AdminDashboard() {
+  const { t } = useI18n();
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [state, setState] = useState("loading");
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const [o, u, p] = await Promise.all([
+        api.admin.orders(),
+        api.admin.users(),
+        getCatalog(true),
+      ]);
+
+      setOrders(o.orders || []);
+      setUsers(u.users || []);
+      setProducts(p);
+      setState("ready");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+      );
+      setState("error");
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (state === "loading") {
+    return (
+      <div className="admin-section">
+        <SectionTitle title={t("admin.dashboard")} />
+
+        <div className="stats-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              className="stat-card skeleton"
+              key={i}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="admin-section">
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setState("loading");
+            void load();
+          }}
+        />
+      </div>
+    );
+  }
+
+  const revenue = orders.reduce(
+    (s, o) => s + numeric(o.total),
+    0,
+  );
+
+  return (
+    <div className="admin-section">
+      <SectionTitle
+        eyebrow="VANTA / ADMIN"
+        title={t("admin.dashboard")}
+      />
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span>{t("admin.totalOrders")}</span>
+          <strong>{orders.length}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>{t("admin.totalUsers")}</span>
+          <strong>{users.length}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>{t("admin.catalog")}</span>
+          <strong>{products.length}</strong>
+        </div>
+
+        <div className="stat-card">
+          <span>{t("admin.revenue")}</span>
+          <strong>
+            EGP {revenue.toLocaleString()}
+          </strong>
+        </div>
+      </div>
+
+      <div className="admin-panels">
+        <div className="admin-panel">
+          <SectionTitle title={t("admin.latest")} />
+
+          {orders.slice(0, 8).map((o) => (
+            <div className="mini-row" key={o.id}>
+              <span># {o.id}</span>
+              <strong>{o.customer_name}</strong>
+              <StatusBadge status={o.status} />
+              <span>
+                EGP {numeric(o.total).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="admin-panel">
+          <SectionTitle title={t("admin.health")} />
+
+          <div className="health-list">
+            <div>
+              <span>{t("admin.inStock")}</span>
+              <strong>
+                {
+                  products.filter(
+                    (p) => numeric(p.stock) > 0,
+                  ).length
+                }
+              </strong>
+            </div>
+
+            <div>
+              <span>{t("admin.discounted")}</span>
+              <strong>
+                {
+                  products.filter(
+                    (p) => numeric(p.discount) > 0,
+                  ).length
+                }
+              </strong>
+            </div>
+
+            <div>
+              <span>{t("admin.categories")}</span>
+              <strong>
+                {
+                  new Set(
+                    products
+                      .map((p) => p.category_name)
+                      .filter(Boolean),
+                  ).size
+                }
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductForm({
+  product,
+  onClose,
+  onSaved,
+}: {
+  product?: Product;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { t } = useI18n();
+  const notify = useUiStore((s) => s.notify);
+
+  const [v, setV] = useState({
+    title: product?.title || "",
+    description: product?.description || "",
+    price: String(product?.price || ""),
+    discount: String(product?.discount || 0),
+    stock: String(product?.stock || 0),
+    category_name: product?.category_name || "",
+    sizes: product?.sizes || "",
+    colors: product?.colors || "",
+  });
+
+  const [files, setFiles] =
+    useState<FileList | null>(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const set = (
+    k: keyof typeof v,
+    x: string,
+  ) =>
+    setV((s) => ({
+      ...s,
+      [k]: x,
+    }));
+
+  async function save() {
+    setLoading(true);
+
+    try {
+      const f = new FormData();
+
+      Object.entries(v).forEach(([k, x]) => {
+        f.append(k, x);
+      });
+
+      if (product) {
+        f.append("id", String(product.id));
+
+        if (files?.[0]) {
+          f.append("image", files[0]);
+        } else if (product.image_url) {
+          f.append("image_url", product.image_url);
+        }
+
+        f.append(
+          "is_active",
+          product.is_active === false ? "0" : "1",
+        );
+
+        await api.products.update(f);
+      } else {
+        if (!files?.length) {
+          throw new Error(
+            t("admin.imageRequired"),
+          );
+        }
+
+        Array.from(files)
+          .slice(0, 5)
+          .forEach((x) => {
+            f.append("images", x);
+          });
+
+        await api.products.add(f);
+      }
+
+      invalidateCatalog();
+
+      notify(t("admin.saved"), "success");
+
+      onSaved();
+      onClose();
+    } catch (e) {
+      notify(
+        e instanceof Error
+          ? e.message
+          : t("admin.saveFailed"),
+        "error",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="stack-lg">
+      <div className="admin-form-grid">
+        <Field
+          label={t("admin.titleField")}
+          value={v.title}
+          onChange={(e) =>
+            set("title", e.target.value)
+          }
+        />
+
+        <Field
+          label={t("admin.price")}
+          value={v.price}
+          onChange={(e) =>
+            set("price", e.target.value)
+          }
+        />
+
+        <Field
+          label={t("admin.discount")}
+          value={v.discount}
+          onChange={(e) =>
+            set("discount", e.target.value)
+          }
+        />
+
+        <Field
+          label={t("admin.stock")}
+          value={v.stock}
+          onChange={(e) =>
+            set("stock", e.target.value)
+          }
+        />
+
+        <Field
+          label={t("admin.categoryField")}
+          value={v.category_name}
+          onChange={(e) =>
+            set(
+              "category_name",
+              e.target.value,
+            )
+          }
+        />
+
+        <Field
+          label={t("admin.sizes")}
+          value={v.sizes}
+          onChange={(e) =>
+            set("sizes", e.target.value)
+          }
+        />
+
+        <Field
+          label={t("admin.colors")}
+          value={v.colors}
+          onChange={(e) =>
+            set("colors", e.target.value)
+          }
+        />
+
+        <label className="field">
+          <span className="field-label">
+            {t("admin.images")}
+          </span>
+
+          <input
+            className="input"
+            type="file"
+            accept="image/*"
+            multiple={!product}
+            onChange={(e) =>
+              setFiles(e.target.files)
+            }
+          />
+        </label>
+      </div>
+
+      <Textarea
+        label={t("admin.description")}
+        value={v.description}
+        onChange={(e) =>
+          set("description", e.target.value)
+        }
+        rows={5}
+      />
+
+      <div className="modal-actions">
+        <Button
+          variant="outline"
+          onClick={onClose}
+        >
+          {t("admin.cancel")}
+        </Button>
+
+        <Button
+          loading={loading}
+          onClick={save}
+        >
+          {t("admin.save")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function AdminProducts() {
+  const { t } = useI18n();
+  const notify = useUiStore((s) => s.notify);
+
+  const [products, setProducts] =
+    useState<Product[]>([]);
+
+  const [state, setState] =
+    useState("loading");
+
+  const [error, setError] = useState("");
+
+  const [query, setQuery] = useState("");
+
+  const [editor, setEditor] =
+    useState<Product | "new" | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setProducts(await getCatalog(true));
+      setState("ready");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+      );
+      setState("error");
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const filtered = products.filter((p) =>
+    (p.title + " " + p.category_name)
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
+  async function toggle(p: Product) {
+    try {
+      await api.products.toggle(p.id);
+
+      invalidateCatalog();
+
+      notify(
+        t("admin.statusUpdated"),
+        "success",
+      );
+
+      await load();
+    } catch (e) {
+      notify(
+        e instanceof Error
+          ? e.message
+          : t("admin.updateFailed"),
+        "error",
+      );
+    }
+  }
+
+  if (state === "loading") {
+    return (
+      <div className="admin-section">
+        <SectionTitle title={t("admin.products")} />
+        <div className="skeleton table-skeleton" />
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="admin-section">
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setState("loading");
+            void load();
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-section">
+      <SectionTitle
+        eyebrow="VANTA / ADMIN"
+        title={t("admin.products")}
+        action={
+          <Button
+            onClick={() =>
+              setEditor("new")
+            }
+          >
+            <Plus className="icon" />
+            {t("admin.addProduct")}
+          </Button>
+        }
+      />
+
+      <div className="admin-toolbar">
+        <label className="search-field">
+          <Search className="icon" />
+
+          <input
+            value={query}
+            onChange={(e) =>
+              setQuery(e.target.value)
+            }
+            placeholder={t("admin.search")}
+          />
+        </label>
+      </div>
+
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("admin.titleField")}</th>
+              <th>{t("admin.price")}</th>
+              <th>{t("admin.stock")}</th>
+              <th>{t("admin.categoryField")}</th>
+              <th>{t("admin.active")}</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtered.map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <strong>{p.title}</strong>
+                </td>
+
+                <td>
+                  <Price
+                    value={finalProductPrice(p)}
+                    discount={p.discount || 0}
+                  />
+                </td>
+
+                <td>{p.stock}</td>
+
+                <td>{p.category_name}</td>
+
+                <td>
+                  <StatusBadge
+                    status={
+                      p.is_active === false
+                        ? "inactive"
+                        : "active"
+                    }
+                  />
+                </td>
+
+                <td className="table-actions">
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setEditor(p)
+                    }
+                  >
+                    {t("admin.editProduct")}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      void toggle(p)
+                    }
+                  >
+                    {p.is_active === false
+                      ? t("admin.active")
+                      : t("admin.inactive")}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal
+        open={!!editor}
+        onClose={() =>
+          setEditor(null)
+        }
+        title={
+          editor === "new"
+            ? t("admin.addProduct")
+            : t("admin.editProduct")
+        }
+        wide
+      >
+        <ProductForm
+          product={
+            editor && editor !== "new"
+              ? editor
+              : undefined
+          }
+          onClose={() =>
+            setEditor(null)
+          }
+          onSaved={load}
+        />
+      </Modal>
+    </div>
+  );
+}
+
+export function AdminOrders() {
+  const { t } = useI18n();
+  const notify = useUiStore((s) => s.notify);
+
+  const [orders, setOrders] =
+    useState<Order[]>([]);
+
+  const [state, setState] =
+    useState("loading");
+
+  const [query, setQuery] = useState("");
+
+  const [error, setError] = useState("");
+
+  // Payment screenshot currently opened in the modal
+  const [paymentImage, setPaymentImage] =
+    useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setOrders(
+        (await api.admin.orders()).orders ||
+          [],
+      );
+
+      setState("ready");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+      );
+
+      setState("error");
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function update(
+    o: Order,
+    s: string,
+  ) {
+    try {
+      await api.admin.updateOrderStatus(
+        o.id,
+        s,
+      );
+
+      notify(
+        t("admin.orderUpdated"),
+        "success",
+      );
+
+      await load();
+    } catch (e) {
+      notify(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+        "error",
+      );
+    }
+  }
+
+  const rows = orders.filter((o) =>
+    (
+      String(o.id) +
+      " " +
+      o.customer_name +
+      " " +
+      o.customer_email +
+      " " +
+      o.status
+    )
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
+  if (state === "loading") {
+    return (
+      <div className="admin-section">
+        <SectionTitle title={t("admin.orders")} />
+        <div className="skeleton table-skeleton" />
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="admin-section">
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setState("loading");
+            void load();
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-section">
+      <SectionTitle title={t("admin.orders")} />
+
+      <div className="admin-toolbar">
+        <label className="search-field">
+          <Search className="icon" />
+
+          <input
+            value={query}
+            onChange={(e) =>
+              setQuery(e.target.value)
+            }
+            placeholder={t("admin.search")}
+          />
+        </label>
+      </div>
+
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>{t("orders.date")}</th>
+              <th>{t("orders.total")}</th>
+              <th>Payment</th>
+              <th>{t("orders.status")}</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((o) => (
+              <tr key={o.id}>
+                <td>#{o.id}</td>
+
+                <td>
+                  <strong>
+                    {o.customer_name}
+                  </strong>
+                  <small>
+                    {o.customer_email}
+                  </small>
+                </td>
+
+                <td>
+                  {o.created_at
+                    ? new Date(
+                        o.created_at,
+                      ).toLocaleString()
+                    : "—"}
+                </td>
+
+                <td>
+                  EGP{" "}
+                  {numeric(
+                    o.total,
+                  ).toLocaleString()}
+                </td>
+
+                <td>
+                  {o.payment_screenshot ? (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setPaymentImage(
+                          o.payment_screenshot,
+                        )
+                      }
+                    >
+                      View Payment
+                    </Button>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+
+                <td>
+                  <div className="status-editor">
+                    <StatusBadge
+                      status={o.status}
+                    />
+
+                    <select
+                      className="mini-select"
+                      value={
+                        o.status || "pending"
+                      }
+                      onChange={(e) =>
+                        void update(
+                          o,
+                          e.target.value,
+                        )
+                      }
+                    >
+                      {statuses.map((s) => (
+                        <option key={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal
+        open={!!paymentImage}
+        onClose={() =>
+          setPaymentImage(null)
+        }
+        title="Payment Proof"
+        wide
+      >
+        {paymentImage && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                background: "#f5f5f5",
+                borderRadius: "12px",
+                padding: "16px",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src={paymentImage}
+                alt="Payment screenshot"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "75vh",
+                  objectFit: "contain",
+                  borderRadius: "8px",
+                }}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    paymentImage,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+              >
+                Open Full Image
+              </Button>
+
+              <Button
+                onClick={() =>
+                  setPaymentImage(null)
+                }
+              >
+                {t("admin.cancel")}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+export function AdminUsers() {
+  const { t } = useI18n();
+  const notify = useUiStore((s) => s.notify);
+
+  const [users, setUsers] =
+    useState<User[]>([]);
+
+  const [state, setState] =
+    useState("loading");
+
+  const [query, setQuery] = useState("");
+
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      setUsers(
+        (await api.admin.users()).users ||
+          [],
+      );
+
+      setState("ready");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+      );
+
+      setState("error");
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function remove(u: User) {
+    if (
+      !window.confirm(
+        t("admin.confirmDelete") +
+          " " +
+          u.name +
+          "?",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api.admin.deleteUser(u.id);
+
+      notify(
+        t("admin.userDeleted"),
+        "success",
+      );
+
+      await load();
+    } catch (e) {
+      notify(
+        e instanceof Error
+          ? e.message
+          : t("common.error"),
+        "error",
+      );
+    }
+  }
+
+  const rows = users.filter((u) =>
+    (
+      u.name +
+      " " +
+      u.email +
+      " " +
+      (u.phone || "")
+    )
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
+  if (state === "loading") {
+    return (
+      <div className="admin-section">
+        <SectionTitle title={t("admin.users")} />
+        <div className="skeleton table-skeleton" />
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="admin-section">
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            setState("loading");
+            void load();
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-section">
+      <SectionTitle title={t("admin.users")} />
+
+      <div className="admin-toolbar">
+        <label className="search-field">
+          <Search className="icon" />
+
+          <input
+            value={query}
+            onChange={(e) =>
+              setQuery(e.target.value)
+            }
+            placeholder={t("admin.search")}
+          />
+        </label>
+      </div>
+
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("auth.name")}</th>
+              <th>{t("auth.email")}</th>
+              <th>{t("auth.phone")}</th>
+              <th>{t("admin.role")}</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((u) => (
+              <tr key={u.id}>
+                <td>
+                  <strong>{u.name}</strong>
+                </td>
+
+                <td>{u.email}</td>
+
+                <td>{u.phone}</td>
+
+                <td>{u.role}</td>
+
+                <td>
+                  <Button
+                    variant="danger"
+                    onClick={() =>
+                      void remove(u)
+                    }
+                  >
+                    <Trash2 className="icon" />
+                    {t("admin.delete")}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export function AdminCategories() {
+  const { t } = useI18n();
+
+  const [products, setProducts] =
+    useState<Product[]>([]);
+
+  const [state, setState] =
+    useState("loading");
+
+  useEffect(() => {
+    getCatalog(true)
+      .then((v) => {
+        setProducts(v);
+        setState("ready");
+      })
+      .catch(() =>
+        setState("error"),
+      );
+  }, []);
+
+  const cats = useMemo(() => {
+    const m = new Map<
+      string,
+      number
+    >();
+
+    products.forEach((p) => {
+      const k =
+        p.category_name ||
+        t("admin.uncategorized");
+
+      m.set(
+        k,
+        (m.get(k) || 0) + 1,
+      );
+    });
+
+    return [...m.entries()].sort(
+      (a, b) => b[1] - a[1],
+    );
+  }, [products, t]);
+
+  if (state === "loading") {
+    return (
+      <div className="admin-section">
+        <SectionTitle
+          title={t("admin.categories")}
+        />
+
+        <div className="skeleton table-skeleton" />
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="admin-section">
+        <ErrorState
+          message={t("common.error")}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-section">
+      <SectionTitle
+        title={t("admin.categories")}
+      />
+
+      <div className="form-hint">
+        {t("admin.readOnlyCategories")}
+      </div>
+
+      <div className="category-admin-grid">
+        {cats.map(([name, count]) => (
+          <div
+            className="category-admin-card"
+            key={name}
+          >
+            <span className="eyebrow">
+              {t("admin.categoryLabel")}
+            </span>
+
+            <strong>{name}</strong>
+
+            <span>
+              {count}{" "}
+              {t("admin.productCount")}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
