@@ -1,7 +1,6 @@
- tsx
-/* eslint-disable react-hooks/set-state-in-effect -- async remote-state lifecycle is intentional in this client feature */
-
 "use client";
+
+/* eslint-disable react-hooks/set-state-in-effect -- async remote-state lifecycle is intentional in this client feature */
 
 import Link from "next/link";
 import {
@@ -1565,4 +1564,3 @@ export function AdminCategories() {
     </div>
   );
 }
- 
